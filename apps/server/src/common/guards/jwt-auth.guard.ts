@@ -1,10 +1,15 @@
-import { Injectable, type CanActivate, type ExecutionContext, UnauthorizedException } from "@nestjs/common";
-import { Reflector } from "@nestjs/core";
+import {
+  type CanActivate,
+  type ExecutionContext,
+  Injectable,
+  UnauthorizedException,
+} from "@nestjs/common";
+import type { Reflector } from "@nestjs/core";
+import { env } from "@tapt-api/env/server";
 import type { Request } from "express";
 import jwt from "jsonwebtoken";
-import { env } from "@tapt-api/env/server";
-import type { RequestUser } from "../types/request-user.interface";
 import { IS_PUBLIC_KEY } from "../decorators/public.decorator";
+import type { RequestUser } from "../types/request-user.interface";
 
 @Injectable()
 export class JwtAuthGuard implements CanActivate {
@@ -27,7 +32,10 @@ export class JwtAuthGuard implements CanActivate {
     }
 
     try {
-      const payload = jwt.verify(token, env.JWT_SECRET) as RequestUser & { iat?: number; exp?: number };
+      const payload = jwt.verify(token, env.JWT_SECRET) as RequestUser & {
+        iat?: number;
+        exp?: number;
+      };
       request.user = { ...payload };
       return true;
     } catch {

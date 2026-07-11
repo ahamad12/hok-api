@@ -1,8 +1,13 @@
-import { Injectable, type CanActivate, type ExecutionContext, ForbiddenException } from "@nestjs/common";
-import { Reflector } from "@nestjs/core";
+import {
+  type CanActivate,
+  type ExecutionContext,
+  ForbiddenException,
+  Injectable,
+} from "@nestjs/common";
+import type { Reflector } from "@nestjs/core";
 import type { Request } from "express";
-import type { RequestUser } from "../types/request-user.interface";
 import { ROLES_KEY, SUPERVISOR_ONLY_KEY } from "../decorators/roles.decorator";
+import type { RequestUser } from "../types/request-user.interface";
 
 @Injectable()
 export class RolesGuard implements CanActivate {

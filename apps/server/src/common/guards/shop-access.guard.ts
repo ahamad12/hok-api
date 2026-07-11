@@ -1,5 +1,11 @@
-import { Injectable, type CanActivate, type ExecutionContext, ForbiddenException, SetMetadata } from "@nestjs/common";
-import { Reflector } from "@nestjs/core";
+import {
+  type CanActivate,
+  type ExecutionContext,
+  ForbiddenException,
+  Injectable,
+  SetMetadata,
+} from "@nestjs/common";
+import type { Reflector } from "@nestjs/core";
 import type { Request } from "express";
 import type { RequestUser } from "../types/request-user.interface";
 
@@ -22,10 +28,11 @@ export class ShopAccessGuard implements CanActivate {
       return true;
     }
 
-    const paramKey = this.reflector.getAllAndOverride<string>(SHOP_ACCESS_PARAM_KEY, [
-      context.getHandler(),
-      context.getClass(),
-    ]) ?? "shopId";
+    const paramKey =
+      this.reflector.getAllAndOverride<string>(SHOP_ACCESS_PARAM_KEY, [
+        context.getHandler(),
+        context.getClass(),
+      ]) ?? "shopId";
 
     const targetShopId = request.params[paramKey];
 
