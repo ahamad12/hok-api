@@ -1,0 +1,37 @@
+{
+  "name": "tapt-api",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "type": "module",
+  "scripts": {
+    "dev": "turbo dev",
+    "build": "turbo build",
+    "check-types": "turbo check-types",
+    "dev:server": "turbo -F server dev",
+    "db:push": "turbo -F @tapt-api/db db:push",
+    "db:studio": "turbo -F @tapt-api/db db:studio",
+    "db:generate": "turbo -F @tapt-api/db db:generate",
+    "db:migrate": "turbo -F @tapt-api/db db:migrate",
+    "db:start": "turbo -F @tapt-api/db db:start",
+    "db:watch": "turbo -F @tapt-api/db db:watch",
+    "db:stop": "turbo -F @tapt-api/db db:stop",
+    "db:down": "turbo -F @tapt-api/db db:down",
+    "check": "biome check --write ."
+  },
+  "dependencies": {
+    "@tapt-api/env": "*",
+    "dotenv": "^17.4.2",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.5.1",
+    "@tapt-api/config": "*",
+    "@types/node": "^26.0.1",
+    "turbo": "^2.10.0",
+    "typescript": "^6.0.3"
+  },
+  "packageManager": "npm@10.9.0"
+}

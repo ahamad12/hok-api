@@ -1,0 +1,141 @@
+import sgMail from "@sendgrid/mail";
+
+// Initialize SendGrid with API key
+sgMail.setApiKey(process.env.SENDGRID_API_KEY || "");
+
+export interface SendEmailOptions {
+  to: string | string[];
+  subject: string;
+  html?: string;
+  text?: string;
+  from?: string;
+  replyTo?: string;
+  attachments?: Array<{
+    filename: string;
+    content: string; // Base64 encoded content
+    type: string;
+    disposition?: "attachment" | "inline";
+    contentId?: string;
+  }>;
+  categories?: string[];
+  sendAt?: number; // Unix timestamp for scheduled sending
+}
+
+/**
+ * Send an email using SendGrid
+ * @see https://docs.sendgrid.com/api-reference/mail-send/mail-send
+ */
+export async function sendEmail(options: SendEmailOptions) {
+  const { to, subject, html, text, from, replyTo, attachments, categories, sendAt } = options;
+
+  const fromAddress = from || process.env.SENDGRID_FROM_EMAIL || "noreply@example.com";
+  const toAddresses = Array.isArray(to) ? to : [to];
+
+  try {
+    const msg = {
+      to: toAddresses,
+      from: fromAddress,
+      subject,
+      ...(html ? { html } : {}),
+      ...(text ? { text } : {}),
+      replyTo: replyTo || undefined,
+      attachments: attachments?.map((a) => ({
+        filename: a.filename,
+        content: a.content,
+        type: a.type,
+        disposition: a.disposition || "attachment",
+        contentId: a.contentId,
+      })),
+      categories,
+      sendAt,
+    } as sgMail.MailDataRequired;
+
+    const [response] = await sgMail.send(msg);
+    console.log("Email sent:", response.statusCode);
+    return { success: true, statusCode: response.statusCode };
+  } catch (error) {
+    console.error("Email sending error:", error);
+    throw error;
+  }
+}
+
+/**
+ * Send multiple emails in a batch (up to 1000 per batch)
+ * @see https://docs.sendgrid.com/api-reference/mail-send/mail-send
+ */
+export async function sendBatchEmails(
+  emails: Array<{
+    to: string | string[];
+    subject: string;
+    html?: string;
+    text?: string;
+    from?: string;
+    categories?: string[];
+  }>,
+) {
+  const fromAddress = process.env.SENDGRID_FROM_EMAIL || "noreply@example.com";
+
+  const messages = emails.map((email) => ({
+    to: Array.isArray(email.to) ? email.to : [email.to],
+    from: email.from || fromAddress,
+    subject: email.subject,
+    ...(email.html ? { html: email.html } : {}),
+    ...(email.text ? { text: email.text } : {}),
+    categories: email.categories,
+  })) as sgMail.MailDataRequired[];
+
+  try {
+    const [response] = await sgMail.send(messages);
+    console.log(`Batch of ${emails.length} emails sent`);
+    return {
+      success: true,
+      statusCode: response.statusCode,
+    };
+  } catch (error) {
+    console.error("Batch email sending error:", error);
+    throw error;
+  }
+}
+
+/**
+ * Send personalized emails to multiple recipients using dynamic templates
+ * @see https://docs.sendgrid.com/api-reference/mail-send/mail-send#dynamic-templates
+ */
+export async function sendTemplateEmail(options: {
+  to: string | string[];
+  templateId: string;
+  dynamicTemplateData: Record<string, unknown>;
+  from?: string;
+  categories?: string[];
+}) {
+  const { to, templateId, dynamicTemplateData, from, categories } = options;
+
+  const fromAddress = from || process.env.SENDGRID_FROM_EMAIL || "noreply@example.com";
+  const toAddresses = Array.isArray(to) ? to : [to];
+
+  try {
+    const msg = {
+      to: toAddresses,
+      from: fromAddress,
+      templateId,
+      dynamicTemplateData,
+      categories,
+    } as sgMail.MailDataRequired;
+
+    const [response] = await sgMail.send(msg);
+    console.log("Template email sent:", response.statusCode);
+    return { success: true, statusCode: response.statusCode };
+  } catch (error) {
+    console.error("Template email sending error:", error);
+    throw error;
+  }
+}
+
+/**
+ * Get the SendGrid mail client for advanced usage
+ */
+export function getSendGridClient() {
+  return sgMail;
+}
+
+export { sgMail };

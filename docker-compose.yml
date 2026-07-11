@@ -1,0 +1,49 @@
+# Docker Compose for tapt-api
+# Full-stack container orchestration
+
+name: tapt-api
+
+services:
+  server:
+    build:
+      context: ./apps/server
+      dockerfile: Dockerfile
+    container_name: tapt-api-server
+    ports:
+      - "3001:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - DATABASE_URL=postgresql://postgres:password@db:5432/tapt-api
+    restart: unless-stopped
+    depends_on:
+      - db
+    networks:
+      - tapt-api-network
+
+  db:
+    image: postgres:16-alpine
+    container_name: tapt-api-postgres
+    environment:
+      POSTGRES_DB: tapt-api
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5432:5432"
+    volumes:
+      - tapt-api_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - tapt-api-network
+
+networks:
+  tapt-api-network:
+    driver: bridge
+
+volumes:
+  tapt-api_postgres_data:
