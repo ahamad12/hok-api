@@ -6,13 +6,13 @@ import {
   HttpStatus,
   Inject,
 } from "@nestjs/common";
-import { Prisma } from "@prisma/client";
+import { Prisma } from "@tapt-api/db";
 import type { Request, Response } from "express";
 import { WINSTON_MODULE_PROVIDER } from "nest-winston";
 import type { Logger } from "winston";
 import { ZodError } from "zod";
-import { DomainError } from "../common/errors";
-import type { SentryService } from "../infra/sentry/sentry.service";
+import { DomainError } from "../errors";
+import type { SentryService } from "../../infra/sentry/sentry.service";
 
 interface ErrorResponseBody {
   success: false;

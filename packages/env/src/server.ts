@@ -26,7 +26,7 @@ export const env = createEnv({
     CLOUDINARY_API_SECRET: z.string().optional(),
     THROTTLE_TTL: z.coerce.number().int().positive().default(60000),
     THROTTLE_LIMIT: z.coerce.number().int().positive().default(100),
-    JWT_SECRET: z.string().trim().min(32).optional(),
+    JWT_SECRET: z.string().trim().min(32),
   },
   runtimeEnv: process.env,
   emptyStringAsUndefined: true,

@@ -1,10 +1,10 @@
+import { OnWorkerEvent, Processor, WorkerHost } from "@nestjs/bullmq";
 import { Inject } from "@nestjs/common";
-import { Processor, WorkerHost, OnWorkerEvent } from "@nestjs/bullmq";
-import { Job } from "bullmq";
+import type { Job } from "bullmq";
 import { WINSTON_MODULE_PROVIDER } from "nest-winston";
 import type { Logger } from "winston";
 
-import { SentryService } from "../../sentry/sentry.service";
+import type { SentryService } from "../../sentry/sentry.service";
 
 interface NotificationJobData {
   userId: string;
@@ -23,7 +23,9 @@ export class NotificationProcessor extends WorkerHost {
     super();
   }
 
-  async process(job: Job<NotificationJobData>): Promise<{ sent: boolean; type: string; userId: string }> {
+  async process(
+    job: Job<NotificationJobData>,
+  ): Promise<{ sent: boolean; type: string; userId: string }> {
     try {
       this.logger.info(`Processing notification job ${job.id}`, {
         type: job.data.type,

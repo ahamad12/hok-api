@@ -12,7 +12,7 @@ export class StorageService {
 
   async upload(file: string | Buffer, options?: UploadApiOptions): Promise<UploadApiResponse> {
     this.logger.info("Uploading file to Cloudinary");
-    return this.cloudinary.uploader.upload(file, options);
+    return this.cloudinary.uploader.upload(file as string, options);
   }
 
   async delete(publicId: string): Promise<void> {

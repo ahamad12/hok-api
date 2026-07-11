@@ -7,6 +7,9 @@ import { WinstonModule } from "nest-winston";
 import { AppController } from "./app.controller";
 import { AppService } from "./app.service";
 import { GlobalExceptionFilter } from "./common/filters/global-exception.filter";
+import { JwtAuthGuard } from "./common/guards/jwt-auth.guard";
+import { RolesGuard } from "./common/guards/roles.guard";
+import { ShopAccessGuard } from "./common/guards/shop-access.guard";
 import { LoggingInterceptor } from "./common/interceptors/logging.interceptor";
 import { TransformInterceptor } from "./common/interceptors/transform.interceptor";
 import { HealthModule } from "./health/health.module";
@@ -34,15 +37,13 @@ import { StorageModule } from "./infra/storage/storage.module";
             limit: env.THROTTLE_LIMIT,
           },
         ],
-        storage: new ThrottlerStorageRedisService(
-          env.REDIS_URL
-            ? env.REDIS_URL
-            : {
-                host: env.REDIS_HOST,
-                port: env.REDIS_PORT,
-                password: env.REDIS_PASSWORD || undefined,
-              },
-        ),
+        storage: env.REDIS_URL
+          ? new ThrottlerStorageRedisService(env.REDIS_URL)
+          : new ThrottlerStorageRedisService({
+              host: env.REDIS_HOST,
+              port: env.REDIS_PORT,
+              password: env.REDIS_PASSWORD || undefined,
+            }),
       }),
     }),
     WinstonModule.forRoot(winstonConfig),
@@ -65,6 +66,18 @@ import { StorageModule } from "./infra/storage/storage.module";
     {
       provide: APP_GUARD,
       useClass: ThrottlerGuard,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: JwtAuthGuard,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: RolesGuard,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: ShopAccessGuard,
     },
   ],
 })

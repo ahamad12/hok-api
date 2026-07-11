@@ -1,5 +1,5 @@
-import { Module } from "@nestjs/common";
 import { BullModule } from "@nestjs/bullmq";
+import { Module } from "@nestjs/common";
 import { env } from "@tapt-api/env/server";
 import { EmailProcessor } from "./processors/email.processor";
 import { NotificationProcessor } from "./processors/notification.processor";
@@ -25,10 +25,7 @@ import { NotificationProcessor } from "./processors/notification.processor";
         },
       }),
     }),
-    BullModule.registerQueue(
-      { name: "email" },
-      { name: "notification" },
-    ),
+    BullModule.registerQueue({ name: "email" }, { name: "notification" }),
   ],
   providers: [EmailProcessor, NotificationProcessor],
   exports: [BullModule],

@@ -1,0 +1,15 @@
+export const UserRole = {
+  OWNER: "OWNER",
+  MANAGER: "MANAGER",
+  STAFF: "STAFF",
+} as const;
+
+export type UserRole = (typeof UserRole)[keyof typeof UserRole];
+
+export interface RequestUser {
+  userId: string;
+  email: string;
+  role: UserRole;
+  shopId: string | null;
+  isSupervisor: boolean;
+}

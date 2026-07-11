@@ -27,7 +27,7 @@
     "backend.fileStorage": "typescript:cloudinary",
     "backend.featureFlags": "typescript:growthbook",
     "backend.realtime": "typescript:socket-io",
-    "backend.validation": "typescript:zod",
+    "backend.validation": "typescript:zod"
   },
   "ecosystem": "typescript",
   "database": "postgres",
@@ -160,7 +160,7 @@
       "toolId": "nestjs",
       "ecosystem": "typescript",
       "source": "legacy",
-      "targetPath": "apps/server",
+      "targetPath": "apps/server"
     },
     {
       "id": "database:universal:postgres",
@@ -168,7 +168,7 @@
       "toolId": "postgres",
       "ecosystem": "universal",
       "source": "legacy",
-      "targetPath": "packages/db",
+      "targetPath": "packages/db"
     },
     {
       "id": "database:universal:postgres.dbsetup:universal:docker",
@@ -176,28 +176,28 @@
       "toolId": "docker",
       "ecosystem": "universal",
       "ownerPartId": "database:universal:postgres",
-      "source": "legacy",
+      "source": "legacy"
     },
     {
       "id": "codequality:universal:biome",
       "role": "codeQuality",
       "toolId": "biome",
       "ecosystem": "universal",
-      "source": "legacy",
+      "source": "legacy"
     },
     {
       "id": "documentation:universal:starlight",
       "role": "documentation",
       "toolId": "starlight",
       "ecosystem": "universal",
-      "source": "legacy",
+      "source": "legacy"
     },
     {
       "id": "workspacetooling:universal:turborepo",
       "role": "workspaceTooling",
       "toolId": "turborepo",
       "ecosystem": "universal",
-      "source": "legacy",
+      "source": "legacy"
     },
     {
       "id": "backend:typescript:nestjs.orm:typescript:prisma",
@@ -205,7 +205,7 @@
       "toolId": "prisma",
       "ecosystem": "typescript",
       "ownerPartId": "backend:typescript:nestjs",
-      "source": "legacy",
+      "source": "legacy"
     },
     {
       "id": "backend:typescript:nestjs.api:typescript:ts-rest",
@@ -213,7 +213,7 @@
       "toolId": "ts-rest",
       "ecosystem": "typescript",
       "ownerPartId": "backend:typescript:nestjs",
-      "source": "legacy",
+      "source": "legacy"
     },
     {
       "id": "backend:typescript:nestjs.runtime:typescript:node",
@@ -221,7 +221,7 @@
       "toolId": "node",
       "ecosystem": "typescript",
       "ownerPartId": "backend:typescript:nestjs",
-      "source": "legacy",
+      "source": "legacy"
     },
     {
       "id": "backend:typescript:nestjs.deploy:typescript:docker",
@@ -229,7 +229,7 @@
       "toolId": "docker",
       "ecosystem": "typescript",
       "ownerPartId": "backend:typescript:nestjs",
-      "source": "legacy",
+      "source": "legacy"
     },
     {
       "id": "backend:typescript:nestjs.logging:typescript:winston",
@@ -237,7 +237,7 @@
       "toolId": "winston",
       "ecosystem": "typescript",
       "ownerPartId": "backend:typescript:nestjs",
-      "source": "legacy",
+      "source": "legacy"
     },
     {
       "id": "backend:typescript:nestjs.email:typescript:sendgrid",
@@ -245,7 +245,7 @@
       "toolId": "sendgrid",
       "ecosystem": "typescript",
       "ownerPartId": "backend:typescript:nestjs",
-      "source": "legacy",
+      "source": "legacy"
     },
     {
       "id": "backend:typescript:nestjs.caching:typescript:redis",
@@ -253,7 +253,7 @@
       "toolId": "redis",
       "ecosystem": "typescript",
       "ownerPartId": "backend:typescript:nestjs",
-      "source": "legacy",
+      "source": "legacy"
     },
     {
       "id": "backend:typescript:nestjs.observability:typescript:sentry",
@@ -261,7 +261,7 @@
       "toolId": "sentry",
       "ecosystem": "typescript",
       "ownerPartId": "backend:typescript:nestjs",
-      "source": "legacy",
+      "source": "legacy"
     },
     {
       "id": "backend:typescript:nestjs.jobqueue:typescript:bullmq",
@@ -269,7 +269,7 @@
       "toolId": "bullmq",
       "ecosystem": "typescript",
       "ownerPartId": "backend:typescript:nestjs",
-      "source": "legacy",
+      "source": "legacy"
     },
     {
       "id": "backend:typescript:nestjs.filestorage:typescript:cloudinary",
@@ -277,7 +277,7 @@
       "toolId": "cloudinary",
       "ecosystem": "typescript",
       "ownerPartId": "backend:typescript:nestjs",
-      "source": "legacy",
+      "source": "legacy"
     },
     {
       "id": "backend:typescript:nestjs.featureflags:typescript:growthbook",
@@ -285,7 +285,7 @@
       "toolId": "growthbook",
       "ecosystem": "typescript",
       "ownerPartId": "backend:typescript:nestjs",
-      "source": "legacy",
+      "source": "legacy"
     },
     {
       "id": "backend:typescript:nestjs.realtime:typescript:socket-io",
@@ -293,7 +293,7 @@
       "toolId": "socket-io",
       "ecosystem": "typescript",
       "ownerPartId": "backend:typescript:nestjs",
-      "source": "legacy",
+      "source": "legacy"
     },
     {
       "id": "backend:typescript:nestjs.validation:typescript:zod",
@@ -301,7 +301,7 @@
       "toolId": "zod",
       "ecosystem": "typescript",
       "ownerPartId": "backend:typescript:nestjs",
-      "source": "legacy",
-    },
-  ],
+      "source": "legacy"
+    }
+  ]
 }

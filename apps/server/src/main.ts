@@ -1,15 +1,14 @@
 import "./instrument";
 import "reflect-metadata";
-import { NestFactory } from "@nestjs/core";
-import { WinstonModule, WINSTON_MODULE_PROVIDER } from "nest-winston";
-import type { Logger } from "winston";
-import helmet from "helmet";
 import { VersioningType } from "@nestjs/common";
-import { SwaggerModule, DocumentBuilder } from "@nestjs/swagger";
-
+import { NestFactory } from "@nestjs/core";
+import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
+import { env } from "@tapt-api/env/server";
+import helmet from "helmet";
+import { WINSTON_MODULE_PROVIDER, WinstonModule } from "nest-winston";
+import type { Logger } from "winston";
 import { AppModule } from "./app.module";
 import { winstonConfig } from "./infra/logger/winston.module";
-import { env } from "@tapt-api/env/server";
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
@@ -33,10 +32,7 @@ async function bootstrap() {
       .setTitle("TAPT API")
       .setDescription("TAPT REST API documentation for mobile clients")
       .setVersion("1.0")
-      .addBearerAuth(
-        { type: "http", scheme: "bearer", bearerFormat: "JWT" },
-        "BearerAuth",
-      )
+      .addBearerAuth({ type: "http", scheme: "bearer", bearerFormat: "JWT" }, "BearerAuth")
       .build();
 
     const document = SwaggerModule.createDocument(app, swaggerConfig, {

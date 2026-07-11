@@ -1,10 +1,5 @@
-import type {
-  CallHandler,
-  ExecutionContext,
-  NestInterceptor,
-  StreamableFile,
-} from "@nestjs/common";
-import { Injectable } from "@nestjs/common";
+import type { CallHandler, ExecutionContext, NestInterceptor } from "@nestjs/common";
+import { Injectable, StreamableFile } from "@nestjs/common";
 import type { Observable } from "rxjs";
 import { map } from "rxjs/operators";
 

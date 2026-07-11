@@ -23,11 +23,7 @@ const redactFormat = winston.format((info) => {
 export const winstonConfig: WinstonModuleOptions = {
   level: process.env.LOG_LEVEL || "info",
   format: isProduction
-    ? winston.format.combine(
-        redactFormat(),
-        winston.format.timestamp(),
-        winston.format.json(),
-      )
+    ? winston.format.combine(redactFormat(), winston.format.timestamp(), winston.format.json())
     : winston.format.combine(
         redactFormat(),
         winston.format.timestamp(),

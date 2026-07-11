@@ -1,12 +1,14 @@
-import { Injectable } from "@nestjs/common";
 import type { OnApplicationShutdown } from "@nestjs/common";
+import { Injectable } from "@nestjs/common";
 import * as Sentry from "@sentry/nestjs";
 
 export interface ErrorContext {
   queue?: string;
   jobId?: string;
   userId?: string;
-  [key: string]: unknown;
+  path?: string;
+  method?: string;
+  [key: string]: string | undefined;
 }
 
 @Injectable()
@@ -30,7 +32,7 @@ export class SentryService implements OnApplicationShutdown {
   }
 
   withSpan<T>(name: string, callback: () => T | Promise<T>): Promise<T> {
-    return Sentry.startSpan({ name }, callback);
+    return Sentry.startSpan({ name }, () => Promise.resolve(callback()));
   }
 
   async onApplicationShutdown() {
