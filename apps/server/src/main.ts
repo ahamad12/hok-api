@@ -3,6 +3,7 @@ import "reflect-metadata";
 import { NestFactory } from "@nestjs/core";
 import { WinstonModule, WINSTON_MODULE_PROVIDER } from "nest-winston";
 import type { Logger } from "winston";
+import helmet from "helmet";
 
 import { AppModule } from "./app.module";
 import { winstonConfig } from "./infra/logger/winston.module";
@@ -14,6 +15,20 @@ async function bootstrap() {
   });
 
   app.enableShutdownHooks();
+
+  app.use(
+    helmet({
+      crossOriginResourcePolicy: { policy: "cross-origin" },
+      contentSecurityPolicy: {
+        directives: {
+          defaultSrc: ["'self'"],
+          scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
+          styleSrc: ["'self'", "'unsafe-inline'"],
+          imgSrc: ["'self'", "data:", "validator.swagger.io"],
+        },
+      },
+    }),
+  );
 
   app.enableCors({
     origin: env.CORS_ORIGIN,
