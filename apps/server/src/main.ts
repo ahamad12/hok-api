@@ -4,6 +4,7 @@ import { NestFactory } from "@nestjs/core";
 import { WinstonModule, WINSTON_MODULE_PROVIDER } from "nest-winston";
 import type { Logger } from "winston";
 import helmet from "helmet";
+import { VersioningType } from "@nestjs/common";
 
 import { AppModule } from "./app.module";
 import { winstonConfig } from "./infra/logger/winston.module";
@@ -15,6 +16,16 @@ async function bootstrap() {
   });
 
   app.enableShutdownHooks();
+
+  app.setGlobalPrefix("api", {
+    exclude: ["health", "metrics"],
+  });
+
+  app.enableVersioning({
+    type: VersioningType.URI,
+    prefix: "v",
+    defaultVersion: "1",
+  });
 
   app.use(
     helmet({
