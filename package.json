@@ -19,7 +19,8 @@
     "db:watch": "turbo -F @tapt-api/db db:watch",
     "db:stop": "turbo -F @tapt-api/db db:stop",
     "db:down": "turbo -F @tapt-api/db db:down",
-    "check": "biome check --write ."
+    "check": "biome check --write .",
+    "prepare": "husky"
   },
   "dependencies": {
     "@nestjs/bullmq": "^11.0.4",
@@ -39,8 +40,13 @@
     "@biomejs/biome": "^2.5.1",
     "@tapt-api/config": "*",
     "@types/node": "^26.0.1",
+    "husky": "^9.1.7",
+    "lint-staged": "^17.0.8",
     "turbo": "^2.10.0",
     "typescript": "^6.0.3"
+  },
+  "lint-staged": {
+    "*.{js,ts,tsx,mjs,cjs,json,jsonc}": "biome check --write"
   },
   "packageManager": "npm@10.9.0"
 }

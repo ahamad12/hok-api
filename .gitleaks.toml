@@ -1,0 +1,18 @@
+title = "TAPT API Gitleaks Configuration"
+
+[[rules]]
+id = "generic-api-key"
+description = "Generic API Key or High Entropy Secret"
+regex = '''(?i)(?:secret|token|password|key|auth|api_key|access_token)[\s=:]+['"]?[0-9a-zA-Z\-_]{16,}['"]?'''
+entropy = 3.5
+
+[allowlist]
+description = "Ignore local development secrets and known false positives"
+regexes = [
+    '''^dev-.*''',
+    '''noreply@example\.com''',
+    '''(?i)password''',
+]
+paths = [
+    '''.*prisma/generated/.*''',
+]

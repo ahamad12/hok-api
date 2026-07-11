@@ -1,43 +1,23 @@
-# Dockerfile for tapt-api server
-# Optimized multi-stage build for Docker deployment
-
-# Build stage
-FROM node:20-alpine AS builder
-
+FROM node:24-alpine AS builder
 WORKDIR /app
-
-# Install pnpm/yarn if needed
-
-# Copy package files
-COPY package.json package-lock.json ./
-COPY apps/server/package.json ./apps/server/
-COPY packages/db/package.json ./packages/db/
-
-# Install dependencies
+COPY package*.json ./
+COPY apps/server/package*.json ./apps/server/
+COPY packages/ ./packages/
 RUN npm ci
+COPY apps/server ./apps/server
+WORKDIR /app/apps/server
+RUN npx tsdown build
 
-# Copy source code
-COPY . .
-
-# Build the application
-RUN npm run build --workspace=apps/server
-
-# Production stage
-FROM node:20-alpine AS runner
-
-WORKDIR /app
-
+FROM node:24-alpine AS runner
 ENV NODE_ENV=production
-ENV PORT=3000
-
-
-# Copy built application
+WORKDIR /app
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 COPY --from=builder /app/apps/server/dist ./dist
-COPY --from=builder /app/apps/server/package.json ./
-
-# Install production dependencies only
-RUN npm ci --omit=dev
-
+COPY --from=builder /app/packages/db/prisma/generated ./packages/db/prisma/generated
+RUN npm ci --omit=dev --workspace=server
+RUN chown -R appuser:appgroup /app
+USER appuser
 EXPOSE 3000
-
+HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
+  CMD curl -f http://localhost:3000/health || exit 1
 CMD ["node", "dist/index.js"]
