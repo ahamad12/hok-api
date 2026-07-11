@@ -6,9 +6,10 @@ import { AppController } from "./app.controller";
 import { AppService } from "./app.service";
 import { winstonConfig } from "./infra/logger/winston.module";
 import { LoggingInterceptor } from "./common/interceptors/logging.interceptor";
+import { SentryModule } from "./infra/sentry/sentry.module";
 
 @Module({
-  imports: [WinstonModule.forRoot(winstonConfig)],
+  imports: [SentryModule, WinstonModule.forRoot(winstonConfig)],
   controllers: [AppController],
   providers: [
     AppService,

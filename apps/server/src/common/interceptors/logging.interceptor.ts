@@ -1,11 +1,9 @@
 import { Inject, Injectable } from "@nestjs/common";
 import type { CallHandler, ExecutionContext, NestInterceptor } from "@nestjs/common";
-import { Observable } from "rxjs";
-import { tap } from "rxjs/operators";
 import { WINSTON_MODULE_PROVIDER } from "nest-winston";
 import { Logger } from "winston";
-import { randomUUID } from "node:crypto";
-import type { Request, Response } from "express";
+import { Observable, tap } from "rxjs";
+import * as crypto from "crypto";
 
 @Injectable()
 export class LoggingInterceptor implements NestInterceptor {
@@ -14,49 +12,35 @@ export class LoggingInterceptor implements NestInterceptor {
   ) {}
 
   intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
-    const ctx = context.switchToHttp();
-    const request = ctx.getRequest<Request>();
+    const req = context.switchToHttp().getRequest();
+    const { method, originalUrl, headers } = req;
 
-    if (!request) {
-      return next.handle();
-    }
+    const requestId = headers["x-request-id"] || crypto.randomUUID();
+    req.requestId = requestId;
 
-    const requestId = randomUUID();
-    const start = Date.now();
-    const { method, url } = request;
+    const startTime = performance.now();
 
     return next.handle().pipe(
       tap({
         next: () => {
-          const response = ctx.getResponse<Response>();
-          const durationMs = Date.now() - start;
-          const statusCode = response.statusCode;
+          const res = context.switchToHttp().getResponse();
+          const durationMs = Math.round(performance.now() - startTime);
+          const statusCode = res.statusCode;
 
           const logData = {
             requestId,
             method,
-            url,
+            url: originalUrl,
             statusCode,
             durationMs,
+            headers,
           };
 
-          if (statusCode >= 400) {
-            this.logger.warn("Outgoing response", logData);
+          if (statusCode >= 400 && statusCode < 500) {
+            this.logger.warn(`[${method}] ${originalUrl} ${statusCode} - ${durationMs}ms`, logData);
           } else {
-            this.logger.info("Outgoing response", logData);
+            this.logger.info(`[${method}] ${originalUrl} ${statusCode} - ${durationMs}ms`, logData);
           }
-        },
-        error: () => {
-          // Error logging is handled exclusively by GlobalExceptionFilter.
-          // This interceptor only logs the request metadata at info/warn level
-          // to avoid duplicate error entries.
-          const durationMs = Date.now() - start;
-          this.logger.warn("Request ended with error", {
-            requestId,
-            method,
-            url,
-            durationMs,
-          });
         },
       }),
     );
