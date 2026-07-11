@@ -13,6 +13,7 @@ import { QueueModule } from "./infra/queue/queue.module";
 import { StorageModule } from "./infra/storage/storage.module";
 import { FeatureFlagModule } from "./infra/feature-flags/feature-flag.module";
 import { EmailModule } from "./infra/email/email.module";
+import { HealthModule } from "./health/health.module";
 import { env } from "@tapt-api/env/server";
 
 @Module({
@@ -22,6 +23,7 @@ import { env } from "@tapt-api/env/server";
     StorageModule,
     FeatureFlagModule,
     EmailModule,
+    HealthModule,
     ThrottlerModule.forRootAsync({
       useFactory: () => ({
         throttlers: [
