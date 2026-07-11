@@ -1,10 +1,11 @@
 import { Inject } from "@nestjs/common";
 import { Processor, WorkerHost, OnWorkerEvent } from "@nestjs/bullmq";
-import { Job } from "bullmq";
+import { Job, UnrecoverableError } from "bullmq";
 import { WINSTON_MODULE_PROVIDER } from "nest-winston";
 import type { Logger } from "winston";
 
 import { SentryService } from "../../sentry/sentry.service";
+import { EmailService } from "../../email/email.service";
 
 interface EmailJobData {
   to: string;
@@ -18,6 +19,7 @@ export class EmailProcessor extends WorkerHost {
   constructor(
     @Inject(WINSTON_MODULE_PROVIDER) private readonly logger: Logger,
     private readonly sentry: SentryService,
+    private readonly emailService: EmailService,
   ) {
     super();
   }
@@ -26,12 +28,28 @@ export class EmailProcessor extends WorkerHost {
     try {
       this.logger.info(`Processing email job ${job.id}`, { to: job.data.to });
 
-      // TODO: Wire SendGrid in D18
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      if (job.data.templateId) {
+        await this.emailService.sendTemplate({
+          to: job.data.to,
+          templateId: job.data.templateId,
+          dynamicTemplateData: {},
+        });
+      } else {
+        await this.emailService.send({
+          to: job.data.to,
+          subject: job.data.subject,
+          text: job.data.body,
+        });
+      }
 
       return { sent: true, to: job.data.to };
     } catch (err) {
       this.sentry.captureException(err, { queue: "email", jobId: String(job.id) });
+
+      const status = (err as any)?.code ?? (err as any)?.response?.statusCode;
+      if (typeof status === "number" && status >= 400 && status < 500) {
+        throw new UnrecoverableError(`Email job ${job.id} permanently failed: ${(err as Error).message}`);
+      }
       throw err;
     }
   }

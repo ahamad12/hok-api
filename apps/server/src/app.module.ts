@@ -10,12 +10,18 @@ import { winstonConfig } from "./infra/logger/winston.module";
 import { LoggingInterceptor } from "./common/interceptors/logging.interceptor";
 import { SentryModule } from "./infra/sentry/sentry.module";
 import { QueueModule } from "./infra/queue/queue.module";
+import { StorageModule } from "./infra/storage/storage.module";
+import { FeatureFlagModule } from "./infra/feature-flags/feature-flag.module";
+import { EmailModule } from "./infra/email/email.module";
 import { env } from "@tapt-api/env/server";
 
 @Module({
   imports: [
     SentryModule,
     QueueModule,
+    StorageModule,
+    FeatureFlagModule,
+    EmailModule,
     ThrottlerModule.forRootAsync({
       useFactory: () => ({
         throttlers: [

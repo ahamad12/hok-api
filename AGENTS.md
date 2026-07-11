@@ -24,12 +24,17 @@ This file provides context about the project for AI assistants.
 
 ### Additional Features
 
-- Email: sendgrid
-- Realtime: socket-io
-- Job Queue: bullmq
+- Email: sendgrid (infra/email — Global module via nestjs)
+- Realtime: socket-io (infra/gateway — NOT wired, needs auth module)
+- Feature Flags: growthbook (infra/feature-flags — Global module)
+- File Storage: cloudinary (infra/storage — Global module)
+- Job Queue: bullmq (infra/queue)
 - Caching: redis
-- Logging: winston
-- Observability: sentry
+- Logging: winston (nest-winston, WINSTON_MODULE_PROVIDER)
+- Observability: sentry (infra/sentry — Global module, instrument.ts)
+- Rate Limiting: @nestjs/throttler + Redis (APP_GUARD)
+- API Docs: @nestjs/swagger (production-gated)
+- Security: helmet (enterprise CSP, Swagger-compatible)
 
 ## Project Structure
 
@@ -37,9 +42,24 @@ This file provides context about the project for AI assistants.
 tapt-api/
 ├── apps/
 │   └── server/      # Backend API
+│       └── src/
+│           ├── common/            # Shared interceptors, filters, errors
+│           │   └── interceptors/  # LoggingInterceptor (global)
+│           ├── infra/
+│           │   ├── email/         # SendGrid module (Global)
+│           │   ├── feature-flags/ # GrowthBook module (Global)
+│           │   ├── gateway/       # Socket.io gateway (NOT wired yet — needs auth module)
+│           │   ├── logger/        # Winston config (nest-winston)
+│           │   ├── queue/         # BullMQ queue + processors (email, notification)
+│           │   ├── sentry/        # Sentry module (Global)
+│           │   └── storage/       # Cloudinary module (Global)
+│           ├── instrument.ts      # Sentry.init (first import in main.ts)
+│           └── main.ts            # Bootstrap — prefix, versioning, Swagger, helmet, CORS
 ├── packages/
 │   ├── api/         # API layer
-│   └── db/          # Database schema
+│   ├── config/      # Shared config (tsconfig, biome)
+│   ├── db/          # Database schema (Prisma)
+│   └── env/         # Zod-validated env (server.ts, web.ts, native.ts)
 ```
 
 ## Common Commands
