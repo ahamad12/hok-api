@@ -18,6 +18,18 @@ services:
     restart: unless-stopped
     depends_on:
       - db
+      - redis
+    networks:
+      - tapt-api-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: tapt-api-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - tapt-api_redis_data:/data
+    restart: unless-stopped
     networks:
       - tapt-api-network
 
@@ -47,3 +59,4 @@ networks:
 
 volumes:
   tapt-api_postgres_data:
+  tapt-api_redis_data:

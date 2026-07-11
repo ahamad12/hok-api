@@ -24,6 +24,8 @@ export const env = createEnv({
     CLOUDINARY_CLOUD_NAME: z.string().optional(),
     CLOUDINARY_API_KEY: z.string().optional(),
     CLOUDINARY_API_SECRET: z.string().optional(),
+    THROTTLE_TTL: z.coerce.number().int().positive().default(60000),
+    THROTTLE_LIMIT: z.coerce.number().int().positive().default(100),
     JWT_SECRET: z.string().trim().min(32).optional(),
   },
   runtimeEnv: process.env,
