@@ -9,11 +9,13 @@ import { AppService } from "./app.service";
 import { winstonConfig } from "./infra/logger/winston.module";
 import { LoggingInterceptor } from "./common/interceptors/logging.interceptor";
 import { SentryModule } from "./infra/sentry/sentry.module";
+import { QueueModule } from "./infra/queue/queue.module";
 import { env } from "@tapt-api/env/server";
 
 @Module({
   imports: [
     SentryModule,
+    QueueModule,
     ThrottlerModule.forRootAsync({
       useFactory: () => ({
         throttlers: [

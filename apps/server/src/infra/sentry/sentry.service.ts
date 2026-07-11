@@ -1,10 +1,20 @@
-import { Injectable, OnApplicationShutdown } from "@nestjs/common";
+import { Injectable } from "@nestjs/common";
+import type { OnApplicationShutdown } from "@nestjs/common";
 import * as Sentry from "@sentry/nestjs";
+
+export interface ErrorContext {
+  queue?: string;
+  jobId?: string;
+  userId?: string;
+  [key: string]: unknown;
+}
 
 @Injectable()
 export class SentryService implements OnApplicationShutdown {
-  captureException(exception: unknown, hint?: Sentry.EventHint) {
-    return Sentry.captureException(exception, hint);
+  captureException(exception: unknown, context?: ErrorContext) {
+    return Sentry.captureException(exception, {
+      tags: context,
+    });
   }
 
   captureMessage(message: string, level?: Sentry.SeverityLevel) {
