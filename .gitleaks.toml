@@ -11,7 +11,7 @@ description = "Ignore local development secrets and known false positives"
 regexes = [
     '''^dev-.*''',
     '''noreply@example\.com''',
-    '''(?i)password''',
+
 ]
 paths = [
     '''.*prisma/generated/.*''',

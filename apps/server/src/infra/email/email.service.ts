@@ -1,4 +1,4 @@
-import { Inject, Injectable } from "@nestjs/common";
+import { Inject, Injectable, InternalServerErrorException } from "@nestjs/common";
 import type sgMail from "@sendgrid/mail";
 import { env } from "@tapt-api/env/server";
 import { WINSTON_MODULE_PROVIDER } from "nest-winston";
@@ -75,9 +75,8 @@ export class EmailService {
       return { success: true, statusCode: response.statusCode };
     } catch (error) {
       // biome-ignore lint/suspicious/noExplicitAny: SendGrid errors are untyped
-      const status = (error as any)?.code ?? (error as any)?.response?.statusCode;
-      this.logger.error("Email sending failed", { to: toAddresses, statusCode: status });
-      throw error;
+      const sgDetails = (error as any)?.response?.body || (error as Error).message;
+      throw new InternalServerErrorException(`Email delivery failed: ${JSON.stringify(sgDetails)}`);
     }
   }
 
@@ -101,9 +100,10 @@ export class EmailService {
       return { success: true, statusCode: response.statusCode };
     } catch (error) {
       // biome-ignore lint/suspicious/noExplicitAny: SendGrid errors are untyped
-      const status = (error as any)?.code ?? (error as any)?.response?.statusCode;
-      this.logger.error("Batch email sending failed", { count: emails.length, statusCode: status });
-      throw error;
+      const sgDetails = (error as any)?.response?.body || (error as Error).message;
+      throw new InternalServerErrorException(
+        `Batch email delivery failed: ${JSON.stringify(sgDetails)}`,
+      );
     }
   }
 
@@ -128,17 +128,10 @@ export class EmailService {
       return { success: true, statusCode: response.statusCode };
     } catch (error) {
       // biome-ignore lint/suspicious/noExplicitAny: SendGrid errors are untyped
-      const status = (error as any)?.code ?? (error as any)?.response?.statusCode;
-      this.logger.error("Template email sending failed", {
-        to: toAddresses,
-        templateId,
-        statusCode: status,
-      });
-      throw error;
+      const sgDetails = (error as any)?.response?.body || (error as Error).message;
+      throw new InternalServerErrorException(
+        `Template email delivery failed: ${JSON.stringify(sgDetails)}`,
+      );
     }
-  }
-
-  getClient() {
-    return this.sendGrid;
   }
 }

@@ -1,14 +1,16 @@
-import { Controller, Get } from "@nestjs/common";
-import { HealthCheck, type HealthCheckService } from "@nestjs/terminus";
-import type { QueueHealthIndicator } from "../infra/queue/health/queue-health.indicator";
-import type { PrismaHealthIndicator } from "./prisma-health.indicator";
+import { Controller, Get, Inject } from "@nestjs/common";
+import { HealthCheck, HealthCheckService } from "@nestjs/terminus";
+import { Public } from "../common/decorators/public.decorator";
+import { QueueHealthIndicator } from "../infra/queue/health/queue-health.indicator";
+import { PrismaHealthIndicator } from "./prisma-health.indicator";
 
+@Public()
 @Controller("health")
 export class HealthController {
   constructor(
-    private readonly health: HealthCheckService,
-    private readonly prisma: PrismaHealthIndicator,
-    private readonly queue: QueueHealthIndicator,
+    @Inject(HealthCheckService) private readonly health: HealthCheckService,
+    @Inject(PrismaHealthIndicator) private readonly prisma: PrismaHealthIndicator,
+    @Inject(QueueHealthIndicator) private readonly queue: QueueHealthIndicator,
   ) {}
 
   @Get()

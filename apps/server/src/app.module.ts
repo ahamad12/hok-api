@@ -2,6 +2,7 @@ import { ThrottlerStorageRedisService } from "@nest-lab/throttler-storage-redis"
 import { Module } from "@nestjs/common";
 import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from "@nestjs/core";
 import { ThrottlerGuard, ThrottlerModule } from "@nestjs/throttler";
+import { DbModule } from "@tapt-api/db";
 import { env } from "@tapt-api/env/server";
 import { WinstonModule } from "nest-winston";
 import { AppController } from "./app.controller";
@@ -22,6 +23,7 @@ import { StorageModule } from "./infra/storage/storage.module";
 
 @Module({
   imports: [
+    DbModule,
     SentryModule,
     QueueModule,
     StorageModule,

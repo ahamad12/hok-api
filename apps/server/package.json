@@ -27,6 +27,7 @@
     "@tapt-api/env": "*",
     "@ts-rest/core": "^3.52.1",
     "@ts-rest/serverless": "^3.52.1",
+    "@vitest/coverage-v8": "^4.1.10",
     "bullmq": "^5.79.2",
     "cloudinary": "^2.10.0",
     "dotenv": "^17.4.2",

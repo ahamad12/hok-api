@@ -1,4 +1,4 @@
-import { createParamDecorator, type ExecutionContext } from "@nestjs/common";
+import { createParamDecorator, type ExecutionContext, UnauthorizedException } from "@nestjs/common";
 import type { RequestUser } from "../types/request-user.interface";
 
 export const CurrentUser = createParamDecorator(
@@ -10,7 +10,9 @@ export const CurrentUser = createParamDecorator(
     const user = request.user;
 
     if (!user) {
-      throw new Error("CurrentUser decorator requires JwtAuthGuard to be applied first");
+      throw new UnauthorizedException(
+        "CurrentUser decorator requires JwtAuthGuard to be applied first",
+      );
     }
 
     return data ? user[data] : user;

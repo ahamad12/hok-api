@@ -1,21 +1,30 @@
 import {
   type CanActivate,
   type ExecutionContext,
+  Inject,
   Injectable,
   UnauthorizedException,
 } from "@nestjs/common";
-import type { Reflector } from "@nestjs/core";
+import { Reflector } from "@nestjs/core";
 import { env } from "@tapt-api/env/server";
 import type { Request } from "express";
 import jwt from "jsonwebtoken";
+import { z } from "zod";
 import { IS_PUBLIC_KEY } from "../decorators/public.decorator";
-import type { RequestUser } from "../types/request-user.interface";
+
+const jwtPayloadSchema = z.object({
+  userId: z.string(),
+  email: z.string().email(),
+  role: z.enum(["OWNER", "MANAGER", "STAFF"]),
+  shopId: z.string().nullable(),
+  isSupervisor: z.boolean(),
+});
 
 @Injectable()
 export class JwtAuthGuard implements CanActivate {
-  constructor(private readonly reflector: Reflector) {}
+  constructor(@Inject(Reflector) private readonly reflector: Reflector) {}
 
-  canActivate(context: ExecutionContext): boolean {
+  async canActivate(context: ExecutionContext): Promise<boolean> {
     const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
       context.getHandler(),
       context.getClass(),
@@ -32,13 +41,26 @@ export class JwtAuthGuard implements CanActivate {
     }
 
     try {
-      const payload = jwt.verify(token, env.JWT_SECRET) as RequestUser & {
-        iat?: number;
-        exp?: number;
+      const decoded = await new Promise<unknown>((resolve, reject) => {
+        jwt.verify(token, env.JWT_SECRET, (err, payload) => {
+          if (err) reject(err);
+          else resolve(payload);
+        });
+      });
+      const result = jwtPayloadSchema.safeParse(decoded);
+      if (!result.success) {
+        throw new UnauthorizedException("Invalid token payload");
+      }
+      request.user = {
+        userId: result.data.userId,
+        email: result.data.email,
+        role: result.data.role,
+        shopId: result.data.shopId,
+        isSupervisor: result.data.isSupervisor,
       };
-      request.user = { ...payload };
       return true;
-    } catch {
+    } catch (error) {
+      if (error instanceof UnauthorizedException) throw error;
       throw new UnauthorizedException("Invalid or expired token");
     }
   }

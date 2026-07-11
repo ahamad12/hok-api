@@ -11,7 +11,7 @@ import type { Request, Response } from "express";
 import { WINSTON_MODULE_PROVIDER } from "nest-winston";
 import type { Logger } from "winston";
 import { ZodError } from "zod";
-import type { SentryService } from "../../infra/sentry/sentry.service";
+import { SentryService } from "../../infra/sentry/sentry.service";
 import { DomainError } from "../errors";
 
 interface ErrorResponseBody {
@@ -34,7 +34,7 @@ interface ResolvedException {
 export class GlobalExceptionFilter implements ExceptionFilter {
   constructor(
     @Inject(WINSTON_MODULE_PROVIDER) private readonly logger: Logger,
-    private readonly sentry: SentryService,
+    @Inject(SentryService) private readonly sentry: SentryService,
   ) {}
 
   catch(exception: unknown, host: ArgumentsHost): void {
@@ -90,6 +90,52 @@ export class GlobalExceptionFilter implements ExceptionFilter {
 
     if (exception instanceof Prisma.PrismaClientKnownRequestError) {
       return this.resolvePrismaError(exception, timestamp, path);
+    }
+
+    if (exception instanceof Prisma.PrismaClientValidationError) {
+      return {
+        status: HttpStatus.BAD_REQUEST,
+        body: {
+          success: false,
+          error: {
+            code: "VALIDATION_ERROR",
+            message: "Invalid data provided",
+            details: exception.message,
+          },
+          timestamp,
+          path,
+        },
+      };
+    }
+
+    if (exception instanceof Prisma.PrismaClientInitializationError) {
+      return {
+        status: HttpStatus.SERVICE_UNAVAILABLE,
+        body: {
+          success: false,
+          error: {
+            code: "DATABASE_INIT_ERROR",
+            message: "Database connection failed",
+          },
+          timestamp,
+          path,
+        },
+      };
+    }
+
+    if (exception instanceof Prisma.PrismaClientRustPanicError) {
+      return {
+        status: HttpStatus.INTERNAL_SERVER_ERROR,
+        body: {
+          success: false,
+          error: {
+            code: "DATABASE_PANIC",
+            message: "Database engine error",
+          },
+          timestamp,
+          path,
+        },
+      };
     }
 
     if (exception instanceof HttpException) {

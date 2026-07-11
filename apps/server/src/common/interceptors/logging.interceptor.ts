@@ -9,6 +9,14 @@ import type { Logger } from "winston";
 export class LoggingInterceptor implements NestInterceptor {
   constructor(@Inject(WINSTON_MODULE_PROVIDER) private readonly logger: Logger) {}
 
+  private sanitizeHeaders(headers: Record<string, unknown>): Record<string, unknown> {
+    const sanitized = { ...headers };
+    if (sanitized.authorization) sanitized.authorization = "[REDACTED]";
+    if (sanitized.cookie) sanitized.cookie = "[REDACTED]";
+    if (sanitized["x-api-key"]) sanitized["x-api-key"] = "[REDACTED]";
+    return sanitized;
+  }
+
   intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
     const req = context.switchToHttp().getRequest();
     const { method, originalUrl, headers } = req;
@@ -31,7 +39,7 @@ export class LoggingInterceptor implements NestInterceptor {
             url: originalUrl,
             statusCode,
             durationMs,
-            headers,
+            headers: this.sanitizeHeaders(headers),
           };
 
           if (statusCode >= 400 && statusCode < 500) {
@@ -39,6 +47,16 @@ export class LoggingInterceptor implements NestInterceptor {
           } else {
             this.logger.info(`[${method}] ${originalUrl} ${statusCode} - ${durationMs}ms`, logData);
           }
+        },
+        error: (err: Error) => {
+          const durationMs = Math.round(performance.now() - startTime);
+          this.logger.error(`[${method}] ${originalUrl} ERROR - ${durationMs}ms`, {
+            requestId,
+            method,
+            url: originalUrl,
+            durationMs,
+            error: err.message,
+          });
         },
       }),
     );

@@ -2,16 +2,17 @@ import {
   type CanActivate,
   type ExecutionContext,
   ForbiddenException,
+  Inject,
   Injectable,
 } from "@nestjs/common";
-import type { Reflector } from "@nestjs/core";
+import { Reflector } from "@nestjs/core";
 import type { Request } from "express";
 import { ROLES_KEY, SUPERVISOR_ONLY_KEY } from "../decorators/roles.decorator";
-import type { RequestUser } from "../types/request-user.interface";
+import { type RequestUser, UserRole } from "../types/request-user.interface";
 
 @Injectable()
 export class RolesGuard implements CanActivate {
-  constructor(private readonly reflector: Reflector) {}
+  constructor(@Inject(Reflector) private readonly reflector: Reflector) {}
 
   canActivate(context: ExecutionContext): boolean {
     const requiredRoles = this.reflector.getAllAndOverride<string[]>(ROLES_KEY, [
@@ -38,8 +39,11 @@ export class RolesGuard implements CanActivate {
       throw new ForbiddenException(`Access denied for role: ${user.role}`);
     }
 
-    if (requiresSupervisor && !user.isSupervisor && user.role === "STAFF") {
-      throw new ForbiddenException("Supervisor or above access required");
+    if (requiresSupervisor) {
+      const isExempt = user.role === UserRole.OWNER || user.role === UserRole.MANAGER;
+      if (!isExempt && !user.isSupervisor) {
+        throw new ForbiddenException("Supervisor or above access required");
+      }
     }
 
     return true;
