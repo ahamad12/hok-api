@@ -1,10 +1,517 @@
 generator client {
-  provider = "prisma-client"
-  output   = "../generated"
-  moduleFormat = "esm"
-  runtime = "nodejs"
+  provider      = "prisma-client"
+  output        = "../generated"
+  moduleFormat  = "esm"
+  runtime       = "nodejs"
 }
 
 datasource db {
   provider = "postgresql"
+}
+
+enum UserRole {
+  OWNER
+  MANAGER
+  STAFF
+}
+
+enum TaskStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  DONE
+  BLOCKED
+}
+
+enum TicketStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+}
+
+enum TicketPriority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}
+
+enum PaymentMode {
+  CASH
+  CARD
+  UPI
+  BANK_TRANSFER
+}
+
+enum PeriodType {
+  MORNING
+  EVENING
+}
+
+enum TillEntryType {
+  CASH_IN
+  CASH_OUT
+}
+
+model User {
+  id           String    @id @default(uuid())
+  email        String    @unique
+  username     String?   @unique
+  passwordHash String    @map("password_hash")
+  displayName  String    @map("display_name")
+  role         UserRole
+  shopId       String?   @map("shop_id")
+  shop         Shop?     @relation("ShopStaff", fields: [shopId], references: [id], onDelete: SetNull)
+  isSupervisor Boolean   @default(false) @map("is_supervisor")
+  isActive     Boolean   @default(true) @map("is_active")
+  tokenVersion Int       @default(0) @map("token_version")
+  lastLoginAt  DateTime? @map("last_login_at")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  ownedShops      Shop[]            @relation("ShopOwner")
+  assignedTasks   Task[]            @relation("TaskAssignee")
+  createdTasks    Task[]            @relation("TaskCreator")
+  scratchLogs     ScratchLog[]
+  scratchSales    ScratchSale[]
+  deliveries      Delivery[]
+  createdTickets  Ticket[]          @relation("TicketCreator")
+  ticketMessages  TicketMessage[]
+  formSubmissions FormSubmission[]
+  tillEntries     TillEntry[]
+  dailySummaries  DailySummary[]
+  expenses        Expense[]
+  profitReports   ProfitReport[]
+  refreshTokens   RefreshToken[]
+
+  @@index([email])
+  @@index([shopId])
+  @@index([role])
+  @@index([isActive])
+  @@index([createdAt])
+  @@index([role, isSupervisor])
+  @@map("users")
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token     String   @unique
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([userId])
+  @@index([token])
+  @@index([expiresAt])
+  @@map("refresh_tokens")
+}
+
+model Shop {
+  id        String   @id @default(uuid())
+  name      String
+  address   Json
+  phone     String
+  logoUrl   String?  @map("logo_url")
+  ownerId   String   @map("owner_id")
+  owner     User     @relation("ShopOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  staff             User[]             @relation("ShopStaff")
+  tasks             Task[]
+  scratchCards      ScratchCard[]
+  scratchSales      ScratchSale[]
+  licenses          License[]
+  categories        Category[]
+  tickets           Ticket[]
+  forms             Form[]
+  reports           Report[]
+  tillEntries       TillEntry[]
+  dailySummaries    DailySummary[]
+  expenseCategories ExpenseCategory[]
+  expenses          Expense[]
+  profitReports     ProfitReport[]
+
+  @@index([ownerId])
+  @@index([isActive])
+  @@index([createdAt])
+  @@map("shops")
+}
+
+model Task {
+  id              String      @id @default(uuid())
+  shopId          String      @map("shop_id")
+  shop            Shop        @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  title           String
+  description     String?     @db.Text
+  assigneeId      String?     @map("assignee_id")
+  assignee        User?       @relation("TaskAssignee", fields: [assigneeId], references: [id], onDelete: SetNull)
+  status          TaskStatus  @default(NOT_STARTED)
+  dueDate         DateTime?   @map("due_date")
+  isRecurring     Boolean     @default(false) @map("is_recurring")
+  recurringConfig Json?       @map("recurring_config")
+  priority        Int         @default(0)
+  createdById     String      @map("created_by_id")
+  createdBy       User        @relation("TaskCreator", fields: [createdById], references: [id], onDelete: Cascade)
+  completedAt     DateTime?   @map("completed_at")
+  createdAt       DateTime    @default(now()) @map("created_at")
+  updatedAt       DateTime    @updatedAt @map("updated_at")
+
+  @@index([shopId, status])
+  @@index([assigneeId])
+  @@index([dueDate])
+  @@index([createdById])
+  @@index([status, dueDate])
+  @@map("tasks")
+}
+
+model ScratchCard {
+  id          String   @id @default(uuid())
+  shopId      String   @map("shop_id")
+  shop        Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  displayName String   @map("display_name")
+  priceCents  Int      @map("price_cents")
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  logs  ScratchLog[]
+  sales ScratchSale[]
+
+  @@index([shopId, isActive])
+  @@index([shopId, createdAt])
+  @@map("scratch_cards")
+}
+
+model ScratchLog {
+  id          String      @id @default(uuid())
+  cardId      String      @map("card_id")
+  card        ScratchCard @relation(fields: [cardId], references: [id], onDelete: Cascade)
+  period      PeriodType
+  date        DateTime    @db.Date
+  serialLast3 String      @map("serial_last3") @db.VarChar(3)
+  loggedById  String      @map("logged_by_id")
+  loggedBy    User        @relation(fields: [loggedById], references: [id], onDelete: Cascade)
+  createdAt   DateTime    @default(now()) @map("created_at")
+
+  @@unique([cardId, date, period])
+  @@index([cardId, date])
+  @@index([date])
+  @@map("scratch_logs")
+}
+
+model ScratchSale {
+  id          String      @id @default(uuid())
+  cardId      String      @map("card_id")
+  card        ScratchCard @relation(fields: [cardId], references: [id], onDelete: Cascade)
+  shopId      String      @map("shop_id")
+  shop        Shop        @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  quantity    Int
+  unitPrice   Int         @map("unit_price")
+  totalAmount Int         @map("total_amount")
+  soldById    String      @map("sold_by_id")
+  soldBy      User        @relation(fields: [soldById], references: [id], onDelete: Cascade)
+  saleDate    DateTime    @default(now()) @map("sale_date")
+  createdAt   DateTime    @default(now()) @map("created_at")
+
+  @@index([shopId, saleDate])
+  @@index([cardId, saleDate])
+  @@index([soldById])
+  @@map("scratch_sales")
+}
+
+model License {
+  id            String   @id @default(uuid())
+  shopId        String   @map("shop_id")
+  shop          Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  productName   String   @map("product_name")
+  licenseNumber String   @map("license_number")
+  issueDate     DateTime @map("issue_date") @db.Date
+  expiryDate    DateTime @map("expiry_date") @db.Date
+  remindDays    Int      @default(7) @map("remind_days")
+  documentUrl   String?  @map("document_url")
+  isActive      Boolean  @default(true) @map("is_active")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  expense LicenseExpense?
+
+  @@index([shopId, expiryDate])
+  @@index([isActive])
+  @@index([expiryDate])
+  @@map("licenses")
+}
+
+model LicenseExpense {
+  id          String   @id @default(uuid())
+  licenseId   String   @unique @map("license_id")
+  license     License  @relation(fields: [licenseId], references: [id], onDelete: Cascade)
+  amount      Int
+  paymentDate DateTime @map("payment_date") @db.Date
+  receiptUrl  String?  @map("receipt_url")
+  notes       String?  @db.Text
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@index([paymentDate])
+  @@map("license_expenses")
+}
+
+model Category {
+  id          String   @id @default(uuid())
+  shopId      String   @map("shop_id")
+  shop        Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  name        String
+  description String?  @db.Text
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  suppliers Supplier[]
+
+  @@index([shopId])
+  @@index([shopId, name])
+  @@map("categories")
+}
+
+model Supplier {
+  id         String   @id @default(uuid())
+  categoryId String   @map("category_id")
+  category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  name       String
+  phone      String?
+  address    String?  @db.Text
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  deliveries Delivery[]
+
+  @@index([categoryId])
+  @@index([name])
+  @@map("suppliers")
+}
+
+model Delivery {
+  id            String       @id @default(uuid())
+  supplierId    String       @map("supplier_id")
+  supplier      Supplier     @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+  productName   String       @map("product_name")
+  quantity      Float
+  unit          String
+  priceCents    Int          @map("price_cents")
+  isPaid        Boolean      @default(false) @map("is_paid")
+  paymentMode   PaymentMode? @map("payment_mode")
+  billUrl       String?      @map("bill_url")
+  deliveredById String       @map("delivered_by_id")
+  deliveredBy   User         @relation(fields: [deliveredById], references: [id], onDelete: Cascade)
+  deliveredAt   DateTime     @default(now()) @map("delivered_at")
+  createdAt     DateTime     @default(now()) @map("created_at")
+  updatedAt     DateTime     @updatedAt @map("updated_at")
+
+  @@index([supplierId, deliveredAt])
+  @@index([deliveredAt])
+  @@index([isPaid])
+  @@map("deliveries")
+}
+
+model Ticket {
+  id          String         @id @default(uuid())
+  shopId      String         @map("shop_id")
+  shop        Shop           @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  subject     String
+  status      TicketStatus   @default(OPEN)
+  priority    TicketPriority @default(NORMAL)
+  createdById String         @map("created_by_id")
+  createdBy   User           @relation("TicketCreator", fields: [createdById], references: [id], onDelete: Cascade)
+  resolvedAt  DateTime?      @map("resolved_at")
+  createdAt   DateTime       @default(now()) @map("created_at")
+  updatedAt   DateTime       @updatedAt @map("updated_at")
+
+  messages TicketMessage[]
+
+  @@index([shopId, status])
+  @@index([createdById])
+  @@index([status, priority])
+  @@map("tickets")
+}
+
+model TicketMessage {
+  id        String   @id @default(uuid())
+  ticketId  String   @map("ticket_id")
+  ticket    Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  senderId  String   @map("sender_id")
+  sender    User     @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  message   String   @db.Text
+  mediaUrl  String?  @map("media_url")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([ticketId, createdAt])
+  @@index([senderId])
+  @@map("ticket_messages")
+}
+
+model Form {
+  id          String   @id @default(uuid())
+  shopId      String   @map("shop_id")
+  shop        Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  title       String
+  description String?  @db.Text
+  schema      Json
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  submissions FormSubmission[]
+
+  @@index([shopId, isActive])
+  @@index([shopId, createdAt])
+  @@map("forms")
+}
+
+model FormSubmission {
+  id          String   @id @default(uuid())
+  formId      String   @map("form_id")
+  form        Form     @relation(fields: [formId], references: [id], onDelete: Cascade)
+  staffId     String   @map("staff_id")
+  staff       User     @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  answers     Json
+  submittedAt DateTime @default(now()) @map("submitted_at")
+
+  @@index([formId])
+  @@index([staffId])
+  @@index([submittedAt])
+  @@map("form_submissions")
+}
+
+model TillEntry {
+  id              String        @id @default(uuid())
+  shopId          String        @map("shop_id")
+  shop            Shop          @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  type            TillEntryType
+  category        String
+  amount          Int
+  description     String?       @db.Text
+  billUrl         String?       @map("bill_url")
+  recordedById    String        @map("recorded_by_id")
+  recordedBy      User          @relation(fields: [recordedById], references: [id], onDelete: Cascade)
+  transactionDate DateTime      @default(now()) @map("transaction_date")
+  createdAt       DateTime      @default(now()) @map("created_at")
+
+  @@index([shopId, transactionDate])
+  @@index([shopId, type, transactionDate])
+  @@index([transactionDate])
+  @@map("till_entries")
+}
+
+model DailySummary {
+  id              String   @id @default(uuid())
+  shopId          String   @map("shop_id")
+  shop            Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  date            DateTime @db.Date
+  openingBalance  Int      @map("opening_balance")
+  closingBalance  Int      @map("closing_balance")
+  totalCashIn     Int      @map("total_cash_in")
+  totalCashOut    Int      @map("total_cash_out")
+  scratchRevenue  Int      @map("scratch_revenue")
+  deliveryExpense Int      @map("delivery_expense")
+  otherIncome     Int      @map("other_income")
+  otherExpense    Int      @map("other_expense")
+  createdById     String   @map("created_by_id")
+  createdBy       User     @relation(fields: [createdById], references: [id], onDelete: Cascade)
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  @@unique([shopId, date])
+  @@index([shopId, date])
+  @@index([date])
+  @@map("daily_summaries")
+}
+
+model ExpenseCategory {
+  id          String   @id @default(uuid())
+  shopId      String?  @map("shop_id")
+  shop        Shop?    @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  name        String
+  description String?  @db.Text
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  expenses Expense[]
+
+  @@index([shopId])
+  @@index([isActive])
+  @@map("expense_categories")
+}
+
+model Expense {
+  id           String          @id @default(uuid())
+  shopId       String          @map("shop_id")
+  shop         Shop            @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  categoryId   String          @map("category_id")
+  category     ExpenseCategory @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  amount       Int
+  description  String          @db.Text
+  billUrl      String?         @map("bill_url")
+  expenseDate  DateTime        @map("expense_date") @db.Date
+  recordedById String          @map("recorded_by_id")
+  recordedBy   User            @relation(fields: [recordedById], references: [id], onDelete: Cascade)
+  createdAt    DateTime        @default(now()) @map("created_at")
+
+  @@index([shopId, expenseDate])
+  @@index([categoryId])
+  @@index([expenseDate])
+  @@map("expenses")
+}
+
+model ProfitReport {
+  id              String   @id @default(uuid())
+  shopId          String   @map("shop_id")
+  shop            Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  periodStart     DateTime @map("period_start") @db.Date
+  periodEnd       DateTime @map("period_end") @db.Date
+
+  scratchRevenue  Int @map("scratch_revenue")
+  deliveryRevenue Int @map("delivery_revenue")
+  otherRevenue    Int @map("other_revenue")
+  totalRevenue    Int @map("total_revenue")
+
+  purchaseCost   Int @map("purchase_cost")
+  deliveryCost   Int @map("delivery_cost")
+  licenseFees    Int @map("license_fees")
+  salaryExpense  Int @map("salary_expense")
+  utilityExpense Int @map("utility_expense")
+  rentExpense    Int @map("rent_expense")
+  otherExpense   Int @map("other_expense")
+  totalExpense   Int @map("total_expense")
+
+  grossProfit  Int   @map("gross_profit")
+  netProfit    Int   @map("net_profit")
+  profitMargin Float @map("profit_margin")
+
+  scratchCardsCount Int @map("scratch_cards_count")
+  inventoryValue    Int @map("inventory_value")
+
+  generatedAt   DateTime @default(now()) @map("generated_at")
+  generatedById String   @map("generated_by_id")
+  generatedBy   User     @relation(fields: [generatedById], references: [id], onDelete: Cascade)
+
+  @@index([shopId, periodStart, periodEnd])
+  @@index([generatedAt])
+  @@map("profit_reports")
+}
+
+model Report {
+  id          String   @id @default(uuid())
+  shopId      String   @map("shop_id")
+  shop        Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  type        String
+  periodStart DateTime @map("period_start") @db.Date
+  periodEnd   DateTime @map("period_end") @db.Date
+  format      String
+  url         String
+  generatedAt DateTime @default(now()) @map("generated_at")
+
+  @@index([shopId, type])
+  @@index([shopId, generatedAt])
+  @@map("reports")
 }
