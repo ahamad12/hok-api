@@ -5,6 +5,7 @@ import { WinstonModule, WINSTON_MODULE_PROVIDER } from "nest-winston";
 import type { Logger } from "winston";
 import helmet from "helmet";
 import { VersioningType } from "@nestjs/common";
+import { SwaggerModule, DocumentBuilder } from "@nestjs/swagger";
 
 import { AppModule } from "./app.module";
 import { winstonConfig } from "./infra/logger/winston.module";
@@ -26,6 +27,26 @@ async function bootstrap() {
     prefix: "v",
     defaultVersion: "1",
   });
+
+  if (env.NODE_ENV !== "production") {
+    const swaggerConfig = new DocumentBuilder()
+      .setTitle("TAPT API")
+      .setDescription("TAPT REST API documentation for mobile clients")
+      .setVersion("1.0")
+      .addBearerAuth(
+        { type: "http", scheme: "bearer", bearerFormat: "JWT" },
+        "BearerAuth",
+      )
+      .build();
+
+    const document = SwaggerModule.createDocument(app, swaggerConfig, {
+      operationIdFactory: (_controllerKey, methodKey) => methodKey,
+    });
+
+    SwaggerModule.setup("api/docs", app, document, {
+      customSiteTitle: "TAPT API Docs",
+    });
+  }
 
   app.use(
     helmet({
@@ -50,6 +71,10 @@ async function bootstrap() {
 
   const logger = app.get<Logger>(WINSTON_MODULE_PROVIDER);
   logger.info(`Server is running on http://localhost:${env.PORT}`);
+
+  if (env.NODE_ENV !== "production") {
+    logger.info(`Swagger docs available at http://localhost:${env.PORT}/api/docs`);
+  }
 }
 
 bootstrap();
