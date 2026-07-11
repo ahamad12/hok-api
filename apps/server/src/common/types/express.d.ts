@@ -1,4 +1,4 @@
-import type { RequestUser } from "./common/types/request-user.interface";
+import type { RequestUser } from "./request-user.interface";
 
 declare global {
   namespace Express {

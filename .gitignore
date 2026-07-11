@@ -36,6 +36,13 @@ lerna-debug.log*
 # Turbo
 .turbo
 
+# Prisma generated client
+packages/db/prisma/generated/
+
+# Better Fullstack scaffold artifacts
+bts.jsonc
+bts.lock.json
+
 # Better Fullstack
 .alchemy
 
