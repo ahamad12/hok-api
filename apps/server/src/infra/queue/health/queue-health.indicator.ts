@@ -1,7 +1,7 @@
-import { Injectable } from "@nestjs/common";
-import { HealthIndicator, HealthIndicatorResult, HealthCheckError } from "@nestjs/terminus";
 import { InjectQueue } from "@nestjs/bullmq";
-import { Queue } from "bullmq";
+import { Injectable } from "@nestjs/common";
+import { HealthCheckError, HealthIndicator, type HealthIndicatorResult } from "@nestjs/terminus";
+import type { Queue } from "bullmq";
 
 @Injectable()
 export class QueueHealthIndicator extends HealthIndicator {

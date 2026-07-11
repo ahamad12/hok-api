@@ -1,12 +1,18 @@
-import { Catch, ExceptionFilter, ArgumentsHost, HttpException, HttpStatus, Inject } from "@nestjs/common";
-import type { Request, Response } from "express";
-import { ZodError } from "zod";
+import {
+  type ArgumentsHost,
+  Catch,
+  type ExceptionFilter,
+  HttpException,
+  HttpStatus,
+  Inject,
+} from "@nestjs/common";
 import { Prisma } from "@prisma/client";
-import type { Logger } from "winston";
+import type { Request, Response } from "express";
 import { WINSTON_MODULE_PROVIDER } from "nest-winston";
-
-import { SentryService } from "../infra/sentry/sentry.service";
+import type { Logger } from "winston";
+import { ZodError } from "zod";
 import { DomainError } from "../common/errors";
+import type { SentryService } from "../infra/sentry/sentry.service";
 
 interface ErrorResponseBody {
   success: false;
@@ -156,7 +162,9 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     const res = exception.getResponse();
 
     const rawMessage =
-      typeof res === "string" ? res : ((res as Record<string, unknown>).message ?? exception.message);
+      typeof res === "string"
+        ? res
+        : ((res as Record<string, unknown>).message ?? exception.message);
     const message = Array.isArray(rawMessage) ? rawMessage.join(", ") : String(rawMessage);
 
     const code =

@@ -1,15 +1,13 @@
-import { Inject, Injectable } from "@nestjs/common";
+import * as crypto from "node:crypto";
 import type { CallHandler, ExecutionContext, NestInterceptor } from "@nestjs/common";
+import { Inject, Injectable } from "@nestjs/common";
 import { WINSTON_MODULE_PROVIDER } from "nest-winston";
-import { Logger } from "winston";
-import { Observable, tap } from "rxjs";
-import * as crypto from "crypto";
+import { type Observable, tap } from "rxjs";
+import type { Logger } from "winston";
 
 @Injectable()
 export class LoggingInterceptor implements NestInterceptor {
-  constructor(
-    @Inject(WINSTON_MODULE_PROVIDER) private readonly logger: Logger,
-  ) {}
+  constructor(@Inject(WINSTON_MODULE_PROVIDER) private readonly logger: Logger) {}
 
   intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
     const req = context.switchToHttp().getRequest();

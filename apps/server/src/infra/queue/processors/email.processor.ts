@@ -1,11 +1,10 @@
+import { OnWorkerEvent, Processor, WorkerHost } from "@nestjs/bullmq";
 import { Inject } from "@nestjs/common";
-import { Processor, WorkerHost, OnWorkerEvent } from "@nestjs/bullmq";
-import { Job, UnrecoverableError } from "bullmq";
+import { type Job, UnrecoverableError } from "bullmq";
 import { WINSTON_MODULE_PROVIDER } from "nest-winston";
 import type { Logger } from "winston";
-
-import { SentryService } from "../../sentry/sentry.service";
-import { EmailService } from "../../email/email.service";
+import type { EmailService } from "../../email/email.service";
+import type { SentryService } from "../../sentry/sentry.service";
 
 interface EmailJobData {
   to: string;
@@ -46,9 +45,12 @@ export class EmailProcessor extends WorkerHost {
     } catch (err) {
       this.sentry.captureException(err, { queue: "email", jobId: String(job.id) });
 
+      // biome-ignore lint/suspicious/noExplicitAny: BullMQ/SendGrid errors are untyped
       const status = (err as any)?.code ?? (err as any)?.response?.statusCode;
       if (typeof status === "number" && status >= 400 && status < 500) {
-        throw new UnrecoverableError(`Email job ${job.id} permanently failed: ${(err as Error).message}`);
+        throw new UnrecoverableError(
+          `Email job ${job.id} permanently failed: ${(err as Error).message}`,
+        );
       }
       throw err;
     }

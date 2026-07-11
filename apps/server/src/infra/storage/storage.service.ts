@@ -1,7 +1,7 @@
 import { Inject, Injectable } from "@nestjs/common";
+import type { v2 as Cloudinary, UploadApiOptions, UploadApiResponse } from "cloudinary";
 import { WINSTON_MODULE_PROVIDER } from "nest-winston";
 import type { Logger } from "winston";
-import type { v2 as Cloudinary, UploadApiOptions, UploadApiResponse } from "cloudinary";
 
 @Injectable()
 export class StorageService {

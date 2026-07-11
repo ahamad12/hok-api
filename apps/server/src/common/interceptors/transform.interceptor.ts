@@ -1,6 +1,11 @@
+import type {
+  CallHandler,
+  ExecutionContext,
+  NestInterceptor,
+  StreamableFile,
+} from "@nestjs/common";
 import { Injectable } from "@nestjs/common";
-import type { CallHandler, ExecutionContext, NestInterceptor, StreamableFile } from "@nestjs/common";
-import { Observable } from "rxjs";
+import type { Observable } from "rxjs";
 import { map } from "rxjs/operators";
 
 type ControllerReturn =
@@ -25,11 +30,21 @@ export class TransformInterceptor<T> implements NestInterceptor<T, unknown> {
       return response;
     }
 
-    if (typeof response === "object" && response !== null && !Array.isArray(response) && "success" in response) {
+    if (
+      typeof response === "object" &&
+      response !== null &&
+      !Array.isArray(response) &&
+      "success" in response
+    ) {
       return response;
     }
 
-    if (typeof response === "object" && response !== null && !Array.isArray(response) && "meta" in response) {
+    if (
+      typeof response === "object" &&
+      response !== null &&
+      !Array.isArray(response) &&
+      "meta" in response
+    ) {
       const { meta, data, ...rest } = response as {
         meta: Record<string, unknown>;
         data?: unknown;
@@ -38,7 +53,12 @@ export class TransformInterceptor<T> implements NestInterceptor<T, unknown> {
       return { success: true, data: data !== undefined ? data : rest, meta };
     }
 
-    if (typeof response === "object" && response !== null && !Array.isArray(response) && "data" in response) {
+    if (
+      typeof response === "object" &&
+      response !== null &&
+      !Array.isArray(response) &&
+      "data" in response
+    ) {
       return { success: true, ...(response as Record<string, unknown>) };
     }
 

@@ -1,8 +1,8 @@
 import { Inject, Injectable } from "@nestjs/common";
-import { WINSTON_MODULE_PROVIDER } from "nest-winston";
-import type { Logger } from "winston";
 import type sgMail from "@sendgrid/mail";
 import { env } from "@tapt-api/env/server";
+import { WINSTON_MODULE_PROVIDER } from "nest-winston";
+import type { Logger } from "winston";
 
 export interface SendEmailOptions {
   to: string | string[];
@@ -74,6 +74,7 @@ export class EmailService {
       this.logger.info("Email sent", { to: toAddresses, statusCode: response.statusCode });
       return { success: true, statusCode: response.statusCode };
     } catch (error) {
+      // biome-ignore lint/suspicious/noExplicitAny: SendGrid errors are untyped
       const status = (error as any)?.code ?? (error as any)?.response?.statusCode;
       this.logger.error("Email sending failed", { to: toAddresses, statusCode: status });
       throw error;
@@ -93,9 +94,13 @@ export class EmailService {
 
     try {
       const [response] = await this.sendGrid.send(messages);
-      this.logger.info("Batch emails sent", { count: emails.length, statusCode: response.statusCode });
+      this.logger.info("Batch emails sent", {
+        count: emails.length,
+        statusCode: response.statusCode,
+      });
       return { success: true, statusCode: response.statusCode };
     } catch (error) {
+      // biome-ignore lint/suspicious/noExplicitAny: SendGrid errors are untyped
       const status = (error as any)?.code ?? (error as any)?.response?.statusCode;
       this.logger.error("Batch email sending failed", { count: emails.length, statusCode: status });
       throw error;
@@ -115,11 +120,20 @@ export class EmailService {
         dynamicTemplateData,
         categories,
       } as sgMail.MailDataRequired);
-      this.logger.info("Template email sent", { to: toAddresses, templateId, statusCode: response.statusCode });
+      this.logger.info("Template email sent", {
+        to: toAddresses,
+        templateId,
+        statusCode: response.statusCode,
+      });
       return { success: true, statusCode: response.statusCode };
     } catch (error) {
+      // biome-ignore lint/suspicious/noExplicitAny: SendGrid errors are untyped
       const status = (error as any)?.code ?? (error as any)?.response?.statusCode;
-      this.logger.error("Template email sending failed", { to: toAddresses, templateId, statusCode: status });
+      this.logger.error("Template email sending failed", {
+        to: toAddresses,
+        templateId,
+        statusCode: status,
+      });
       throw error;
     }
   }

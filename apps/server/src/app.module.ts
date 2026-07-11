@@ -1,22 +1,21 @@
+import { ThrottlerStorageRedisService } from "@nest-lab/throttler-storage-redis";
 import { Module } from "@nestjs/common";
 import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from "@nestjs/core";
-import { ThrottlerModule, ThrottlerGuard } from "@nestjs/throttler";
-import { ThrottlerStorageRedisService } from "@nest-lab/throttler-storage-redis";
+import { ThrottlerGuard, ThrottlerModule } from "@nestjs/throttler";
+import { env } from "@tapt-api/env/server";
 import { WinstonModule } from "nest-winston";
-
 import { AppController } from "./app.controller";
 import { AppService } from "./app.service";
-import { winstonConfig } from "./infra/logger/winston.module";
+import { GlobalExceptionFilter } from "./common/filters/global-exception.filter";
 import { LoggingInterceptor } from "./common/interceptors/logging.interceptor";
 import { TransformInterceptor } from "./common/interceptors/transform.interceptor";
-import { GlobalExceptionFilter } from "./common/filters/global-exception.filter";
-import { SentryModule } from "./infra/sentry/sentry.module";
-import { QueueModule } from "./infra/queue/queue.module";
-import { StorageModule } from "./infra/storage/storage.module";
-import { FeatureFlagModule } from "./infra/feature-flags/feature-flag.module";
-import { EmailModule } from "./infra/email/email.module";
 import { HealthModule } from "./health/health.module";
-import { env } from "@tapt-api/env/server";
+import { EmailModule } from "./infra/email/email.module";
+import { FeatureFlagModule } from "./infra/feature-flags/feature-flag.module";
+import { winstonConfig } from "./infra/logger/winston.module";
+import { QueueModule } from "./infra/queue/queue.module";
+import { SentryModule } from "./infra/sentry/sentry.module";
+import { StorageModule } from "./infra/storage/storage.module";
 
 @Module({
   imports: [

@@ -1,18 +1,15 @@
-import { Inject, Injectable } from "@nestjs/common";
-import type { OnApplicationBootstrap, OnApplicationShutdown } from "@nestjs/common";
 import { GrowthBook } from "@growthbook/growthbook";
+import type { OnApplicationBootstrap, OnApplicationShutdown } from "@nestjs/common";
+import { Inject, Injectable } from "@nestjs/common";
+import { env } from "@tapt-api/env/server";
 import { WINSTON_MODULE_PROVIDER } from "nest-winston";
 import type { Logger } from "winston";
-
-import { env } from "@tapt-api/env/server";
 
 @Injectable()
 export class GrowthBookService implements OnApplicationBootstrap, OnApplicationShutdown {
   private gb: GrowthBook | null = null;
 
-  constructor(
-    @Inject(WINSTON_MODULE_PROVIDER) private readonly logger: Logger,
-  ) {}
+  constructor(@Inject(WINSTON_MODULE_PROVIDER) private readonly logger: Logger) {}
 
   async onApplicationBootstrap() {
     if (!env.GROWTHBOOK_CLIENT_KEY) {

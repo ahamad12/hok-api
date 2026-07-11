@@ -1,7 +1,7 @@
 import { Controller, Get } from "@nestjs/common";
-import { HealthCheckService, HealthCheck } from "@nestjs/terminus";
-import { PrismaHealthIndicator } from "./prisma-health.indicator";
-import { QueueHealthIndicator } from "../infra/queue/health/queue-health.indicator";
+import { HealthCheck, type HealthCheckService } from "@nestjs/terminus";
+import type { QueueHealthIndicator } from "../infra/queue/health/queue-health.indicator";
+import type { PrismaHealthIndicator } from "./prisma-health.indicator";
 
 @Controller("health")
 export class HealthController {
@@ -14,9 +14,6 @@ export class HealthController {
   @Get()
   @HealthCheck()
   check() {
-    return this.health.check([
-      () => this.prisma.check(),
-      () => this.queue.check(),
-    ]);
+    return this.health.check([() => this.prisma.check(), () => this.queue.check()]);
   }
 }

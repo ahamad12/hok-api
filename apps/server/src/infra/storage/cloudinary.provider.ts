@@ -1,5 +1,5 @@
-import { v2 as cloudinary } from "cloudinary";
 import { env } from "@tapt-api/env/server";
+import { v2 as cloudinary } from "cloudinary";
 
 export const CloudinaryProvider = {
   provide: "CLOUDINARY",
