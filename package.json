@@ -9,7 +9,7 @@
   "scripts": {
     "dev": "turbo dev",
     "build": "turbo build",
-    "check-types": "turbo check-types",
+    "check-types": "turbo check-types && npm --prefix apps/server run check:enums",
     "dev:server": "turbo -F server dev",
     "db:push": "turbo -F @tapt-api/db db:push",
     "db:studio": "turbo -F @tapt-api/db db:studio",
@@ -24,7 +24,6 @@
   },
   "dependencies": {
     "@nestjs/bullmq": "^11.0.4",
-    "@nestjs/jwt": "^11.0.2",
     "@nestjs/platform-socket.io": "^11.1.28",
     "@nestjs/swagger": "^11.4.5",
     "@nestjs/terminus": "^11.1.1",

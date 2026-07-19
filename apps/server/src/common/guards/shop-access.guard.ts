@@ -3,20 +3,20 @@ import {
   type CanActivate,
   type ExecutionContext,
   ForbiddenException,
-  Inject,
   Injectable,
   SetMetadata,
 } from "@nestjs/common";
-import { Reflector } from "@nestjs/core";
+import type { Reflector } from "@nestjs/core";
+import { UserRole } from "@tapt-api/db";
 import type { Request } from "express";
-import { type RequestUser, UserRole } from "../types/request-user.interface";
+import type { RequestUser } from "../types/request-user.interface";
 
 export const SHOP_ACCESS_PARAM_KEY = "SHOP_ACCESS_PARAM_KEY";
 export const ShopAccess = (paramKey = "shopId") => SetMetadata(SHOP_ACCESS_PARAM_KEY, paramKey);
 
 @Injectable()
 export class ShopAccessGuard implements CanActivate {
-  constructor(@Inject(Reflector) private readonly reflector: Reflector) {}
+  constructor(private readonly reflector: Reflector) {}
 
   canActivate(context: ExecutionContext): boolean {
     const paramKey = this.reflector.getAllAndOverride<string>(SHOP_ACCESS_PARAM_KEY, [

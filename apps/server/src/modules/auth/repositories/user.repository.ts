@@ -1,0 +1,44 @@
+// modules/auth/repositories/user.repository.ts — kept, one method added
+import { Injectable } from "@nestjs/common";
+import type { PrismaService, User } from "@tapt-api/db";
+import type { Prisma } from "@tapt-api/db/prisma";
+
+@Injectable()
+export class UserRepository {
+  constructor(private readonly prisma: PrismaService) {}
+
+  findById(id: string): Promise<User | null> {
+    return this.prisma.user.findUnique({ where: { id } });
+  }
+
+  findByEmail(email: string): Promise<User | null> {
+    return this.prisma.user.findUnique({ where: { email } });
+  }
+
+  create(data: Prisma.UserUncheckedCreateInput): Promise<User> {
+    return this.prisma.user.create({ data });
+  }
+
+  update(id: string, data: Prisma.UserUncheckedUpdateInput): Promise<User> {
+    return this.prisma.user.update({ where: { id }, data });
+  }
+
+  async existsByEmail(email: string): Promise<boolean> {
+    return (await this.prisma.user.count({ where: { email } })) > 0;
+  }
+
+  async existsByUsername(username: string): Promise<boolean> {
+    return (await this.prisma.user.count({ where: { username } })) > 0;
+  }
+
+  /** Added for TokenVersionService — the one caller that needs the
+   *  post-increment value back to write through to Redis. */
+  async incrementTokenVersion(id: string): Promise<number> {
+    const updated = await this.prisma.user.update({
+      where: { id },
+      data: { tokenVersion: { increment: 1 } },
+      select: { tokenVersion: true },
+    });
+    return updated.tokenVersion;
+  }
+}

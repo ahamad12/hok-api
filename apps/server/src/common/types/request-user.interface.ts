@@ -1,15 +1,4 @@
-export const UserRole = {
-  OWNER: "OWNER",
-  MANAGER: "MANAGER",
-  STAFF: "STAFF",
-} as const;
+// common/types/request-user.interface.ts
+import type { AccessTokenPayload } from "../schemas/jwt-payload.schema.ts";
 
-export type UserRole = (typeof UserRole)[keyof typeof UserRole];
-
-export interface RequestUser {
-  userId: string;
-  email: string;
-  role: UserRole;
-  shopId: string | null;
-  isSupervisor: boolean;
-}
+export type RequestUser = Omit<AccessTokenPayload, "tokenVersion">;

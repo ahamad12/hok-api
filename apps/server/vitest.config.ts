@@ -7,6 +7,7 @@ export default defineConfig({
     environment: "node",
     root: ".",
     setupFiles: ["./src/test/setup.ts"],
+
     coverage: {
       provider: "v8",
       include: ["src/**/*.ts"],
@@ -20,8 +21,12 @@ export default defineConfig({
     },
   },
   resolve: {
-    alias: {
-      "@": resolve(__dirname, "./src"),
-    },
+    alias: [
+      {
+        find: /^@prisma\/client$/,
+        replacement: resolve(__dirname, "./src/test/prisma-client-mock"),
+      },
+      { find: "@", replacement: resolve(__dirname, "./src") },
+    ],
   },
 });

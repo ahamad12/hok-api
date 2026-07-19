@@ -1,4 +1,4 @@
-import { UserRole } from "../types/request-user.interface";
+import { UserRole } from "@tapt-api/db";
 import { Roles } from "./roles.decorator";
 
 export const OwnerOnly = () => Roles(UserRole.OWNER);

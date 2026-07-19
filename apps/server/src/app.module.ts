@@ -8,7 +8,6 @@ import { WinstonModule } from "nest-winston";
 import { AppController } from "./app.controller";
 import { AppService } from "./app.service";
 import { GlobalExceptionFilter } from "./common/filters/global-exception.filter";
-import { JwtAuthGuard } from "./common/guards/jwt-auth.guard";
 import { RolesGuard } from "./common/guards/roles.guard";
 import { ShopAccessGuard } from "./common/guards/shop-access.guard";
 import { LoggingInterceptor } from "./common/interceptors/logging.interceptor";
@@ -20,6 +19,7 @@ import { winstonConfig } from "./infra/logger/winston.module";
 import { QueueModule } from "./infra/queue/queue.module";
 import { SentryModule } from "./infra/sentry/sentry.module";
 import { StorageModule } from "./infra/storage/storage.module";
+import { AuthModule } from "./modules/auth/auth.module";
 
 @Module({
   imports: [
@@ -30,6 +30,7 @@ import { StorageModule } from "./infra/storage/storage.module";
     FeatureFlagModule,
     EmailModule,
     HealthModule,
+    AuthModule,
     ThrottlerModule.forRootAsync({
       useFactory: () => ({
         throttlers: [
@@ -68,10 +69,6 @@ import { StorageModule } from "./infra/storage/storage.module";
     {
       provide: APP_GUARD,
       useClass: ThrottlerGuard,
-    },
-    {
-      provide: APP_GUARD,
-      useClass: JwtAuthGuard,
     },
     {
       provide: APP_GUARD,

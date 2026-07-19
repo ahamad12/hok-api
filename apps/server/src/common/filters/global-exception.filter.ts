@@ -6,12 +6,12 @@ import {
   HttpStatus,
   Inject,
 } from "@nestjs/common";
-import { Prisma } from "@tapt-api/db";
+import { Prisma } from "@tapt-api/db/prisma";
 import type { Request, Response } from "express";
 import { WINSTON_MODULE_PROVIDER } from "nest-winston";
 import type { Logger } from "winston";
 import { ZodError } from "zod";
-import { SentryService } from "../../infra/sentry/sentry.service";
+import type { SentryService } from "../../infra/sentry/sentry.service";
 import { DomainError } from "../errors";
 
 interface ErrorResponseBody {
@@ -34,7 +34,7 @@ interface ResolvedException {
 export class GlobalExceptionFilter implements ExceptionFilter {
   constructor(
     @Inject(WINSTON_MODULE_PROVIDER) private readonly logger: Logger,
-    @Inject(SentryService) private readonly sentry: SentryService,
+    private readonly sentry: SentryService,
   ) {}
 
   catch(exception: unknown, host: ArgumentsHost): void {

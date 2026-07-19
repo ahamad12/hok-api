@@ -1,75 +1,92 @@
-import {
-  type CanActivate,
-  type ExecutionContext,
-  Inject,
-  Injectable,
-  UnauthorizedException,
-} from "@nestjs/common";
-import { Reflector } from "@nestjs/core";
-import { env } from "@tapt-api/env/server";
+// common/guards/jwt-auth.guard.ts — fixed: SSOT schema, tokenVersion enforced, no cast
+import { type CanActivate, type ExecutionContext, Injectable } from "@nestjs/common";
+import type { Reflector } from "@nestjs/core";
+import type { JwtService } from "@nestjs/jwt";
 import type { Request } from "express";
-import jwt from "jsonwebtoken";
-import { z } from "zod";
+import type { UserRepository } from "../../modules/auth/repositories/user.repository";
 import { IS_PUBLIC_KEY } from "../decorators/public.decorator";
+import { AuthenticationError } from "../errors";
+import type { RedisClient } from "../redis/redis.client";
+import { accessTokenPayloadSchema } from "../schemas/jwt-payload.schema";
 
-const jwtPayloadSchema = z.object({
-  userId: z.string(),
-  email: z.string().email(),
-  role: z.enum(["OWNER", "MANAGER", "STAFF"]),
-  shopId: z.string().nullable(),
-  isSupervisor: z.boolean(),
-});
+const TOKEN_VERSION_CACHE_TTL_SECONDS = 60 * 60; // hygiene only — not the security boundary
 
+/**
+ * Registered as APP_GUARD from *inside* AuthModule (see auth.module.ts),
+ * not from AppModule. This is what lets it inject UserRepository directly
+ * with zero circular-import risk — there is no separate "Users module"
+ * this needs to reach into, and there never needed to be one for this.
+ *
+ * tokenVersion enforcement is cache-aside, not a hard DB read on every
+ * request and not blind trust of the JWT claim either:
+ *  - Redis hit  -> compare against cached version, no DB hit.
+ *  - Redis miss -> read live tokenVersion from Postgres, populate Redis,
+ *    then compare. TTL is 1h purely so stale entries don't linger forever
+ *    in memory; the actual invalidation guarantee comes from every
+ *    tokenVersion-bumping mutation writing through to Redis synchronously
+ *    (see TokenVersionService), not from this TTL expiring.
+ */
 @Injectable()
 export class JwtAuthGuard implements CanActivate {
-  constructor(@Inject(Reflector) private readonly reflector: Reflector) {}
+  constructor(
+    private readonly reflector: Reflector,
+    private readonly jwtService: JwtService,
+    private readonly redis: RedisClient,
+    private readonly userRepository: UserRepository,
+  ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
       context.getHandler(),
       context.getClass(),
     ]);
-    if (isPublic) {
-      return true;
-    }
+    if (isPublic) return true;
 
     const request = context.switchToHttp().getRequest<Request>();
-    const token = this.extractToken(request);
+    const token = this.extractBearerToken(request);
+    if (!token) throw new AuthenticationError("Missing bearer token");
 
-    if (!token) {
-      throw new UnauthorizedException("Missing authentication token");
-    }
-
+    let decoded: unknown;
     try {
-      const decoded = await new Promise<unknown>((resolve, reject) => {
-        jwt.verify(token, env.JWT_SECRET, (err, payload) => {
-          if (err) reject(err);
-          else resolve(payload);
-        });
-      });
-      const result = jwtPayloadSchema.safeParse(decoded);
-      if (!result.success) {
-        throw new UnauthorizedException("Invalid token payload");
-      }
-      request.user = {
-        userId: result.data.userId,
-        email: result.data.email,
-        role: result.data.role,
-        shopId: result.data.shopId,
-        isSupervisor: result.data.isSupervisor,
-      };
-      return true;
-    } catch (error) {
-      if (error instanceof UnauthorizedException) throw error;
-      throw new UnauthorizedException("Invalid or expired token");
+      decoded = await this.jwtService.verifyAsync(token);
+    } catch {
+      throw new AuthenticationError("Invalid or expired token");
     }
+
+    const parsed = accessTokenPayloadSchema.safeParse(decoded);
+    if (!parsed.success) throw new AuthenticationError("Malformed token payload");
+
+    const { userId, email, role, shopId, isSupervisor, tokenVersion } = parsed.data;
+
+    const currentVersion = await this.getCurrentTokenVersion(userId);
+    if (currentVersion === null || currentVersion !== tokenVersion) {
+      throw new AuthenticationError("Session invalidated. Please login again.");
+    }
+
+    request.user = { userId, email, role, shopId, isSupervisor };
+    return true;
   }
 
-  private extractToken(request: Request): string | undefined {
-    const authHeader = request.headers.authorization;
-    if (!authHeader) return undefined;
+  private async getCurrentTokenVersion(userId: string): Promise<number | null> {
+    const cached = await this.redis.get(`tokenver:${userId}`);
+    if (cached !== null) return Number(cached);
 
-    const [type, token] = authHeader.split(" ");
-    return type === "Bearer" ? token : undefined;
+    const user = await this.userRepository.findById(userId);
+    if (!user || !user.isActive) return null;
+
+    await this.redis.set(
+      `tokenver:${userId}`,
+      user.tokenVersion,
+      "EX",
+      TOKEN_VERSION_CACHE_TTL_SECONDS,
+    );
+    return user.tokenVersion;
+  }
+
+  private extractBearerToken(request: Request): string | undefined {
+    const header = request.headers.authorization;
+    if (!header) return undefined;
+    const [scheme, token] = header.split(" ");
+    return scheme === "Bearer" && token ? token : undefined;
   }
 }

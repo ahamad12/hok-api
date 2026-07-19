@@ -1,3 +1,4 @@
+// common/types/express.d.ts
 import type { RequestUser } from "./request-user.interface";
 
 declare global {

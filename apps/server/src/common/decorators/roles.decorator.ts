@@ -1,5 +1,5 @@
 import { SetMetadata } from "@nestjs/common";
-import type { UserRole } from "../types/request-user.interface";
+import type { UserRole } from "@tapt-api/db";
 
 export const ROLES_KEY = "ROLES";
 export const Roles = (...roles: UserRole[]) => SetMetadata(ROLES_KEY, roles);
