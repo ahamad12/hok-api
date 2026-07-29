@@ -8,6 +8,7 @@ describe("ChangePasswordUseCase", () => {
   let passwordHasher: { compare: ReturnType<typeof vi.fn>; hash: ReturnType<typeof vi.fn> };
   let tokenService: { revokeAllUserTokens: ReturnType<typeof vi.fn> };
   let tokenVersionService: { invalidateSessions: ReturnType<typeof vi.fn> };
+  let eventEmitter: { emit: ReturnType<typeof vi.fn> };
   let useCase: ChangePasswordUseCase;
 
   const input = { userId: "user-1", currentPassword: "OldPass1!", newPassword: "NewPass1!" };
@@ -17,11 +18,13 @@ describe("ChangePasswordUseCase", () => {
     passwordHasher = { compare: vi.fn(), hash: vi.fn().mockResolvedValue("new-hash") };
     tokenService = { revokeAllUserTokens: vi.fn().mockResolvedValue(2) };
     tokenVersionService = { invalidateSessions: vi.fn().mockResolvedValue(1) };
+    eventEmitter = { emit: vi.fn() };
     useCase = new ChangePasswordUseCase(
       userRepository as any,
       passwordHasher as any,
       tokenService as any,
       tokenVersionService as any,
+      eventEmitter as any,
     );
 
     userRepository.findById.mockResolvedValue(buildUser());
@@ -53,6 +56,12 @@ describe("ChangePasswordUseCase", () => {
     passwordHasher.compare.mockResolvedValueOnce(true).mockResolvedValueOnce(false);
     await useCase.execute(input);
     expect(tokenVersionService.invalidateSessions).toHaveBeenCalledWith("user-1");
+  });
+
+  it("emits a user.password_changed domain event after invalidating sessions", async () => {
+    passwordHasher.compare.mockResolvedValueOnce(true).mockResolvedValueOnce(false);
+    await useCase.execute(input);
+    expect(eventEmitter.emit).toHaveBeenCalledWith("user.password_changed", { userId: "user-1" });
   });
 
   it("revokes all existing refresh tokens", async () => {

@@ -1,5 +1,6 @@
 // modules/auth/use-cases/change-password.use-case.ts — fixed: uses TokenVersionService
 import { Injectable } from "@nestjs/common";
+import type { EventEmitter2 } from "@nestjs/event-emitter";
 import { AuthenticationError, BusinessRuleError, NotFoundError } from "../../../common/errors";
 import type { UserRepository } from "../repositories/user.repository";
 import type { PasswordHasherService } from "../services/password-hasher.service";
@@ -24,6 +25,7 @@ export class ChangePasswordUseCase {
     private readonly passwordHasher: PasswordHasherService,
     private readonly tokenService: TokenService,
     private readonly tokenVersionService: TokenVersionService,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   async execute(input: ChangePasswordInput): Promise<ChangePasswordResult> {
@@ -47,6 +49,7 @@ export class ChangePasswordUseCase {
     // to Redis" — see TokenVersionService for why this can't be split
     // across call sites without risking the two falling out of sync.
     await this.tokenVersionService.invalidateSessions(user.id);
+    this.eventEmitter.emit("user.password_changed", { userId: user.id });
     const sessionsRevoked = await this.tokenService.revokeAllUserTokens(user.id);
 
     return {
