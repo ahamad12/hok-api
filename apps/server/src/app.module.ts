@@ -1,6 +1,7 @@
 import { ThrottlerStorageRedisService } from "@nest-lab/throttler-storage-redis";
 import { Module } from "@nestjs/common";
 import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from "@nestjs/core";
+import { EventEmitterModule } from "@nestjs/event-emitter";
 import { ThrottlerGuard, ThrottlerModule } from "@nestjs/throttler";
 import { DbModule } from "@tapt-api/db";
 import { env } from "@tapt-api/env/server";
@@ -15,6 +16,7 @@ import { TransformInterceptor } from "./common/interceptors/transform.intercepto
 import { HealthModule } from "./health/health.module";
 import { EmailModule } from "./infra/email/email.module";
 import { FeatureFlagModule } from "./infra/feature-flags/feature-flag.module";
+import { GatewayModule } from "./infra/gateway/gateway.module";
 import { winstonConfig } from "./infra/logger/winston.module";
 import { QueueModule } from "./infra/queue/queue.module";
 import { SentryModule } from "./infra/sentry/sentry.module";
@@ -23,6 +25,7 @@ import { AuthModule } from "./modules/auth/auth.module";
 
 @Module({
   imports: [
+    EventEmitterModule.forRoot(),
     DbModule,
     SentryModule,
     QueueModule,
@@ -31,6 +34,7 @@ import { AuthModule } from "./modules/auth/auth.module";
     EmailModule,
     HealthModule,
     AuthModule,
+    GatewayModule,
     ThrottlerModule.forRootAsync({
       useFactory: () => ({
         throttlers: [

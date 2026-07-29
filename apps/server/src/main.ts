@@ -8,6 +8,7 @@ import helmet from "helmet";
 import { WINSTON_MODULE_PROVIDER, WinstonModule } from "nest-winston";
 import type { Logger } from "winston";
 import { AppModule } from "./app.module";
+import { RedisIoAdapter } from "./infra/gateway/redis-io.adapter";
 import { winstonConfig } from "./infra/logger/winston.module";
 
 async function bootstrap() {
@@ -62,6 +63,8 @@ async function bootstrap() {
     origin: env.CORS_ORIGIN,
     methods: ["GET", "POST", "OPTIONS"],
   });
+
+  app.useWebSocketAdapter(new RedisIoAdapter(app));
 
   await app.listen(env.PORT);
 

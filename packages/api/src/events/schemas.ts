@@ -1,0 +1,105 @@
+import { z } from "zod";
+import type { SocketEventName } from "./event-names";
+import { SOCKET_EVENTS } from "./event-names";
+
+const taskStatusSchema = z.enum(["NOT_STARTED", "IN_PROGRESS", "DONE", "BLOCKED"]);
+const ticketStatusSchema = z.enum(["OPEN", "IN_PROGRESS", "RESOLVED", "CLOSED"]);
+const paymentModeSchema = z.enum(["CASH", "CARD", "UPI", "BANK_TRANSFER"]);
+const tillEntryTypeSchema = z.enum(["CASH_IN", "CASH_OUT"]);
+
+export const taskAssignedPayloadSchema = z.object({
+  taskId: z.string().uuid(),
+  title: z.string(),
+  assigneeId: z.string().uuid(),
+});
+
+export const taskUpdatedPayloadSchema = z.object({
+  taskId: z.string().uuid(),
+  status: taskStatusSchema,
+});
+
+export const ticketCreatedPayloadSchema = z.object({
+  ticketId: z.string().uuid(),
+  subject: z.string(),
+  priority: z.enum(["LOW", "NORMAL", "HIGH", "URGENT"]),
+});
+
+export const ticketUpdatedPayloadSchema = z.object({
+  ticketId: z.string().uuid(),
+  status: ticketStatusSchema,
+});
+
+export const ticketMessageCreatedPayloadSchema = z.object({
+  ticketId: z.string().uuid(),
+  message: z.string(),
+  senderName: z.string(),
+});
+
+export const tillEntryCreatedPayloadSchema = z.object({
+  entryId: z.string().uuid(),
+  type: tillEntryTypeSchema,
+  category: z.string(),
+  amount: z.number().int(),
+});
+
+export const scratchSaleCreatedPayloadSchema = z.object({
+  saleId: z.string().uuid(),
+  cardName: z.string(),
+  quantity: z.number().int().positive(),
+  totalAmount: z.number().int(),
+});
+
+export const deliveryCreatedPayloadSchema = z.object({
+  deliveryId: z.string().uuid(),
+  productName: z.string(),
+  supplierName: z.string(),
+  paymentMode: paymentModeSchema,
+});
+
+export const dailySummaryFinalizedPayloadSchema = z.object({
+  summaryId: z.string().uuid(),
+  date: z.coerce.date(),
+  closingBalance: z.number().int(),
+});
+
+export const licenseExpiringPayloadSchema = z.object({
+  licenseId: z.string().uuid(),
+  productName: z.string(),
+  expiryDate: z.coerce.date(),
+  daysRemaining: z.number().int(),
+});
+
+export const profitReportGeneratedPayloadSchema = z.object({
+  reportId: z.string().uuid(),
+  periodStart: z.coerce.date(),
+  periodEnd: z.coerce.date(),
+  netProfit: z.number().int(),
+});
+
+export const formSubmittedPayloadSchema = z.object({
+  submissionId: z.string().uuid(),
+  formTitle: z.string(),
+  staffName: z.string(),
+});
+
+export const sessionRevokedPayloadSchema = z.object({
+  message: z.string(),
+});
+
+export const socketEventSchemas = {
+  [SOCKET_EVENTS.TASK_ASSIGNED]: taskAssignedPayloadSchema,
+  [SOCKET_EVENTS.TASK_UPDATED]: taskUpdatedPayloadSchema,
+  [SOCKET_EVENTS.TICKET_CREATED]: ticketCreatedPayloadSchema,
+  [SOCKET_EVENTS.TICKET_UPDATED]: ticketUpdatedPayloadSchema,
+  [SOCKET_EVENTS.TICKET_MESSAGE_CREATED]: ticketMessageCreatedPayloadSchema,
+  [SOCKET_EVENTS.TILL_ENTRY_CREATED]: tillEntryCreatedPayloadSchema,
+  [SOCKET_EVENTS.SCRATCH_SALE_CREATED]: scratchSaleCreatedPayloadSchema,
+  [SOCKET_EVENTS.DELIVERY_CREATED]: deliveryCreatedPayloadSchema,
+  [SOCKET_EVENTS.DAILY_SUMMARY_FINALIZED]: dailySummaryFinalizedPayloadSchema,
+  [SOCKET_EVENTS.LICENSE_EXPIRING]: licenseExpiringPayloadSchema,
+  [SOCKET_EVENTS.PROFIT_REPORT_GENERATED]: profitReportGeneratedPayloadSchema,
+  [SOCKET_EVENTS.FORM_SUBMITTED]: formSubmittedPayloadSchema,
+  [SOCKET_EVENTS.SESSION_REVOKED]: sessionRevokedPayloadSchema,
+} as const satisfies Record<SocketEventName, z.ZodTypeAny>;
+
+export type SocketEventPayload<E extends SocketEventName> = z.infer<(typeof socketEventSchemas)[E]>;

@@ -16,7 +16,13 @@ export class TokenVersionService {
 
   /** Call this from anywhere that should kill a user's existing sessions:
    *  change-password, deactivate, role change, supervisor toggle, shop
-   *  reassignment. */
+   *  reassignment.
+   *
+   *  If a future "force logout this device" feature calls this: emit
+   *  session:revoked via AppGateway BEFORE this bump completes, not after —
+   *  the socket's current token stays valid until reconnect, so the push
+   *  notification is the only signal that arrives before the connection
+   *  naturally dies. */
   async invalidateSessions(userId: string): Promise<number> {
     const newVersion = await this.userRepository.incrementTokenVersion(userId);
     await this.redis.set(`tokenver:${userId}`, newVersion, "EX", TOKEN_VERSION_CACHE_TTL_SECONDS);

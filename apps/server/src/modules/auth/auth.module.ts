@@ -4,6 +4,7 @@ import { Module } from "@nestjs/common";
 import { APP_GUARD } from "@nestjs/core";
 import { JwtModule } from "@nestjs/jwt";
 import { env } from "@tapt-api/env/server";
+import { AccessTokenVerifierService } from "../../common/auth/access-token-verifier.service";
 import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
 import { RedisModule } from "../../common/redis/redis.module";
 import { AuthController } from "./auth.controller";
@@ -47,12 +48,9 @@ import { UpdateUserProfileUseCase } from "./use-cases/update-user-profile.use-ca
     ChangePasswordUseCase,
     GetUserProfileUseCase,
     UpdateUserProfileUseCase,
-    // Registered from here, not AppModule — this is what lets JwtAuthGuard
-    // inject UserRepository with no cross-module import at all, let alone
-    // a circular one. Nest doesn't require global guards to be bound from
-    // the root module.
+    AccessTokenVerifierService,
     { provide: APP_GUARD, useClass: JwtAuthGuard },
   ],
-  exports: [TokenService, UserRepository, TokenVersionService],
+  exports: [TokenService, UserRepository, TokenVersionService, AccessTokenVerifierService],
 })
 export class AuthModule {}
