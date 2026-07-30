@@ -15,6 +15,14 @@ export interface PrismaServiceMock {
     update: ReturnType<typeof vi.fn>;
     count: ReturnType<typeof vi.fn>;
   };
+  tillEntry: {
+    findUnique: ReturnType<typeof vi.fn>;
+    findFirst: ReturnType<typeof vi.fn>;
+    findMany: ReturnType<typeof vi.fn>;
+    count: ReturnType<typeof vi.fn>;
+    create: ReturnType<typeof vi.fn>;
+    groupBy: ReturnType<typeof vi.fn>;
+  };
 }
 
 export function createPrismaServiceMock(): PrismaServiceMock {
@@ -32,6 +40,14 @@ export function createPrismaServiceMock(): PrismaServiceMock {
       create: vi.fn(),
       update: vi.fn(),
       count: vi.fn(),
+    },
+    tillEntry: {
+      findUnique: vi.fn(),
+      findFirst: vi.fn(),
+      findMany: vi.fn(),
+      count: vi.fn(),
+      create: vi.fn(),
+      groupBy: vi.fn(),
     },
   };
 }

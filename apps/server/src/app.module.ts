@@ -23,6 +23,7 @@ import { SentryModule } from "./infra/sentry/sentry.module";
 import { StorageModule } from "./infra/storage/storage.module";
 import { AuthModule } from "./modules/auth/auth.module";
 import { ShopModule } from "./modules/shop/shop.module";
+import { TillEntryModule } from "./modules/till-entry/till-entry.module";
 
 @Module({
   imports: [
@@ -37,6 +38,7 @@ import { ShopModule } from "./modules/shop/shop.module";
     AuthModule,
     GatewayModule,
     ShopModule,
+    TillEntryModule,
     ThrottlerModule.forRootAsync({
       useFactory: () => ({
         throttlers: [

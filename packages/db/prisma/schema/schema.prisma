@@ -48,9 +48,11 @@ enum PeriodType {
   EVENING
 }
 
-enum TillEntryType {
-  CASH_IN
-  CASH_OUT
+enum TillEntryCategory {
+  SALES
+  EXPENSE
+  WITHDRAWAL
+  DEPOSIT
 }
 
 model User {
@@ -384,22 +386,26 @@ model FormSubmission {
 }
 
 model TillEntry {
-  id              String        @id @default(uuid())
-  shopId          String        @map("shop_id")
-  shop            Shop          @relation(fields: [shopId], references: [id], onDelete: Cascade)
-  type            TillEntryType
-  category        String
-  amount          Int
-  description     String?       @db.Text
-  billUrl         String?       @map("bill_url")
-  recordedById    String        @map("recorded_by_id")
-  recordedBy      User          @relation(fields: [recordedById], references: [id], onDelete: Cascade)
-  transactionDate DateTime      @default(now()) @map("transaction_date")
-  createdAt       DateTime      @default(now()) @map("created_at")
+  id               String             @id @default(uuid())
+  shopId           String             @map("shop_id")
+  shop             Shop               @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  category         TillEntryCategory
+  amount           Int
+  description      String?            @db.Text
+  billUrl          String?            @map("bill_url")
+  recordedById     String             @map("recorded_by_id")
+  recordedBy       User               @relation(fields: [recordedById], references: [id], onDelete: Cascade)
+  transactionDate  DateTime           @default(now()) @map("transaction_date")
+  reversesEntryId  String?            @map("reverses_entry_id")
+  reversedEntry    TillEntry?         @relation("TillEntryReversal", fields: [reversesEntryId], references: [id])
+  reversals        TillEntry[]        @relation("TillEntryReversal")
+  correctionReason String?            @map("correction_reason") @db.Text
+  createdAt        DateTime           @default(now()) @map("created_at")
 
   @@index([shopId, transactionDate])
-  @@index([shopId, type, transactionDate])
+  @@index([shopId, category, transactionDate])
   @@index([transactionDate])
+  @@unique([reversesEntryId])
   @@map("till_entries")
 }
 
