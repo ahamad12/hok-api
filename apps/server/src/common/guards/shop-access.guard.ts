@@ -4,15 +4,12 @@ import {
   type ExecutionContext,
   ForbiddenException,
   Injectable,
-  SetMetadata,
 } from "@nestjs/common";
 import type { Reflector } from "@nestjs/core";
 import { UserRole } from "@tapt-api/db";
 import type { Request } from "express";
+import { SHOP_ACCESS_PARAM_KEY } from "../decorators";
 import type { RequestUser } from "../types/request-user.interface";
-
-export const SHOP_ACCESS_PARAM_KEY = "SHOP_ACCESS_PARAM_KEY";
-export const ShopAccess = (paramKey = "shopId") => SetMetadata(SHOP_ACCESS_PARAM_KEY, paramKey);
 
 @Injectable()
 export class ShopAccessGuard implements CanActivate {

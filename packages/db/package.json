@@ -3,13 +3,16 @@
   "type": "module",
   "exports": {
     ".": {
+      "types": "./src/index.ts",
       "default": "./dist/src/index.js"
     },
     "./*": {
+      "types": "./src/*.ts",
       "default": "./dist/src/*.js"
     }
   },
   "scripts": {
+    "build": "tsc -b",
     "check-types": "tsc --noEmit --declaration false --declarationMap false --composite false",
     "postinstall": "prisma generate",
     "db:push": "prisma db push",

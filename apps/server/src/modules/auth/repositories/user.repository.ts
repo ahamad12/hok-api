@@ -1,6 +1,6 @@
 // modules/auth/repositories/user.repository.ts — kept, one method added
 import { Injectable } from "@nestjs/common";
-import type { PrismaService, User } from "@tapt-api/db";
+import { type PrismaService, type User, UserRole } from "@tapt-api/db";
 import type { Prisma } from "@tapt-api/db/prisma";
 
 @Injectable()
@@ -40,5 +40,17 @@ export class UserRepository {
       select: { tokenVersion: true },
     });
     return updated.tokenVersion;
+  }
+
+  findByShop(shopId: string): Promise<User[]> {
+    return this.prisma.user.findMany({ where: { shopId, isActive: true } });
+  }
+
+  findStaffByShop(shopId: string): Promise<User[]> {
+    return this.prisma.user.findMany({ where: { shopId, role: UserRole.STAFF, isActive: true } });
+  }
+
+  async softDelete(id: string): Promise<void> {
+    await this.prisma.user.update({ where: { id }, data: { isActive: false } });
   }
 }

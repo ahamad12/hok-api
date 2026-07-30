@@ -22,6 +22,7 @@ import { QueueModule } from "./infra/queue/queue.module";
 import { SentryModule } from "./infra/sentry/sentry.module";
 import { StorageModule } from "./infra/storage/storage.module";
 import { AuthModule } from "./modules/auth/auth.module";
+import { ShopModule } from "./modules/shop/shop.module";
 
 @Module({
   imports: [
@@ -35,6 +36,7 @@ import { AuthModule } from "./modules/auth/auth.module";
     HealthModule,
     AuthModule,
     GatewayModule,
+    ShopModule,
     ThrottlerModule.forRootAsync({
       useFactory: () => ({
         throttlers: [
