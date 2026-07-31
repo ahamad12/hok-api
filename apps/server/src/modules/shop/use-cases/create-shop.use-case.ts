@@ -2,9 +2,9 @@ import { Injectable } from "@nestjs/common";
 import { UserRole } from "@tapt-api/db";
 import type { Prisma } from "@tapt-api/db/prisma";
 import { AuthorizationError, ConflictError, NotFoundError } from "../../../common/errors";
-import type { UserRepository } from "../../auth/repositories/user.repository";
+import { UserRepository } from "../../auth/repositories/user.repository";
 import { type ShopResult, toShopResult } from "../mappers/shop.mapper";
-import type { ShopRepository } from "../repositories/shop.repository";
+import { ShopRepository } from "../repositories/shop.repository";
 
 export interface CreateShopInput {
   requesterId: string;

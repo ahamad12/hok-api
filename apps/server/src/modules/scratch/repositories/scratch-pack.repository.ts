@@ -1,9 +1,9 @@
 import { Injectable } from "@nestjs/common";
-import type {
+import {
   PrismaService,
-  ScratchPack,
-  ScratchPackLocation,
-  ScratchPackStatus,
+  type ScratchPack,
+  type ScratchPackLocation,
+  type ScratchPackStatus,
 } from "@tapt-api/db";
 import type { Prisma } from "@tapt-api/db/prisma";
 

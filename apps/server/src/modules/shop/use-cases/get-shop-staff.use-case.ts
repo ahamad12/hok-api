@@ -1,8 +1,8 @@
 // modules/shop/use-cases/get-shop-staff.use-case.ts
 import { Injectable } from "@nestjs/common";
 import { NotFoundError } from "../../../common/errors";
-import type { UserRepository } from "../../auth/repositories/user.repository";
-import type { ShopRepository } from "../repositories/shop.repository";
+import { UserRepository } from "../../auth/repositories/user.repository";
+import { ShopRepository } from "../repositories/shop.repository";
 
 export interface GetShopStaffInput {
   shopId: string;

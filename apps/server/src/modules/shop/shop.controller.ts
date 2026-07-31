@@ -4,14 +4,14 @@ import { UserRole } from "@tapt-api/db";
 import { TsRestHandler } from "@ts-rest/nest";
 import { CurrentUser, Roles, ShopAccess } from "../../common/decorators";
 import type { RequestUser } from "../../common/types/request-user.interface";
-import type { AssignStaffUseCase } from "./use-cases/assign-staff.use-case";
-import type { CreateShopInput, CreateShopUseCase } from "./use-cases/create-shop.use-case";
-import type { DeleteShopUseCase } from "./use-cases/delete-shop.use-case";
-import type { GetMyShopsUseCase } from "./use-cases/get-my-shops.use-case";
-import type { GetShopByIdUseCase } from "./use-cases/get-shop-by-id.use-case";
-import type { GetShopStaffUseCase } from "./use-cases/get-shop-staff.use-case";
-import type { RemoveStaffUseCase } from "./use-cases/remove-staff.use-case";
-import type { UpdateShopUseCase } from "./use-cases/update-shop.use-case";
+import { AssignStaffUseCase } from "./use-cases/assign-staff.use-case";
+import { type CreateShopInput, CreateShopUseCase } from "./use-cases/create-shop.use-case";
+import { DeleteShopUseCase } from "./use-cases/delete-shop.use-case";
+import { GetMyShopsUseCase } from "./use-cases/get-my-shops.use-case";
+import { GetShopByIdUseCase } from "./use-cases/get-shop-by-id.use-case";
+import { GetShopStaffUseCase } from "./use-cases/get-shop-staff.use-case";
+import { RemoveStaffUseCase } from "./use-cases/remove-staff.use-case";
+import { UpdateShopUseCase } from "./use-cases/update-shop.use-case";
 
 // Same tsRestHandler() convention issue as auth.controller.ts — see that
 // file's comment. Typing handlers against use-case Input/Result interfaces

@@ -1,5 +1,5 @@
 import { Injectable } from "@nestjs/common";
-import type { PrismaService, Shop } from "@tapt-api/db";
+import { PrismaService, type Shop } from "@tapt-api/db";
 import type { Prisma } from "@tapt-api/db/prisma";
 
 @Injectable()

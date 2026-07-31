@@ -1,7 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import { OnEvent } from "@nestjs/event-emitter";
 import { SOCKET_EVENTS } from "@tapt-api/api/events";
-import type { AppGateway } from "../app.gateway";
+import { AppGateway } from "../app.gateway";
 
 @Injectable()
 export class TaskEventsListener {

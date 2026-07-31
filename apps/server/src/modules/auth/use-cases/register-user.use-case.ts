@@ -1,10 +1,10 @@
 // modules/auth/use-cases/register-user.use-case.ts — unchanged
 import { Injectable } from "@nestjs/common";
-import type { PrismaService, UserRole } from "@tapt-api/db";
+import { PrismaService, type UserRole } from "@tapt-api/db";
 import { assertValidUserRoleAssignment } from "../../../common/domain/user-role-invariants";
 import { ConflictError, NotFoundError } from "../../../common/errors";
-import type { UserRepository } from "../repositories/user.repository";
-import type { PasswordHasherService } from "../services/password-hasher.service";
+import { UserRepository } from "../repositories/user.repository";
+import { PasswordHasherService } from "../services/password-hasher.service";
 
 export interface RegisterUserInput {
   email: string;

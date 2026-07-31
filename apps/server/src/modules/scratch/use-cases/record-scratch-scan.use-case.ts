@@ -10,9 +10,9 @@ import {
   type ScratchScanEventResult,
   toScratchScanEventResult,
 } from "../mappers/scratch-scan-event.mapper";
-import type { ScratchGameRepository } from "../repositories/scratch-game.repository";
-import type { ScratchPackRepository } from "../repositories/scratch-pack.repository";
-import type { ScratchScanEventRepository } from "../repositories/scratch-scan-event.repository";
+import { ScratchGameRepository } from "../repositories/scratch-game.repository";
+import { ScratchPackRepository } from "../repositories/scratch-pack.repository";
+import { ScratchScanEventRepository } from "../repositories/scratch-scan-event.repository";
 
 export interface RecordScratchScanInput {
   requesterId: string;

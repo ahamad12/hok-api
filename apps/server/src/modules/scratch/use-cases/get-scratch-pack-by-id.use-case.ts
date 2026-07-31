@@ -2,7 +2,7 @@ import { Injectable } from "@nestjs/common";
 import { UserRole } from "@tapt-api/db";
 import { AuthorizationError, NotFoundError } from "../../../common/errors";
 import { type ScratchPackResult, toScratchPackResult } from "../mappers/scratch-pack.mapper";
-import type { ScratchPackRepository } from "../repositories/scratch-pack.repository";
+import { ScratchPackRepository } from "../repositories/scratch-pack.repository";
 
 export interface GetScratchPackByIdInput {
   requesterRole: UserRole;

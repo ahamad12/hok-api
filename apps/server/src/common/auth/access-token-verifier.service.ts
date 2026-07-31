@@ -1,8 +1,8 @@
 import { Injectable } from "@nestjs/common";
-import type { JwtService } from "@nestjs/jwt";
-import type { UserRepository } from "../../modules/auth/repositories/user.repository";
+import { JwtService } from "@nestjs/jwt";
+import { UserRepository } from "../../modules/auth/repositories/user.repository";
 import { AuthenticationError } from "../errors";
-import type { RedisClient } from "../redis/redis.client";
+import { RedisClient } from "../redis/redis.client";
 import { accessTokenPayloadSchema } from "../schemas/jwt-payload.schema";
 import type { RequestUser } from "../types/request-user.interface";
 

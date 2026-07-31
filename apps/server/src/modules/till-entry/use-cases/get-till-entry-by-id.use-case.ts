@@ -3,7 +3,7 @@ import { Injectable } from "@nestjs/common";
 import { UserRole } from "@tapt-api/db";
 import { AuthorizationError, NotFoundError } from "../../../common/errors";
 import { type TillEntryResult, toTillEntryResult } from "../mappers/till-entry.mapper";
-import type { TillEntryRepository } from "../repositories/till-entry.repository";
+import { TillEntryRepository } from "../repositories/till-entry.repository";
 
 export interface GetTillEntryByIdInput {
   requesterRole: UserRole;

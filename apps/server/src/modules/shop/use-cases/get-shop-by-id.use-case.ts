@@ -1,7 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import { NotFoundError } from "../../../common/errors";
 import { type ShopResult, toShopResult } from "../mappers/shop.mapper";
-import type { ShopRepository } from "../repositories/shop.repository";
+import { ShopRepository } from "../repositories/shop.repository";
 
 export interface GetShopByIdInput {
   shopId: string;

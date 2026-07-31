@@ -2,7 +2,7 @@
 import { Injectable } from "@nestjs/common";
 import { ConflictError, NotFoundError } from "../../../common/errors";
 import { toUserProfile, type UserProfileResult } from "../mappers/user-profile.mapper";
-import type { UserRepository } from "../repositories/user.repository";
+import { UserRepository } from "../repositories/user.repository";
 
 export interface UpdateUserProfileInput {
   userId: string;

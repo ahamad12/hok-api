@@ -1,6 +1,6 @@
 // modules/auth/repositories/user.repository.ts — kept, one method added
 import { Injectable } from "@nestjs/common";
-import { type PrismaService, type User, UserRole } from "@tapt-api/db";
+import { PrismaService, type User, UserRole } from "@tapt-api/db";
 import type { Prisma } from "@tapt-api/db/prisma";
 
 @Injectable()

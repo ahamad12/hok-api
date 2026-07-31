@@ -2,8 +2,8 @@
 
 import { createHash, randomBytes } from "node:crypto";
 import { Injectable } from "@nestjs/common";
-import type { JwtService } from "@nestjs/jwt";
-import type { PrismaService } from "@tapt-api/db";
+import { JwtService } from "@nestjs/jwt";
+import { PrismaService } from "@tapt-api/db";
 import { AuthenticationError } from "../../../common/errors";
 import type { AccessTokenPayload } from "../../../common/schemas/jwt-payload.schema";
 

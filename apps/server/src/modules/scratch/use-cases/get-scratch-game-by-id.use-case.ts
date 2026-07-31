@@ -2,7 +2,7 @@ import { Injectable } from "@nestjs/common";
 import { UserRole } from "@tapt-api/db";
 import { AuthorizationError, NotFoundError } from "../../../common/errors";
 import { type ScratchGameResult, toScratchGameResult } from "../mappers/scratch-game.mapper";
-import type { ScratchGameRepository } from "../repositories/scratch-game.repository";
+import { ScratchGameRepository } from "../repositories/scratch-game.repository";
 
 export interface GetScratchGameByIdInput {
   requesterRole: UserRole;

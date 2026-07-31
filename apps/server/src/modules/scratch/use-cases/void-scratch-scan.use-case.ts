@@ -5,8 +5,8 @@ import {
   type ScratchScanEventResult,
   toScratchScanEventResult,
 } from "../mappers/scratch-scan-event.mapper";
-import type { ScratchPackRepository } from "../repositories/scratch-pack.repository";
-import type { ScratchScanEventRepository } from "../repositories/scratch-scan-event.repository";
+import { ScratchPackRepository } from "../repositories/scratch-pack.repository";
+import { ScratchScanEventRepository } from "../repositories/scratch-scan-event.repository";
 
 export interface VoidScratchScanInput {
   requesterId: string;

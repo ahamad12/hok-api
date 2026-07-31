@@ -1,11 +1,11 @@
 // modules/auth/use-cases/change-password.use-case.ts — fixed: uses TokenVersionService
 import { Injectable } from "@nestjs/common";
-import type { EventEmitter2 } from "@nestjs/event-emitter";
+import { EventEmitter2 } from "@nestjs/event-emitter";
 import { AuthenticationError, BusinessRuleError, NotFoundError } from "../../../common/errors";
-import type { UserRepository } from "../repositories/user.repository";
-import type { PasswordHasherService } from "../services/password-hasher.service";
-import type { TokenService } from "../services/token.service";
-import type { TokenVersionService } from "../services/token-version.service";
+import { UserRepository } from "../repositories/user.repository";
+import { PasswordHasherService } from "../services/password-hasher.service";
+import { TokenService } from "../services/token.service";
+import { TokenVersionService } from "../services/token-version.service";
 
 export interface ChangePasswordInput {
   userId: string;

@@ -2,8 +2,8 @@
 // the "bump DB + write through to Redis" pairing, so no mutation site can
 // forget the Redis half and silently break instant invalidation.
 import { Injectable } from "@nestjs/common";
-import type { RedisClient } from "../../../common/redis/redis.client";
-import type { UserRepository } from "../repositories/user.repository";
+import { RedisClient } from "../../../common/redis/redis.client";
+import { UserRepository } from "../repositories/user.repository";
 
 const TOKEN_VERSION_CACHE_TTL_SECONDS = 60 * 60;
 

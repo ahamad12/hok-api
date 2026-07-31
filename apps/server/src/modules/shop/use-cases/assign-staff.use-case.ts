@@ -2,9 +2,9 @@
 import { Injectable } from "@nestjs/common";
 import { UserRole } from "@tapt-api/db";
 import { AuthorizationError, BusinessRuleError, NotFoundError } from "../../../common/errors";
-import type { UserRepository } from "../../auth/repositories/user.repository";
-import type { TokenVersionService } from "../../auth/services/token-version.service";
-import type { ShopRepository } from "../repositories/shop.repository";
+import { UserRepository } from "../../auth/repositories/user.repository";
+import { TokenVersionService } from "../../auth/services/token-version.service";
+import { ShopRepository } from "../repositories/shop.repository";
 import type { StaffSummary } from "./get-shop-staff.use-case";
 
 export interface AssignStaffInput {

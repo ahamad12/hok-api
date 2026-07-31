@@ -2,7 +2,7 @@
 import { Injectable } from "@nestjs/common";
 import { UserRole } from "@tapt-api/db";
 import { AuthorizationError } from "../../../common/errors";
-import type { TillEntryRepository } from "../repositories/till-entry.repository";
+import { TillEntryRepository } from "../repositories/till-entry.repository";
 
 const IN_CATEGORIES = ["SALES", "DEPOSIT"] as const;
 const OUT_CATEGORIES = ["EXPENSE", "WITHDRAWAL"] as const;

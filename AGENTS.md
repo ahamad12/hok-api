@@ -71,6 +71,12 @@ tapt-api/
 - `npm run db:push` - Push database schema
 - `npm run db:studio` - Open database UI
 
+## Development & Build Workflows
+
+- **Dev runner is SWC-based** (`node --import @swc-node/register/esm-register`), NOT tsx: esbuild/tsx strip types without emitting `design:paramtypes`, which breaks NestJS constructor-based DI (the app fails to boot under tsx). `@swc-node/register` reads `tsconfig.json` and emits decorator metadata.
+- **Production build (`tsdown`, `apps/server/tsdown.config.ts`)**: native-addon packages (`bcrypt`, `@sentry/profiling-node`) and `@prisma/*` are externalized and MUST stay external — bundling `node-gyp-build` inline breaks bcrypt's native loader at runtime (`No native build was found...`). Prisma's query-compiler WASM chunks load fine from `node_modules` at runtime. `npm run start` = `node dist/index.mjs`.
+- **CI lint** (`npx biome check .`) only fails on errors; the repo's committed baseline has warnings only. Note: on Windows with `core.autocrlf=true`, local `biome check` shows spurious format errors from CRLF checkouts that do not occur in CI (LF checkout).
+
 ## Maintenance
 
 Keep AGENTS.md updated when:

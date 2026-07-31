@@ -9,35 +9,35 @@ import { UserRole } from "@tapt-api/db";
 import { TsRestHandler } from "@ts-rest/nest";
 import { CurrentUser, Roles } from "../../common/decorators";
 import type { RequestUser } from "../../common/types/request-user.interface";
-import type {
-  CreateScratchGameInput,
+import {
+  type CreateScratchGameInput,
   CreateScratchGameUseCase,
 } from "./use-cases/create-scratch-game.use-case";
-import type { GetScratchGameByIdUseCase } from "./use-cases/get-scratch-game-by-id.use-case";
-import type {
-  GetScratchGamesInput,
+import { GetScratchGameByIdUseCase } from "./use-cases/get-scratch-game-by-id.use-case";
+import {
+  type GetScratchGamesInput,
   GetScratchGamesUseCase,
 } from "./use-cases/get-scratch-games.use-case";
-import type { GetScratchPackByIdUseCase } from "./use-cases/get-scratch-pack-by-id.use-case";
-import type {
-  GetScratchPacksInput,
+import { GetScratchPackByIdUseCase } from "./use-cases/get-scratch-pack-by-id.use-case";
+import {
+  type GetScratchPacksInput,
   GetScratchPacksUseCase,
 } from "./use-cases/get-scratch-packs.use-case";
-import type {
-  GetScratchSalesSummaryInput,
+import {
+  type GetScratchSalesSummaryInput,
   GetScratchSalesSummaryUseCase,
 } from "./use-cases/get-scratch-sales-summary.use-case";
-import type { MoveScratchPackUseCase } from "./use-cases/move-scratch-pack.use-case";
-import type {
-  ReceiveScratchPackInput,
+import { MoveScratchPackUseCase } from "./use-cases/move-scratch-pack.use-case";
+import {
+  type ReceiveScratchPackInput,
   ReceiveScratchPackUseCase,
 } from "./use-cases/receive-scratch-pack.use-case";
-import type {
-  RecordScratchScanInput,
+import {
+  type RecordScratchScanInput,
   RecordScratchScanUseCase,
 } from "./use-cases/record-scratch-scan.use-case";
-import type { ReturnScratchPackUseCase } from "./use-cases/return-scratch-pack.use-case";
-import type { VoidScratchScanUseCase } from "./use-cases/void-scratch-scan.use-case";
+import { ReturnScratchPackUseCase } from "./use-cases/return-scratch-pack.use-case";
+import { VoidScratchScanUseCase } from "./use-cases/void-scratch-scan.use-case";
 
 @Controller()
 export class ScratchGameController {

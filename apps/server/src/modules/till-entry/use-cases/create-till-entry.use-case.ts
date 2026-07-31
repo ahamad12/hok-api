@@ -2,9 +2,9 @@
 import { Injectable } from "@nestjs/common";
 import { type TillEntryCategory, UserRole } from "@tapt-api/db";
 import { AuthorizationError, NotFoundError } from "../../../common/errors";
-import type { ShopRepository } from "../../shop/repositories/shop.repository";
+import { ShopRepository } from "../../shop/repositories/shop.repository";
 import { type TillEntryResult, toTillEntryResult } from "../mappers/till-entry.mapper";
-import type { TillEntryRepository } from "../repositories/till-entry.repository";
+import { TillEntryRepository } from "../repositories/till-entry.repository";
 
 export interface CreateTillEntryInput {
   requesterId: string;

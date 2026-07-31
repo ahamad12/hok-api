@@ -1,5 +1,5 @@
 import { Injectable } from "@nestjs/common";
-import type { PrismaService, ScratchGame } from "@tapt-api/db"; // value import — `import type` breaks Nest DI at bootstrap
+import { PrismaService, type ScratchGame } from "@tapt-api/db"; // value import — `import type` breaks Nest DI at bootstrap
 import type { Prisma } from "@tapt-api/db/prisma";
 
 export interface ScratchGameFilters {

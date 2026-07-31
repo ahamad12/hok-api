@@ -1,6 +1,6 @@
 // modules/auth/use-cases/logout.use-case.ts — unchanged
 import { Injectable } from "@nestjs/common";
-import type { TokenService } from "../services/token.service";
+import { TokenService } from "../services/token.service";
 
 export interface LogoutInput {
   refreshToken: string;

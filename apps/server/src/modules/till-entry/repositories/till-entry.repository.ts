@@ -1,5 +1,5 @@
 import { Injectable } from "@nestjs/common";
-import type { PrismaService, TillEntry, TillEntryCategory } from "@tapt-api/db"; // value import — required for Nest DI, `import type` breaks bootstrap
+import { PrismaService, type TillEntry, type TillEntryCategory } from "@tapt-api/db"; // value import — required for Nest DI, `import type` breaks bootstrap
 import type { Prisma } from "@tapt-api/db/prisma";
 
 export interface TillEntryFilters {

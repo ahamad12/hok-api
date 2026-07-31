@@ -1,8 +1,8 @@
 // modules/auth/use-cases/refresh-token.use-case.ts — unchanged
 import { Injectable } from "@nestjs/common";
 import { AuthenticationError } from "../../../common/errors";
-import type { UserRepository } from "../repositories/user.repository";
-import type { TokenService } from "../services/token.service";
+import { UserRepository } from "../repositories/user.repository";
+import { TokenService } from "../services/token.service";
 
 export interface RefreshTokenInput {
   refreshToken: string;

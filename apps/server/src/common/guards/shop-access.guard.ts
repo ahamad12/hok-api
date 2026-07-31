@@ -5,7 +5,7 @@ import {
   ForbiddenException,
   Injectable,
 } from "@nestjs/common";
-import type { Reflector } from "@nestjs/core";
+import { Reflector } from "@nestjs/core";
 import { UserRole } from "@tapt-api/db";
 import type { Request } from "express";
 import { SHOP_ACCESS_PARAM_KEY } from "../decorators";

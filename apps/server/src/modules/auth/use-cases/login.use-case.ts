@@ -2,9 +2,9 @@
 import { Injectable } from "@nestjs/common";
 import type { UserRole } from "@tapt-api/db";
 import { AuthenticationError } from "../../../common/errors";
-import type { UserRepository } from "../repositories/user.repository";
-import type { PasswordHasherService } from "../services/password-hasher.service";
-import type { TokenService } from "../services/token.service";
+import { UserRepository } from "../repositories/user.repository";
+import { PasswordHasherService } from "../services/password-hasher.service";
+import { TokenService } from "../services/token.service";
 
 export interface LoginInput {
   email: string;

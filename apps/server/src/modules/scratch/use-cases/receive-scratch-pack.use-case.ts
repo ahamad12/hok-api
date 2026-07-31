@@ -1,10 +1,10 @@
 import { Injectable } from "@nestjs/common";
 import { UserRole } from "@tapt-api/db";
 import { AuthorizationError, ConflictError, NotFoundError } from "../../../common/errors";
-import type { ShopRepository } from "../../shop/repositories/shop.repository";
+import { ShopRepository } from "../../shop/repositories/shop.repository";
 import { type ScratchPackResult, toScratchPackResult } from "../mappers/scratch-pack.mapper";
-import type { ScratchGameRepository } from "../repositories/scratch-game.repository";
-import type { ScratchPackRepository } from "../repositories/scratch-pack.repository";
+import { ScratchGameRepository } from "../repositories/scratch-game.repository";
+import { ScratchPackRepository } from "../repositories/scratch-pack.repository";
 
 export interface ReceiveScratchPackInput {
   requesterId: string;

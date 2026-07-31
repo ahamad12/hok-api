@@ -2,8 +2,8 @@
 import { Injectable } from "@nestjs/common";
 import { UserRole } from "@tapt-api/db";
 import { AuthorizationError, NotFoundError } from "../../../common/errors";
-import type { UserRepository } from "../../auth/repositories/user.repository";
-import type { TokenVersionService } from "../../auth/services/token-version.service";
+import { UserRepository } from "../../auth/repositories/user.repository";
+import { TokenVersionService } from "../../auth/services/token-version.service";
 
 export interface RemoveStaffInput {
   requesterId: string;

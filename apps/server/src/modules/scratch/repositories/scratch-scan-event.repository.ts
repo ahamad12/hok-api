@@ -1,5 +1,5 @@
 import { Injectable } from "@nestjs/common";
-import type { PeriodType, PrismaService, ScratchScanEvent } from "@tapt-api/db";
+import { type PeriodType, PrismaService, type ScratchScanEvent } from "@tapt-api/db";
 
 export interface CreateScratchScanEventData {
   packId: string;

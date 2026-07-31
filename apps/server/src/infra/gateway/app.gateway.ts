@@ -13,7 +13,7 @@ import type { Server, Socket } from "socket.io";
 import type { Logger } from "winston";
 import { ADMIN_ROOM, shopRoom, userRoom } from "../../common/constants/rooms";
 import type { SocketEventEnvelope } from "../../common/types/socket-event";
-import type { GatewayAdapter } from "./gateway.adapter";
+import { GatewayAdapter } from "./gateway.adapter";
 
 @WebSocketGateway({
   cors: {

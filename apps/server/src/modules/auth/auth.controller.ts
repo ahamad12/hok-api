@@ -3,16 +3,16 @@ import { authContract } from "@tapt-api/api/contracts/auth.contract";
 import { TsRestHandler } from "@ts-rest/nest";
 import { CurrentUser, Public } from "../../common/decorators";
 import type { RequestUser } from "../../common/types/request-user.interface";
-import type {
-  ChangePasswordInput,
+import {
+  type ChangePasswordInput,
   ChangePasswordUseCase,
 } from "./use-cases/change-password.use-case";
-import type { GetUserProfileUseCase } from "./use-cases/get-user-profile.use-case";
-import type { LoginInput, LoginUseCase } from "./use-cases/login.use-case";
-import type { LogoutInput, LogoutUseCase } from "./use-cases/logout.use-case";
-import type { RefreshTokenInput, RefreshTokenUseCase } from "./use-cases/refresh-token.use-case";
-import type { RegisterUserInput, RegisterUserUseCase } from "./use-cases/register-user.use-case";
-import type { UpdateUserProfileUseCase } from "./use-cases/update-user-profile.use-case";
+import { GetUserProfileUseCase } from "./use-cases/get-user-profile.use-case";
+import { type LoginInput, LoginUseCase } from "./use-cases/login.use-case";
+import { type LogoutInput, LogoutUseCase } from "./use-cases/logout.use-case";
+import { type RefreshTokenInput, RefreshTokenUseCase } from "./use-cases/refresh-token.use-case";
+import { type RegisterUserInput, RegisterUserUseCase } from "./use-cases/register-user.use-case";
+import { UpdateUserProfileUseCase } from "./use-cases/update-user-profile.use-case";
 
 /**
  * NOT using ServerInferRequest/ServerInferResponses here — in this

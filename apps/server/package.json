@@ -7,8 +7,8 @@
     "check-types": "tsc --noEmit",
     "check:enums": "tsx scripts/check-enum-sync.ts",
     "compile": "bun build --compile --minify --sourcemap --bytecode ./src/index.ts --outfile server",
-    "dev": "tsx watch src/index.ts",
-    "start": "node dist/index.js",
+    "dev": "node --watch --import @swc-node/register/esm-register src/index.ts",
+    "start": "node dist/index.mjs",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:cov": "vitest run --coverage"
@@ -44,6 +44,8 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@swc-node/register": "^1.12.1",
+    "@swc/core": "^1.15.47",
     "@tapt-api/config": "*",
     "@types/express": "^5.0.6",
     "@types/node": "^26.0.1",

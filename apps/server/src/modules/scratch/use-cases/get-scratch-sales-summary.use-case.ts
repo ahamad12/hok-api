@@ -1,7 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import { UserRole } from "@tapt-api/db";
 import { AuthorizationError } from "../../../common/errors";
-import type { ScratchScanEventRepository } from "../repositories/scratch-scan-event.repository";
+import { ScratchScanEventRepository } from "../repositories/scratch-scan-event.repository";
 
 export interface GetScratchSalesSummaryInput {
   requesterRole: UserRole;

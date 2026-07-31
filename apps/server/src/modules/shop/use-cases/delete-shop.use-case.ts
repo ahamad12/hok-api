@@ -1,7 +1,7 @@
 // modules/shop/use-cases/delete-shop.use-case.ts
 import { Injectable } from "@nestjs/common";
 import { AuthorizationError, NotFoundError } from "../../../common/errors";
-import type { ShopRepository } from "../repositories/shop.repository";
+import { ShopRepository } from "../repositories/shop.repository";
 
 export interface DeleteShopInput {
   requesterId: string;

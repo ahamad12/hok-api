@@ -5,21 +5,21 @@ import { UserRole } from "@tapt-api/db";
 import { TsRestHandler } from "@ts-rest/nest";
 import { CurrentUser, Roles } from "../../common/decorators";
 import type { RequestUser } from "../../common/types/request-user.interface";
-import type {
-  CreateTillEntryInput,
+import {
+  type CreateTillEntryInput,
   CreateTillEntryUseCase,
 } from "./use-cases/create-till-entry.use-case";
-import type {
-  GetTillEntriesInput,
+import {
+  type GetTillEntriesInput,
   GetTillEntriesUseCase,
 } from "./use-cases/get-till-entries.use-case";
-import type { GetTillEntryByIdUseCase } from "./use-cases/get-till-entry-by-id.use-case";
-import type {
-  GetTillSummaryInput,
+import { GetTillEntryByIdUseCase } from "./use-cases/get-till-entry-by-id.use-case";
+import {
+  type GetTillSummaryInput,
   GetTillSummaryUseCase,
 } from "./use-cases/get-till-summary.use-case";
-import type {
-  ReverseTillEntryInput,
+import {
+  type ReverseTillEntryInput,
   ReverseTillEntryUseCase,
 } from "./use-cases/reverse-till-entry.use-case";
 

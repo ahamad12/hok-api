@@ -1,6 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import type { Socket } from "socket.io";
-import type { AccessTokenVerifierService } from "../../common/auth/access-token-verifier.service";
+import { AccessTokenVerifierService } from "../../common/auth/access-token-verifier.service";
 import { AuthenticationError } from "../../common/errors";
 import type { RequestUser } from "../../common/types/request-user.interface";
 

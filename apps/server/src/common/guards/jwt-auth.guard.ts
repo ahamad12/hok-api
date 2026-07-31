@@ -1,8 +1,8 @@
 import type { CanActivate, ExecutionContext } from "@nestjs/common";
 import { Injectable } from "@nestjs/common";
-import type { Reflector } from "@nestjs/core";
+import { Reflector } from "@nestjs/core";
 import type { Request } from "express";
-import type { AccessTokenVerifierService } from "../auth/access-token-verifier.service";
+import { AccessTokenVerifierService } from "../auth/access-token-verifier.service";
 import { IS_PUBLIC_KEY } from "../decorators/public.decorator";
 import { AuthenticationError } from "../errors";
 

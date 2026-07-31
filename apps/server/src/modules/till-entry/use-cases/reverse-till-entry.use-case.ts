@@ -8,7 +8,7 @@ import {
   NotFoundError,
 } from "../../../common/errors";
 import { type TillEntryResult, toTillEntryResult } from "../mappers/till-entry.mapper";
-import type { TillEntryRepository } from "../repositories/till-entry.repository";
+import { TillEntryRepository } from "../repositories/till-entry.repository";
 
 export interface ReverseTillEntryInput {
   requesterId: string;

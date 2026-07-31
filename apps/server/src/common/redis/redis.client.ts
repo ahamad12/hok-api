@@ -13,6 +13,10 @@ export class RedisClient extends Redis implements OnModuleDestroy {
   }
 
   async onModuleDestroy() {
-    await this.quit();
+    if (this.status === "ready") {
+      await this.quit();
+    } else {
+      this.disconnect();
+    }
   }
 }
