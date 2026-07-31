@@ -23,6 +23,25 @@ export interface PrismaServiceMock {
     create: ReturnType<typeof vi.fn>;
     groupBy: ReturnType<typeof vi.fn>;
   };
+  scratchGame: {
+    findUnique: ReturnType<typeof vi.fn>;
+    findMany: ReturnType<typeof vi.fn>;
+    create: ReturnType<typeof vi.fn>;
+  };
+  scratchPack: {
+    findUnique: ReturnType<typeof vi.fn>;
+    findMany: ReturnType<typeof vi.fn>;
+    count: ReturnType<typeof vi.fn>;
+    create: ReturnType<typeof vi.fn>;
+    update: ReturnType<typeof vi.fn>;
+  };
+  scratchScanEvent: {
+    findUnique: ReturnType<typeof vi.fn>;
+    findFirst: ReturnType<typeof vi.fn>;
+    create: ReturnType<typeof vi.fn>;
+    update: ReturnType<typeof vi.fn>;
+    groupBy: ReturnType<typeof vi.fn>;
+  };
 }
 
 export function createPrismaServiceMock(): PrismaServiceMock {
@@ -47,6 +66,25 @@ export function createPrismaServiceMock(): PrismaServiceMock {
       findMany: vi.fn(),
       count: vi.fn(),
       create: vi.fn(),
+      groupBy: vi.fn(),
+    },
+    scratchGame: {
+      findUnique: vi.fn(),
+      findMany: vi.fn(),
+      create: vi.fn(),
+    },
+    scratchPack: {
+      findUnique: vi.fn(),
+      findMany: vi.fn(),
+      count: vi.fn(),
+      create: vi.fn(),
+      update: vi.fn(),
+    },
+    scratchScanEvent: {
+      findUnique: vi.fn(),
+      findFirst: vi.fn(),
+      create: vi.fn(),
+      update: vi.fn(),
       groupBy: vi.fn(),
     },
   };

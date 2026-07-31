@@ -1,0 +1,28 @@
+import { Injectable } from "@nestjs/common";
+import { UserRole } from "@tapt-api/db";
+import { AuthorizationError } from "../../../common/errors";
+import { type ScratchGameResult, toScratchGameResult } from "../mappers/scratch-game.mapper";
+import type { ScratchGameRepository } from "../repositories/scratch-game.repository";
+
+export interface GetScratchGamesInput {
+  requesterRole: UserRole;
+  requesterShopId: string | null;
+  shopId: string;
+  isActive?: boolean;
+}
+
+@Injectable()
+export class GetScratchGamesUseCase {
+  constructor(private readonly scratchGameRepository: ScratchGameRepository) {}
+
+  async execute(input: GetScratchGamesInput): Promise<ScratchGameResult[]> {
+    if (input.requesterRole === UserRole.STAFF && input.requesterShopId !== input.shopId) {
+      throw new AuthorizationError("Access denied for this shop");
+    }
+    const games = await this.scratchGameRepository.findAll({
+      shopId: input.shopId,
+      isActive: input.isActive,
+    });
+    return games.map(toScratchGameResult);
+  }
+}

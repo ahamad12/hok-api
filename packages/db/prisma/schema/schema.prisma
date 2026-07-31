@@ -48,6 +48,17 @@ enum PeriodType {
   EVENING
 }
 
+enum ScratchPackStatus {
+  ACTIVE
+  FINISHED
+  RETURNED
+}
+
+enum ScratchPackLocation {
+  DISPLAY
+  BACKSTOCK
+}
+
 enum TillEntryCategory {
   SALES
   EXPENSE
@@ -74,8 +85,9 @@ model User {
   ownedShops      Shop[]            @relation("ShopOwner")
   assignedTasks   Task[]            @relation("TaskAssignee")
   createdTasks    Task[]            @relation("TaskCreator")
-  scratchLogs     ScratchLog[]
-  scratchSales    ScratchSale[]
+  receivedScratchPacks ScratchPack[]      @relation("ScratchPackReceivedBy")
+  scratchScanEvents    ScratchScanEvent[] @relation("ScratchScanScannedBy")
+  voidedScratchScans   ScratchScanEvent[] @relation("ScratchScanVoidedBy")
   deliveries      Delivery[]
   createdTickets  Ticket[]          @relation("TicketCreator")
   ticketMessages  TicketMessage[]
@@ -123,8 +135,9 @@ model Shop {
 
   staff             User[]             @relation("ShopStaff")
   tasks             Task[]
-  scratchCards      ScratchCard[]
-  scratchSales      ScratchSale[]
+  scratchGames      ScratchGame[]
+  scratchPacks      ScratchPack[]
+  scratchScanEvents ScratchScanEvent[]
   licenses          License[]
   categories        Category[]
   tickets           Ticket[]
@@ -169,59 +182,78 @@ model Task {
   @@map("tasks")
 }
 
-model ScratchCard {
-  id          String   @id @default(uuid())
-  shopId      String   @map("shop_id")
-  shop        Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
-  displayName String   @map("display_name")
-  priceCents  Int      @map("price_cents")
-  isActive    Boolean  @default(true) @map("is_active")
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
+model ScratchGame {
+  id             String   @id @default(uuid())
+  shopId         String   @map("shop_id")
+  shop           Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  gameNumber     String?  @map("game_number")
+  name           String
+  priceCents     Int      @map("price_cents")
+  ticketsPerPack Int      @map("tickets_per_pack")
+  isActive       Boolean  @default(true) @map("is_active")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
 
-  logs  ScratchLog[]
-  sales ScratchSale[]
+  packs ScratchPack[]
 
   @@index([shopId, isActive])
-  @@index([shopId, createdAt])
-  @@map("scratch_cards")
+  @@map("scratch_games")
 }
 
-model ScratchLog {
-  id          String      @id @default(uuid())
-  cardId      String      @map("card_id")
-  card        ScratchCard @relation(fields: [cardId], references: [id], onDelete: Cascade)
-  period      PeriodType
-  date        DateTime    @db.Date
-  serialLast3 String      @map("serial_last3") @db.VarChar(3)
-  loggedById  String      @map("logged_by_id")
-  loggedBy    User        @relation(fields: [loggedById], references: [id], onDelete: Cascade)
-  createdAt   DateTime    @default(now()) @map("created_at")
+model ScratchPack {
+  id           String             @id @default(uuid())
+  gameId       String             @map("game_id")
+  game         ScratchGame        @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  shopId       String             @map("shop_id")
+  shop         Shop               @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  serialStart  String             @map("serial_start") @db.VarChar(3)
+  status       ScratchPackStatus  @default(ACTIVE)
+  location     ScratchPackLocation
+  receivedById String             @map("received_by_id")
+  receivedBy   User               @relation("ScratchPackReceivedBy", fields: [receivedById], references: [id], onDelete: Cascade)
+  receivedAt   DateTime           @default(now()) @map("received_at")
+  finishedAt   DateTime?          @map("finished_at")
+  returnedAt   DateTime?          @map("returned_at")
+  createdAt    DateTime           @default(now()) @map("created_at")
+  updatedAt    DateTime           @updatedAt @map("updated_at")
 
-  @@unique([cardId, date, period])
-  @@index([cardId, date])
-  @@index([date])
-  @@map("scratch_logs")
+  scanEvents ScratchScanEvent[]
+
+  @@unique([gameId, serialStart])
+  @@index([shopId, status])
+  @@index([shopId, location])
+  @@index([gameId])
+  @@map("scratch_packs")
 }
 
-model ScratchSale {
-  id          String      @id @default(uuid())
-  cardId      String      @map("card_id")
-  card        ScratchCard @relation(fields: [cardId], references: [id], onDelete: Cascade)
-  shopId      String      @map("shop_id")
-  shop        Shop        @relation(fields: [shopId], references: [id], onDelete: Cascade)
-  quantity    Int
-  unitPrice   Int         @map("unit_price")
-  totalAmount Int         @map("total_amount")
-  soldById    String      @map("sold_by_id")
-  soldBy      User        @relation(fields: [soldById], references: [id], onDelete: Cascade)
-  saleDate    DateTime    @default(now()) @map("sale_date")
-  createdAt   DateTime    @default(now()) @map("created_at")
+model ScratchScanEvent {
+  id                       String      @id @default(uuid())
+  packId                   String      @map("pack_id")
+  pack                     ScratchPack @relation(fields: [packId], references: [id], onDelete: Cascade)
+  gameId                   String      @map("game_id")
+  shopId                   String      @map("shop_id")
+  shop                     Shop        @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  sequenceNumber           Int         @default(autoincrement()) @map("sequence_number")
+  scanDate                 DateTime    @db.Date @map("scan_date")
+  shiftPeriod              PeriodType  @map("shift_period")
+  scannedSerial            String      @map("scanned_serial") @db.VarChar(3)
+  ticketsSoldSincePrevious Int         @map("tickets_sold_since_previous")
+  ticketsRemaining         Int         @map("tickets_remaining")
+  unitPriceCents           Int         @map("unit_price_cents")
+  revenueCents             Int         @map("revenue_cents")
+  scannedById              String      @map("scanned_by_id")
+  scannedBy                User        @relation("ScratchScanScannedBy", fields: [scannedById], references: [id], onDelete: Cascade)
+  voidedAt                 DateTime?   @map("voided_at")
+  voidedById               String?     @map("voided_by_id")
+  voidedBy                 User?       @relation("ScratchScanVoidedBy", fields: [voidedById], references: [id], onDelete: SetNull)
+  voidReason               String?     @db.Text @map("void_reason")
+  createdAt                DateTime    @default(now()) @map("created_at")
 
-  @@index([shopId, saleDate])
-  @@index([cardId, saleDate])
-  @@index([soldById])
-  @@map("scratch_sales")
+  @@index([packId, scanDate, shiftPeriod])
+  @@index([packId, sequenceNumber])
+  @@index([shopId, scanDate])
+  @@index([shopId, gameId, scanDate])
+  @@map("scratch_scan_events")
 }
 
 model License {
