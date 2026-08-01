@@ -1,10 +1,11 @@
 import { BullModule } from "@nestjs/bullmq";
-import { Module } from "@nestjs/common";
+import { Global, Module } from "@nestjs/common";
 import { env } from "@tapt-api/env/server";
 import { QueueHealthIndicator } from "./health/queue-health.indicator";
 import { EmailProcessor } from "./processors/email.processor";
 import { NotificationProcessor } from "./processors/notification.processor";
 
+@Global()
 @Module({
   imports: [
     BullModule.forRootAsync({
@@ -38,6 +39,7 @@ import { NotificationProcessor } from "./processors/notification.processor";
       }),
     }),
     BullModule.registerQueue({ name: "email" }, { name: "notification" }),
+    BullModule.registerQueue({ name: "license" }),
   ],
   providers: [EmailProcessor, NotificationProcessor, QueueHealthIndicator],
   exports: [BullModule, QueueHealthIndicator],

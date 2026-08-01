@@ -22,6 +22,7 @@ import { QueueModule } from "./infra/queue/queue.module";
 import { SentryModule } from "./infra/sentry/sentry.module";
 import { StorageModule } from "./infra/storage/storage.module";
 import { AuthModule } from "./modules/auth/auth.module";
+import { LicenseModule } from "./modules/license/license.module";
 import { ScratchModule } from "./modules/scratch/scratch.module";
 import { ShopModule } from "./modules/shop/shop.module";
 import { TillEntryModule } from "./modules/till-entry/till-entry.module";
@@ -41,6 +42,7 @@ import { TillEntryModule } from "./modules/till-entry/till-entry.module";
     ShopModule,
     TillEntryModule,
     ScratchModule,
+    LicenseModule,
     ThrottlerModule.forRootAsync({
       useFactory: () => ({
         throttlers: [

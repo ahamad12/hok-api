@@ -59,6 +59,11 @@ enum ScratchPackLocation {
   BACKSTOCK
 }
 
+enum LicenseRenewalSource {
+  INITIAL
+  RENEWAL
+}
+
 enum TillEntryCategory {
   SALES
   EXPENSE
@@ -88,6 +93,8 @@ model User {
   receivedScratchPacks ScratchPack[]      @relation("ScratchPackReceivedBy")
   scratchScanEvents    ScratchScanEvent[] @relation("ScratchScanScannedBy")
   voidedScratchScans   ScratchScanEvent[] @relation("ScratchScanVoidedBy")
+  licenseRenewals      LicenseRenewal[]
+  voidedLicenseRenewals LicenseRenewal[] @relation("LicenseRenewalVoidedBy")
   deliveries      Delivery[]
   createdTickets  Ticket[]          @relation("TicketCreator")
   ticketMessages  TicketMessage[]
@@ -257,39 +264,60 @@ model ScratchScanEvent {
 }
 
 model License {
-  id            String   @id @default(uuid())
-  shopId        String   @map("shop_id")
-  shop          Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
-  productName   String   @map("product_name")
-  licenseNumber String   @map("license_number")
-  issueDate     DateTime @map("issue_date") @db.Date
-  expiryDate    DateTime @map("expiry_date") @db.Date
-  remindDays    Int      @default(7) @map("remind_days")
-  documentUrl   String?  @map("document_url")
-  isActive      Boolean  @default(true) @map("is_active")
-  createdAt     DateTime @default(now()) @map("created_at")
-  updatedAt     DateTime @updatedAt @map("updated_at")
+  id               String        @id @default(uuid())
+  shopId           String        @map("shop_id")
+  shop             Shop          @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  productName      String        @map("product_name")
+  licenseNumber    String        @map("license_number")
+  remindDays       Int           @default(7) @map("remind_days")
+  isActive         Boolean       @default(true) @map("is_active")
 
-  expense LicenseExpense?
+  // Denormalized cache of the latest LicenseRenewal — avoids a
+  // DISTINCT-ON/window-function query on every list/expiring read.
+  // Refreshed transactionally whenever a LicenseRenewal is written.
+  // Nullable only because License must exist before its first renewal
+  // row can reference it; application guarantees non-null post-create.
+  currentRenewalId  String?          @unique @map("current_renewal_id")
+  currentRenewal    LicenseRenewal?  @relation("LicenseCurrentRenewal", fields: [currentRenewalId], references: [id], onDelete: SetNull)
+  currentIssueDate  DateTime?        @map("current_issue_date") @db.Date
+  currentExpiryDate DateTime?        @map("current_expiry_date") @db.Date
 
-  @@index([shopId, expiryDate])
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  renewals LicenseRenewal[] @relation("LicenseRenewals")
+
+  @@unique([shopId, licenseNumber])
+  @@index([shopId, currentExpiryDate])
   @@index([isActive])
-  @@index([expiryDate])
+  @@index([currentExpiryDate])
   @@map("licenses")
 }
 
-model LicenseExpense {
-  id          String   @id @default(uuid())
-  licenseId   String   @unique @map("license_id")
-  license     License  @relation(fields: [licenseId], references: [id], onDelete: Cascade)
-  amount      Int
-  paymentDate DateTime @map("payment_date") @db.Date
-  receiptUrl  String?  @map("receipt_url")
-  notes       String?  @db.Text
-  createdAt   DateTime @default(now()) @map("created_at")
+model LicenseRenewal {
+  id            String               @id @default(uuid())
+  licenseId     String               @map("license_id")
+  license       License              @relation("LicenseRenewals", fields: [licenseId], references: [id], onDelete: Cascade)
+  source        LicenseRenewalSource
+  issueDate     DateTime             @map("issue_date") @db.Date
+  expiryDate    DateTime             @map("expiry_date") @db.Date
+  paymentAmount Int?                 @map("payment_amount") // cents; null on INITIAL if no payment was recorded
+  paymentDate   DateTime?            @map("payment_date") @db.Date
+  documentUrl   String?              @map("document_url")
+  notes         String?              @db.Text
+  recordedById  String               @map("recorded_by_id")
+  recordedBy    User                 @relation(fields: [recordedById], references: [id], onDelete: Cascade)
+  voidedAt      DateTime?            @map("voided_at")
+  voidedById    String?              @map("voided_by_id")
+  voidedByUser  User?                @relation("LicenseRenewalVoidedBy", fields: [voidedById], references: [id], onDelete: SetNull)
+  voidReason    String?              @db.Text @map("void_reason")
+  createdAt     DateTime             @default(now()) @map("created_at")
 
-  @@index([paymentDate])
-  @@map("license_expenses")
+  currentFor License? @relation("LicenseCurrentRenewal")
+
+  @@index([licenseId, createdAt])
+  @@index([licenseId, expiryDate])
+  @@map("license_renewals")
 }
 
 model Category {

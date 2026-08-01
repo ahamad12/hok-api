@@ -8,6 +8,6 @@ import { UserEventsListener } from "./listeners/user-events.listener";
 @Module({
   imports: [AuthModule],
   providers: [AppGateway, GatewayAdapter, TaskEventsListener, UserEventsListener],
-  exports: [GatewayAdapter],
+  exports: [GatewayAdapter, AppGateway],
 })
 export class GatewayModule {}
