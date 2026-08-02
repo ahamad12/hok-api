@@ -1,10 +1,15 @@
 export type {
+  Category,
+  Delivery,
+  DeliveryLineItem,
+  DeliveryPayment,
   License,
   LicenseRenewal,
   ScratchGame,
   ScratchPack,
   ScratchScanEvent,
   Shop,
+  Supplier,
   TillEntry,
   User,
 } from "../prisma/generated/client";

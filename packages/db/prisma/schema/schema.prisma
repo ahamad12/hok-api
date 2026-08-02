@@ -95,7 +95,10 @@ model User {
   voidedScratchScans   ScratchScanEvent[] @relation("ScratchScanVoidedBy")
   licenseRenewals      LicenseRenewal[]
   voidedLicenseRenewals LicenseRenewal[] @relation("LicenseRenewalVoidedBy")
-  deliveries      Delivery[]
+  deliveredDeliveries      Delivery[]        @relation("DeliveryDeliveredBy")
+  voidedDeliveries         Delivery[]        @relation("DeliveryVoidedBy")
+  recordedDeliveryPayments DeliveryPayment[] @relation("DeliveryPaymentRecordedBy")
+  voidedDeliveryPayments   DeliveryPayment[] @relation("DeliveryPaymentVoidedBy")
   createdTickets  Ticket[]          @relation("TicketCreator")
   ticketMessages  TicketMessage[]
   formSubmissions FormSubmission[]
@@ -147,6 +150,8 @@ model Shop {
   scratchScanEvents ScratchScanEvent[]
   licenses          License[]
   categories        Category[]
+  suppliers         Supplier[]
+  deliveries        Delivery[]
   tickets           Ticket[]
   forms             Form[]
   reports           Report[]
@@ -326,54 +331,124 @@ model Category {
   shop        Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
   name        String
   description String?  @db.Text
+  isActive    Boolean  @default(true) @map("is_active")
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 
   suppliers Supplier[]
 
+  @@unique([shopId, name])
   @@index([shopId])
   @@index([shopId, name])
+  @@index([isActive])
   @@map("categories")
 }
 
 model Supplier {
   id         String   @id @default(uuid())
+  shopId     String   @map("shop_id")
+  shop       Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
   categoryId String   @map("category_id")
-  category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  category   Category @relation(fields: [categoryId], references: [id], onDelete: Restrict)
   name       String
   phone      String?
   address    String?  @db.Text
+  isActive   Boolean  @default(true) @map("is_active")
   createdAt  DateTime @default(now()) @map("created_at")
   updatedAt  DateTime @updatedAt @map("updated_at")
 
   deliveries Delivery[]
 
+  @@index([shopId])
   @@index([categoryId])
+  @@index([shopId, isActive])
   @@index([name])
   @@map("suppliers")
 }
 
 model Delivery {
-  id            String       @id @default(uuid())
-  supplierId    String       @map("supplier_id")
-  supplier      Supplier     @relation(fields: [supplierId], references: [id], onDelete: Cascade)
-  productName   String       @map("product_name")
-  quantity      Float
-  unit          String
-  priceCents    Int          @map("price_cents")
-  isPaid        Boolean      @default(false) @map("is_paid")
-  paymentMode   PaymentMode? @map("payment_mode")
-  billUrl       String?      @map("bill_url")
-  deliveredById String       @map("delivered_by_id")
-  deliveredBy   User         @relation(fields: [deliveredById], references: [id], onDelete: Cascade)
-  deliveredAt   DateTime     @default(now()) @map("delivered_at")
-  createdAt     DateTime     @default(now()) @map("created_at")
-  updatedAt     DateTime     @updatedAt @map("updated_at")
+  id             String    @id @default(uuid())
+  shopId         String    @map("shop_id")
+  shop           Shop      @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  supplierId     String    @map("supplier_id")
+  supplier       Supplier  @relation(fields: [supplierId], references: [id], onDelete: Restrict)
+  billUrl        String?   @map("bill_url")
 
+  // Cached from line items at creation — line items are immutable after
+  // creation (a wrong one means voiding the whole delivery), so this
+  // never needs recomputation outside that path.
+  totalAmountCents Int     @map("total_amount_cents")
+
+  // Cached running sum of non-voided DeliveryPayment.amountCents —
+  // same denormalization pattern as License.currentExpiryDate.
+  // Refreshed transactionally on every payment record/void via a
+  // guarded updateMany (WHERE totalPaidCents <= limit) so concurrent
+  // writers can't both push the sum past totalAmountCents.
+  totalPaidCents   Int     @default(0) @map("total_paid_cents")
+
+  deliveredById String    @map("delivered_by_id")
+  deliveredBy   User      @relation("DeliveryDeliveredBy", fields: [deliveredById], references: [id], onDelete: Cascade)
+  deliveredAt   DateTime  @default(now()) @map("delivered_at")
+
+  voidedAt   DateTime? @map("voided_at")
+  voidedById String?   @map("voided_by_id")
+  voidedBy   User?     @relation("DeliveryVoidedBy", fields: [voidedById], references: [id], onDelete: SetNull)
+  voidReason String?   @db.Text @map("void_reason")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  lineItems DeliveryLineItem[]
+  payments  DeliveryPayment[]
+
+  @@index([shopId, deliveredAt])
   @@index([supplierId, deliveredAt])
   @@index([deliveredAt])
-  @@index([isPaid])
   @@map("deliveries")
+}
+
+model DeliveryLineItem {
+  id               String   @id @default(uuid())
+  deliveryId       String   @map("delivery_id")
+  // Restrict, not Cascade — nothing hard-deletes a Delivery in this
+  // module (void only), and a stray DELETE shouldn't silently erase
+  // receiving history.
+  delivery         Delivery @relation(fields: [deliveryId], references: [id], onDelete: Restrict)
+  productName      String   @map("product_name")
+  quantityOrdered  Float    @map("quantity_ordered")
+  quantityReceived Float    @map("quantity_received")
+  unit             String
+  unitPriceCents   Int      @map("unit_price_cents")
+  lineTotalCents   Int      @map("line_total_cents") // round(quantityReceived * unitPriceCents), snapshotted at creation
+  discrepancyNote  String?  @db.Text @map("discrepancy_note")
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  @@index([deliveryId])
+  @@map("delivery_line_items")
+}
+
+model DeliveryPayment {
+  id           String       @id @default(uuid())
+  deliveryId   String       @map("delivery_id")
+  // Restrict, not Cascade — payment history is the financial record of
+  // money that actually changed hands; it must never vanish via cascade.
+  delivery     Delivery     @relation(fields: [deliveryId], references: [id], onDelete: Restrict)
+  amountCents  Int          @map("amount_cents")
+  paymentMode  PaymentMode  @map("payment_mode")
+  paidAt       DateTime     @default(now()) @map("paid_at")
+  recordedById String       @map("recorded_by_id")
+  recordedBy   User         @relation("DeliveryPaymentRecordedBy", fields: [recordedById], references: [id], onDelete: Cascade)
+  notes        String?      @db.Text
+
+  voidedAt   DateTime? @map("voided_at")
+  voidedById String?   @map("voided_by_id")
+  voidedBy   User?     @relation("DeliveryPaymentVoidedBy", fields: [voidedById], references: [id], onDelete: SetNull)
+  voidReason String?   @db.Text @map("void_reason")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([deliveryId, paidAt])
+  @@map("delivery_payments")
 }
 
 model Ticket {
