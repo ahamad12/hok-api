@@ -23,6 +23,7 @@ import { SentryModule } from "./infra/sentry/sentry.module";
 import { StorageModule } from "./infra/storage/storage.module";
 import { AuthModule } from "./modules/auth/auth.module";
 import { CategoryModule } from "./modules/category/category.module";
+import { DeliveryModule } from "./modules/delivery/delivery.module";
 import { LicenseModule } from "./modules/license/license.module";
 import { ScratchModule } from "./modules/scratch/scratch.module";
 import { ShopModule } from "./modules/shop/shop.module";
@@ -45,8 +46,11 @@ import { TillEntryModule } from "./modules/till-entry/till-entry.module";
     TillEntryModule,
     ScratchModule,
     LicenseModule,
+    // Order matters here — CategoryModule before SupplierModule before
+    // DeliveryModule, matching the actual dependency chain.
     CategoryModule,
     SupplierModule,
+    DeliveryModule,
     ThrottlerModule.forRootAsync({
       useFactory: () => ({
         throttlers: [
