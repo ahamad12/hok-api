@@ -1,4 +1,5 @@
 import { UserRole } from "@tapt-api/db";
+import { Prisma } from "@tapt-api/db/prisma";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   AuthorizationError,
@@ -9,10 +10,17 @@ import {
 import { buildLicense } from "../../../../test/fixtures/license.fixture";
 import { UpdateLicenseUseCase } from "../update-license.use-case";
 
+function buildP2002Error(target: string[] = ["licenseNumber"]) {
+  return new Prisma.PrismaClientKnownRequestError("Unique constraint failed on the fields", {
+    code: "P2002",
+    clientVersion: "test",
+    meta: { target },
+  });
+}
+
 describe("UpdateLicenseUseCase", () => {
   let licenseRepository: {
     findById: ReturnType<typeof vi.fn>;
-    existsByLicenseNumber: ReturnType<typeof vi.fn>;
     update: ReturnType<typeof vi.fn>;
   };
   let useCase: UpdateLicenseUseCase;
@@ -25,7 +33,7 @@ describe("UpdateLicenseUseCase", () => {
   };
 
   beforeEach(() => {
-    licenseRepository = { findById: vi.fn(), existsByLicenseNumber: vi.fn(), update: vi.fn() };
+    licenseRepository = { findById: vi.fn(), update: vi.fn() };
     useCase = new UpdateLicenseUseCase(licenseRepository as any);
     licenseRepository.findById.mockResolvedValue(
       buildLicense({ shopId: "shop-1", licenseNumber: "TB-2026-001" }),
@@ -52,21 +60,23 @@ describe("UpdateLicenseUseCase", () => {
     await expect(useCase.execute({ ...input, remindDays: 0 })).resolves.toBeDefined();
   });
 
-  it("skips the licenseNumber uniqueness check when licenseNumber is unchanged", async () => {
-    await useCase.execute({ ...input, licenseNumber: "TB-2026-001" });
-    expect(licenseRepository.existsByLicenseNumber).not.toHaveBeenCalled();
-  });
-
-  it("checks uniqueness only when licenseNumber actually changes", async () => {
-    licenseRepository.existsByLicenseNumber.mockResolvedValue(false);
+  it("does not pre-check license number uniqueness — goes straight to update", async () => {
     await useCase.execute({ ...input, licenseNumber: "TB-2026-002" });
-    expect(licenseRepository.existsByLicenseNumber).toHaveBeenCalledWith("shop-1", "TB-2026-002");
+    expect(licenseRepository.update).toHaveBeenCalledTimes(1);
   });
 
-  it("throws ConflictError when the new licenseNumber collides with another license", async () => {
-    licenseRepository.existsByLicenseNumber.mockResolvedValue(true);
+  it("translates a P2002 on update into a ConflictError", async () => {
+    licenseRepository.update.mockRejectedValue(buildP2002Error());
     await expect(useCase.execute({ ...input, licenseNumber: "TB-2026-002" })).rejects.toThrow(
       ConflictError,
+    );
+  });
+
+  it("rethrows non-P2002 errors from update", async () => {
+    const error = new Error("database down");
+    licenseRepository.update.mockRejectedValue(error);
+    await expect(useCase.execute({ ...input, licenseNumber: "TB-2026-002" })).rejects.toThrow(
+      error,
     );
   });
 

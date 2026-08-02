@@ -23,14 +23,6 @@ export class UserRepository {
     return this.prisma.user.update({ where: { id }, data });
   }
 
-  async existsByEmail(email: string): Promise<boolean> {
-    return (await this.prisma.user.count({ where: { email } })) > 0;
-  }
-
-  async existsByUsername(username: string): Promise<boolean> {
-    return (await this.prisma.user.count({ where: { username } })) > 0;
-  }
-
   /** Added for TokenVersionService — the one caller that needs the
    *  post-increment value back to write through to Redis. */
   async incrementTokenVersion(id: string): Promise<number> {

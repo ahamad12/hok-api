@@ -162,6 +162,7 @@ model Shop {
   profitReports     ProfitReport[]
 
   @@index([ownerId])
+  @@unique([ownerId, name])
   @@index([isActive])
   @@index([createdAt])
   @@map("shops")

@@ -1,4 +1,5 @@
 import { UserRole } from "@tapt-api/db";
+import { Prisma } from "@tapt-api/db/prisma";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   AuthorizationError,
@@ -11,8 +12,15 @@ import { buildLicenseRenewal } from "../../../../test/fixtures/license-renewal.f
 import { buildShop } from "../../../../test/fixtures/shop.fixture";
 import { CreateLicenseUseCase } from "../create-license.use-case";
 
+function buildP2002Error(target: string[] = ["licenseNumber"]) {
+  return new Prisma.PrismaClientKnownRequestError("Unique constraint failed on the fields", {
+    code: "P2002",
+    clientVersion: "test",
+    meta: { target },
+  });
+}
+
 describe("CreateLicenseUseCase", () => {
-  let licenseRepository: { existsByLicenseNumber: ReturnType<typeof vi.fn> };
   let shopRepository: { findById: ReturnType<typeof vi.fn> };
   let prisma: { $transaction: ReturnType<typeof vi.fn> };
   let useCase: CreateLicenseUseCase;
@@ -33,7 +41,6 @@ describe("CreateLicenseUseCase", () => {
   let txLicenseUpdate: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
-    licenseRepository = { existsByLicenseNumber: vi.fn().mockResolvedValue(false) };
     shopRepository = {
       findById: vi.fn().mockResolvedValue(buildShop({ id: "shop-1", isActive: true })),
     };
@@ -55,11 +62,7 @@ describe("CreateLicenseUseCase", () => {
       ),
     };
 
-    useCase = new CreateLicenseUseCase(
-      licenseRepository as any,
-      shopRepository as any,
-      prisma as any,
-    );
+    useCase = new CreateLicenseUseCase(shopRepository as any, prisma as any);
   });
 
   it("throws AuthorizationError when STAFF targets a different shop", async () => {
@@ -105,9 +108,20 @@ describe("CreateLicenseUseCase", () => {
     );
   });
 
-  it("throws ConflictError when the license number already exists for the shop", async () => {
-    licenseRepository.existsByLicenseNumber.mockResolvedValue(true);
+  it("does not pre-check license number uniqueness — goes straight into the transaction", async () => {
+    await useCase.execute(input);
+    expect(prisma.$transaction).toHaveBeenCalledTimes(1);
+  });
+
+  it("translates a P2002 race inside the transaction into a ConflictError", async () => {
+    prisma.$transaction.mockRejectedValue(buildP2002Error());
     await expect(useCase.execute(input)).rejects.toThrow(ConflictError);
+  });
+
+  it("rethrows non-P2002 errors from the transaction", async () => {
+    const error = new Error("database down");
+    prisma.$transaction.mockRejectedValue(error);
+    await expect(useCase.execute(input)).rejects.toThrow(error);
   });
 
   it("creates the initial renewal with source INITIAL, not RENEWAL", async () => {

@@ -50,30 +50,6 @@ describe("UserRepository", () => {
     });
   });
 
-  describe("existsByEmail", () => {
-    it("returns true when count > 0", async () => {
-      prisma.user.count.mockResolvedValue(1);
-      await expect(repo.existsByEmail("a@b.com")).resolves.toBe(true);
-    });
-
-    it("returns false when count === 0", async () => {
-      prisma.user.count.mockResolvedValue(0);
-      await expect(repo.existsByEmail("a@b.com")).resolves.toBe(false);
-    });
-  });
-
-  describe("existsByUsername", () => {
-    it("returns true when count > 0", async () => {
-      prisma.user.count.mockResolvedValue(2);
-      await expect(repo.existsByUsername("someone")).resolves.toBe(true);
-    });
-
-    it("returns false when count === 0", async () => {
-      prisma.user.count.mockResolvedValue(0);
-      await expect(repo.existsByUsername("someone")).resolves.toBe(false);
-    });
-  });
-
   describe("incrementTokenVersion", () => {
     it("selects only tokenVersion and returns the updated value", async () => {
       prisma.user.update.mockResolvedValue({ tokenVersion: 4 });

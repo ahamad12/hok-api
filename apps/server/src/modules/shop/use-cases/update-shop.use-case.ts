@@ -1,5 +1,6 @@
 // modules/shop/use-cases/update-shop.use-case.ts
 import { Injectable } from "@nestjs/common";
+import { Prisma } from "@tapt-api/db/prisma";
 import { AuthorizationError, ConflictError, NotFoundError } from "../../../common/errors";
 import { type ShopResult, toShopResult } from "../mappers/shop.mapper";
 import { ShopRepository } from "../repositories/shop.repository";
@@ -25,19 +26,20 @@ export class UpdateShopUseCase {
       throw new AuthorizationError("You do not own this shop");
     }
 
-    if (input.name && input.name !== shop.name) {
-      if (await this.shopRepository.existsByNameForOwner(input.name, input.requesterId)) {
+    try {
+      const updated = await this.shopRepository.update(input.shopId, {
+        ...(input.name !== undefined ? { name: input.name } : {}),
+        ...(input.address !== undefined ? { address: input.address } : {}),
+        ...(input.phone !== undefined ? { phone: input.phone } : {}),
+        ...(input.isActive !== undefined ? { isActive: input.isActive } : {}),
+      });
+
+      return toShopResult(updated);
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
         throw new ConflictError("You already have a shop with this name");
       }
+      throw error;
     }
-
-    const updated = await this.shopRepository.update(input.shopId, {
-      ...(input.name !== undefined ? { name: input.name } : {}),
-      ...(input.address !== undefined ? { address: input.address } : {}),
-      ...(input.phone !== undefined ? { phone: input.phone } : {}),
-      ...(input.isActive !== undefined ? { isActive: input.isActive } : {}),
-    });
-
-    return toShopResult(updated);
   }
 }

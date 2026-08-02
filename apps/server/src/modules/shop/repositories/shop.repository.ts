@@ -28,9 +28,4 @@ export class ShopRepository {
   async softDelete(id: string): Promise<void> {
     await this.prisma.shop.update({ where: { id }, data: { isActive: false } });
   }
-
-  async existsByNameForOwner(name: string, ownerId: string): Promise<boolean> {
-    const count = await this.prisma.shop.count({ where: { name, ownerId } });
-    return count > 0;
-  }
 }

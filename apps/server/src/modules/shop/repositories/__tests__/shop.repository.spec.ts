@@ -79,24 +79,4 @@ describe("ShopRepository", () => {
       expect((prisma.shop as any).delete).toBeUndefined();
     });
   });
-
-  describe("existsByNameForOwner", () => {
-    it("scopes the uniqueness check to the given owner, not globally", async () => {
-      prisma.shop.count.mockResolvedValue(0);
-      await repo.existsByNameForOwner("Main Branch", "owner-1");
-      expect(prisma.shop.count).toHaveBeenCalledWith({
-        where: { name: "Main Branch", ownerId: "owner-1" },
-      });
-    });
-
-    it("returns true when count > 0", async () => {
-      prisma.shop.count.mockResolvedValue(1);
-      await expect(repo.existsByNameForOwner("Main Branch", "owner-1")).resolves.toBe(true);
-    });
-
-    it("returns false when count === 0", async () => {
-      prisma.shop.count.mockResolvedValue(0);
-      await expect(repo.existsByNameForOwner("Main Branch", "owner-1")).resolves.toBe(false);
-    });
-  });
 });

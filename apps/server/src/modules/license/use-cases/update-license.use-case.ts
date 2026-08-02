@@ -1,6 +1,7 @@
 // modules/license/use-cases/update-license.use-case.ts
 import { Injectable } from "@nestjs/common";
 import { UserRole } from "@tapt-api/db";
+import { Prisma } from "@tapt-api/db/prisma";
 import {
   AuthorizationError,
   BusinessRuleError,
@@ -36,19 +37,20 @@ export class UpdateLicenseUseCase {
       throw new BusinessRuleError("remindDays must be non-negative");
     }
 
-    if (input.licenseNumber && input.licenseNumber !== license.licenseNumber) {
-      if (await this.licenseRepository.existsByLicenseNumber(license.shopId, input.licenseNumber)) {
+    try {
+      const updated = await this.licenseRepository.update(license.id, {
+        productName: input.productName,
+        licenseNumber: input.licenseNumber,
+        remindDays: input.remindDays,
+        isActive: input.isActive,
+      });
+
+      return toLicenseResult(updated);
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
         throw new ConflictError("A license with this number already exists for this shop");
       }
+      throw error;
     }
-
-    const updated = await this.licenseRepository.update(license.id, {
-      productName: input.productName,
-      licenseNumber: input.licenseNumber,
-      remindDays: input.remindDays,
-      isActive: input.isActive,
-    });
-
-    return toLicenseResult(updated);
   }
 }

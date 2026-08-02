@@ -36,19 +36,6 @@ describe("LicenseRepository", () => {
     await expect(repo.findById("missing")).resolves.toBeNull();
   });
 
-  it("existsByLicenseNumber returns true when count > 0", async () => {
-    prisma.license.count.mockResolvedValue(1);
-    await expect(repo.existsByLicenseNumber("shop-1", "TB-2026-001")).resolves.toBe(true);
-    expect(prisma.license.count).toHaveBeenCalledWith({
-      where: { shopId: "shop-1", licenseNumber: "TB-2026-001" },
-    });
-  });
-
-  it("existsByLicenseNumber returns false when count is 0", async () => {
-    prisma.license.count.mockResolvedValue(0);
-    await expect(repo.existsByLicenseNumber("shop-1", "TB-2026-001")).resolves.toBe(false);
-  });
-
   it("findAll scopes by shopId and applies the isActive filter when provided", async () => {
     prisma.license.findMany.mockResolvedValue([]);
     prisma.license.count.mockResolvedValue(0);

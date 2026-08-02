@@ -1,24 +1,31 @@
+import { Prisma } from "@tapt-api/db/prisma";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { AuthorizationError, ConflictError, NotFoundError } from "../../../../common/errors";
 import { buildShop } from "../../../../test/fixtures/shop.fixture";
 import { UpdateShopUseCase } from "../update-shop.use-case";
 
+function buildP2002Error(target: string[] = ["name"]) {
+  return new Prisma.PrismaClientKnownRequestError("Unique constraint failed on the fields", {
+    code: "P2002",
+    clientVersion: "test",
+    meta: { target },
+  });
+}
+
 describe("UpdateShopUseCase", () => {
   let shopRepository: {
     findById: ReturnType<typeof vi.fn>;
-    existsByNameForOwner: ReturnType<typeof vi.fn>;
     update: ReturnType<typeof vi.fn>;
   };
   let useCase: UpdateShopUseCase;
 
   beforeEach(() => {
-    shopRepository = { findById: vi.fn(), existsByNameForOwner: vi.fn(), update: vi.fn() };
+    shopRepository = { findById: vi.fn(), update: vi.fn() };
     useCase = new UpdateShopUseCase(shopRepository as any);
 
     shopRepository.findById.mockResolvedValue(
       buildShop({ id: "shop-1", ownerId: "owner-1", name: "Old Name" }),
     );
-    shopRepository.existsByNameForOwner.mockResolvedValue(false);
     shopRepository.update.mockResolvedValue(buildShop({ id: "shop-1", name: "New Name" }));
   });
 
@@ -35,26 +42,24 @@ describe("UpdateShopUseCase", () => {
     ).rejects.toThrow(AuthorizationError);
   });
 
-  it("throws ConflictError when renaming to a name the requester already uses elsewhere", async () => {
-    shopRepository.existsByNameForOwner.mockResolvedValue(true);
+  it("does not pre-check name uniqueness before updating — goes straight to update", async () => {
+    await useCase.execute({ requesterId: "owner-1", shopId: "shop-1", name: "New Name" });
+    expect(shopRepository.update).toHaveBeenCalledTimes(1);
+  });
+
+  it("translates a P2002 on update into a ConflictError", async () => {
+    shopRepository.update.mockRejectedValue(buildP2002Error());
     await expect(
       useCase.execute({ requesterId: "owner-1", shopId: "shop-1", name: "Taken Name" }),
     ).rejects.toThrow(ConflictError);
   });
 
-  it("does NOT check name uniqueness when the name is unchanged from the current value", async () => {
-    await useCase.execute({ requesterId: "owner-1", shopId: "shop-1", name: "Old Name" });
-    expect(shopRepository.existsByNameForOwner).not.toHaveBeenCalled();
-  });
-
-  it("does NOT check name uniqueness when name is not part of the update at all", async () => {
-    await useCase.execute({ requesterId: "owner-1", shopId: "shop-1", phone: "+94770000000" });
-    expect(shopRepository.existsByNameForOwner).not.toHaveBeenCalled();
-  });
-
-  it("checks name uniqueness only when the name is actually changing", async () => {
-    await useCase.execute({ requesterId: "owner-1", shopId: "shop-1", name: "New Name" });
-    expect(shopRepository.existsByNameForOwner).toHaveBeenCalledWith("New Name", "owner-1");
+  it("rethrows non-P2002 errors from update", async () => {
+    const error = new Error("database down");
+    shopRepository.update.mockRejectedValue(error);
+    await expect(
+      useCase.execute({ requesterId: "owner-1", shopId: "shop-1", name: "New Name" }),
+    ).rejects.toThrow(error);
   });
 
   it("updates only the fields explicitly provided (partial update)", async () => {

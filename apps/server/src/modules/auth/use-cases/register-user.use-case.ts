@@ -1,6 +1,7 @@
 // modules/auth/use-cases/register-user.use-case.ts — unchanged
 import { Injectable } from "@nestjs/common";
 import { PrismaService, type UserRole } from "@tapt-api/db";
+import { Prisma } from "@tapt-api/db/prisma";
 import { assertValidUserRoleAssignment } from "../../../common/domain/user-role-invariants";
 import { ConflictError, NotFoundError } from "../../../common/errors";
 import { UserRepository } from "../repositories/user.repository";
@@ -37,13 +38,6 @@ export class RegisterUserUseCase {
   ) {}
 
   async execute(input: RegisterUserInput): Promise<RegisterUserResult> {
-    if (await this.userRepository.existsByEmail(input.email)) {
-      throw new ConflictError("A user with this email already exists");
-    }
-    if (input.username && (await this.userRepository.existsByUsername(input.username))) {
-      throw new ConflictError("A user with this username already exists");
-    }
-
     const isSupervisor = input.isSupervisor ?? false;
     const shopId = input.shopId ?? null;
     assertValidUserRoleAssignment({ role: input.role, shopId, isSupervisor });
@@ -54,26 +48,39 @@ export class RegisterUserUseCase {
     }
 
     const passwordHash = await this.passwordHasher.hash(input.password);
-    const user = await this.userRepository.create({
-      email: input.email,
-      username: input.username ?? null,
-      passwordHash,
-      displayName: input.displayName,
-      role: input.role,
-      shopId,
-      isSupervisor,
-    });
 
-    return {
-      user: {
-        id: user.id,
-        email: user.email,
-        displayName: user.displayName,
-        username: user.username,
-        role: user.role,
-        shopId: user.shopId,
-        isSupervisor: user.isSupervisor,
-      },
-    };
+    try {
+      const user = await this.userRepository.create({
+        email: input.email,
+        username: input.username ?? null,
+        passwordHash,
+        displayName: input.displayName,
+        role: input.role,
+        shopId,
+        isSupervisor,
+      });
+
+      return {
+        user: {
+          id: user.id,
+          email: user.email,
+          displayName: user.displayName,
+          username: user.username,
+          role: user.role,
+          shopId: user.shopId,
+          isSupervisor: user.isSupervisor,
+        },
+      };
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+        const target = error.meta?.target;
+        const message =
+          Array.isArray(target) && target.includes("username")
+            ? "A user with this username already exists"
+            : "A user with this email already exists";
+        throw new ConflictError(message);
+      }
+      throw error;
+    }
   }
 }

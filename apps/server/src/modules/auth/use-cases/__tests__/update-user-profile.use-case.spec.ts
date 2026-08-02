@@ -1,18 +1,26 @@
+import { Prisma } from "@tapt-api/db/prisma";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ConflictError, NotFoundError } from "../../../../common/errors";
 import { buildUser } from "../../../../test/fixtures/user.fixture";
 import { UpdateUserProfileUseCase } from "../update-user-profile.use-case";
 
+function buildP2002Error(target: string[] = ["username"]) {
+  return new Prisma.PrismaClientKnownRequestError("Unique constraint failed on the fields", {
+    code: "P2002",
+    clientVersion: "test",
+    meta: { target },
+  });
+}
+
 describe("UpdateUserProfileUseCase", () => {
   let userRepository: {
     findById: ReturnType<typeof vi.fn>;
-    existsByUsername: ReturnType<typeof vi.fn>;
     update: ReturnType<typeof vi.fn>;
   };
   let useCase: UpdateUserProfileUseCase;
 
   beforeEach(() => {
-    userRepository = { findById: vi.fn(), existsByUsername: vi.fn(), update: vi.fn() };
+    userRepository = { findById: vi.fn(), update: vi.fn() };
     useCase = new UpdateUserProfileUseCase(userRepository as any);
     userRepository.findById.mockResolvedValue(buildUser());
     userRepository.update.mockResolvedValue(buildUser({ displayName: "Updated" }));
@@ -25,33 +33,30 @@ describe("UpdateUserProfileUseCase", () => {
     );
   });
 
-  it("throws ConflictError when the requested username is already taken by someone else", async () => {
-    userRepository.existsByUsername.mockResolvedValue(true);
+  it("does not pre-check username availability before updating — goes straight to update", async () => {
+    await useCase.execute({ userId: "user-1", username: "newusername" });
+    expect(userRepository.update).toHaveBeenCalledTimes(1);
+  });
+
+  it("translates a P2002 on username into a ConflictError", async () => {
+    userRepository.update.mockRejectedValue(buildP2002Error());
     await expect(useCase.execute({ userId: "user-1", username: "taken" })).rejects.toThrow(
       ConflictError,
     );
   });
 
-  it("does not check username availability when the username is unchanged", async () => {
-    const user = buildUser({ username: "sameuser" });
-    userRepository.findById.mockResolvedValue(user);
-    await useCase.execute({ userId: "user-1", username: "sameuser" });
-    expect(userRepository.existsByUsername).not.toHaveBeenCalled();
+  it("rethrows non-P2002 errors from update", async () => {
+    const error = new Error("database down");
+    userRepository.update.mockRejectedValue(error);
+    await expect(useCase.execute({ userId: "user-1", username: "taken" })).rejects.toThrow(error);
   });
 
-  it("does not check username availability when username is not part of the update at all", async () => {
-    await useCase.execute({ userId: "user-1", displayName: "Only Name Changes" });
-    expect(userRepository.existsByUsername).not.toHaveBeenCalled();
-  });
-
-  it("allows explicitly clearing the username to null without a conflict check", async () => {
+  it("allows explicitly clearing the username to null without a conflict", async () => {
     await useCase.execute({ userId: "user-1", username: null });
-    expect(userRepository.existsByUsername).not.toHaveBeenCalled();
     expect(userRepository.update).toHaveBeenCalledWith("user-1", { username: null });
   });
 
   it("updates only the fields explicitly provided (partial update)", async () => {
-    userRepository.existsByUsername.mockResolvedValue(false);
     await useCase.execute({ userId: "user-1", displayName: "New Name" });
     expect(userRepository.update).toHaveBeenCalledWith("user-1", { displayName: "New Name" });
   });

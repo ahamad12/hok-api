@@ -1,13 +1,20 @@
+import { Prisma } from "@tapt-api/db/prisma";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { BusinessRuleError, ConflictError, NotFoundError } from "../../../../common/errors";
 import { buildUser } from "../../../../test/fixtures/user.fixture";
 import { UserRole } from "../../../../test/prisma-client-mock";
 import { RegisterUserUseCase } from "../register-user.use-case";
 
+function buildP2002Error(target: string[] = ["email"]) {
+  return new Prisma.PrismaClientKnownRequestError("Unique constraint failed on the fields", {
+    code: "P2002",
+    clientVersion: "test",
+    meta: { target },
+  });
+}
+
 describe("RegisterUserUseCase", () => {
   let userRepository: {
-    existsByEmail: ReturnType<typeof vi.fn>;
-    existsByUsername: ReturnType<typeof vi.fn>;
     create: ReturnType<typeof vi.fn>;
   };
   let passwordHasher: { hash: ReturnType<typeof vi.fn> };
@@ -24,32 +31,36 @@ describe("RegisterUserUseCase", () => {
   };
 
   beforeEach(() => {
-    userRepository = { existsByEmail: vi.fn(), existsByUsername: vi.fn(), create: vi.fn() };
+    userRepository = { create: vi.fn() };
     passwordHasher = { hash: vi.fn().mockResolvedValue("hashed-pw") };
     prisma = { shop: { findUnique: vi.fn() } };
     useCase = new RegisterUserUseCase(userRepository as any, passwordHasher as any, prisma as any);
 
-    userRepository.existsByEmail.mockResolvedValue(false);
-    userRepository.existsByUsername.mockResolvedValue(false);
     prisma.shop.findUnique.mockResolvedValue({ id: "shop-1" });
     userRepository.create.mockResolvedValue(buildUser(validInput as any));
   });
 
-  it("throws ConflictError when the email is already taken", async () => {
-    userRepository.existsByEmail.mockResolvedValue(true);
+  it("does not pre-check email/username before creating — goes straight to create", async () => {
+    await useCase.execute(validInput);
+    expect(userRepository.create).toHaveBeenCalledTimes(1);
+  });
+
+  it("translates a P2002 on email into a ConflictError", async () => {
+    userRepository.create.mockRejectedValue(buildP2002Error(["email"]));
     await expect(useCase.execute(validInput)).rejects.toThrow(ConflictError);
   });
 
-  it("throws ConflictError when the username is already taken", async () => {
-    userRepository.existsByUsername.mockResolvedValue(true);
+  it("translates a P2002 on username into a ConflictError", async () => {
+    userRepository.create.mockRejectedValue(buildP2002Error(["username"]));
     await expect(useCase.execute({ ...validInput, username: "taken" })).rejects.toThrow(
       ConflictError,
     );
   });
 
-  it("skips the username check entirely when no username is provided", async () => {
-    await useCase.execute(validInput);
-    expect(userRepository.existsByUsername).not.toHaveBeenCalled();
+  it("rethrows non-P2002 errors from create", async () => {
+    const error = new Error("database down");
+    userRepository.create.mockRejectedValue(error);
+    await expect(useCase.execute(validInput)).rejects.toThrow(error);
   });
 
   it("throws NotFoundError when shopId does not correspond to an existing shop", async () => {

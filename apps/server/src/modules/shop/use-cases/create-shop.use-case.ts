@@ -1,6 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import { UserRole } from "@tapt-api/db";
-import type { Prisma } from "@tapt-api/db/prisma";
+import { Prisma } from "@tapt-api/db/prisma";
 import { AuthorizationError, ConflictError, NotFoundError } from "../../../common/errors";
 import { UserRepository } from "../../auth/repositories/user.repository";
 import { type ShopResult, toShopResult } from "../mappers/shop.mapper";
@@ -32,18 +32,21 @@ export class CreateShopUseCase {
       throw new AuthorizationError("Only an OWNER can create a shop");
     }
 
-    if (await this.shopRepository.existsByNameForOwner(input.name, input.requesterId)) {
-      throw new ConflictError("You already have a shop with this name");
+    try {
+      const shop = await this.shopRepository.create({
+        name: input.name,
+        address: input.address,
+        phone: input.phone,
+        ownerId: input.requesterId,
+        isActive: true,
+      });
+
+      return { shop: toShopResult(shop) };
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+        throw new ConflictError("You already have a shop with this name");
+      }
+      throw error;
     }
-
-    const shop = await this.shopRepository.create({
-      name: input.name,
-      address: input.address,
-      phone: input.phone,
-      ownerId: input.requesterId,
-      isActive: true,
-    });
-
-    return { shop: toShopResult(shop) };
   }
 }

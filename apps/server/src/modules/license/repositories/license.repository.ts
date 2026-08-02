@@ -17,11 +17,6 @@ export class LicenseRepository {
     return this.prisma.license.findUnique({ where: { id } });
   }
 
-  async existsByLicenseNumber(shopId: string, licenseNumber: string): Promise<boolean> {
-    const count = await this.prisma.license.count({ where: { shopId, licenseNumber } });
-    return count > 0;
-  }
-
   async findAll(
     filters: LicenseFilters,
     pagination: { limit: number; offset: number },
