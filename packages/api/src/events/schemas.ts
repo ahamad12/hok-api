@@ -4,7 +4,6 @@ import { SOCKET_EVENTS } from "./event-names";
 
 const taskStatusSchema = z.enum(["NOT_STARTED", "IN_PROGRESS", "DONE", "BLOCKED"]);
 const ticketStatusSchema = z.enum(["OPEN", "IN_PROGRESS", "RESOLVED", "CLOSED"]);
-const paymentModeSchema = z.enum(["CASH", "CARD", "UPI", "BANK_TRANSFER"]);
 const tillEntryTypeSchema = z.enum(["CASH_IN", "CASH_OUT"]);
 
 export const taskAssignedPayloadSchema = z.object({
@@ -51,9 +50,11 @@ export const scratchSaleCreatedPayloadSchema = z.object({
 
 export const deliveryCreatedPayloadSchema = z.object({
   deliveryId: z.string().uuid(),
-  productName: z.string(),
+  shopId: z.string().uuid(),
+  supplierId: z.string().uuid(),
   supplierName: z.string(),
-  paymentMode: paymentModeSchema,
+  lineItemCount: z.number().int(),
+  totalAmountCents: z.number().int(),
 });
 
 export const dailySummaryFinalizedPayloadSchema = z.object({
