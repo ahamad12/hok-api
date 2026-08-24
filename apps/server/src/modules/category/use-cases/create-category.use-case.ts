@@ -1,8 +1,7 @@
 // modules/category/use-cases/create-category.use-case.ts
 import { Injectable } from "@nestjs/common";
 import { UserRole } from "@tapt-api/db";
-import { Prisma } from "@tapt-api/db/prisma";
-import { AuthorizationError, ConflictError, NotFoundError } from "../../../common/errors";
+import { AuthorizationError, NotFoundError } from "../../../common/errors";
 import { ShopRepository } from "../../shop/repositories/shop.repository";
 import { type CategoryResult, toCategoryResult } from "../mappers/category.mapper";
 import { CategoryRepository } from "../repositories/category.repository";
@@ -30,20 +29,13 @@ export class CreateCategoryUseCase {
     const shop = await this.shopRepository.findById(input.shopId);
     if (!shop || !shop.isActive) throw new NotFoundError("Shop", input.shopId);
 
-    try {
-      const category = await this.categoryRepository.create({
-        shopId: input.shopId,
-        name: input.name,
-        description: input.description ?? null,
-        isActive: true,
-      });
+    const category = await this.categoryRepository.create({
+      shopId: input.shopId,
+      name: input.name,
+      description: input.description ?? null,
+      isActive: true,
+    });
 
-      return toCategoryResult(category);
-    } catch (error) {
-      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
-        throw new ConflictError("A category with this name already exists for this shop");
-      }
-      throw error;
-    }
+    return toCategoryResult(category);
   }
 }

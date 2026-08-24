@@ -1,8 +1,7 @@
 // modules/category/use-cases/update-category.use-case.ts
 import { Injectable } from "@nestjs/common";
 import { UserRole } from "@tapt-api/db";
-import { Prisma } from "@tapt-api/db/prisma";
-import { AuthorizationError, ConflictError, NotFoundError } from "../../../common/errors";
+import { AuthorizationError, NotFoundError } from "../../../common/errors";
 import { type CategoryResult, toCategoryResult } from "../mappers/category.mapper";
 import { CategoryRepository } from "../repositories/category.repository";
 
@@ -33,19 +32,12 @@ export class UpdateCategoryUseCase {
     // just won't be offered under an "active categories" picker for new
     // deliveries going forward — that filtering is the UI's job, not this
     // use case's.
-    try {
-      const updated = await this.categoryRepository.update(category.id, {
-        name: input.name,
-        description: input.description,
-        isActive: input.isActive,
-      });
+    const updated = await this.categoryRepository.update(category.id, {
+      name: input.name,
+      description: input.description,
+      isActive: input.isActive,
+    });
 
-      return toCategoryResult(updated);
-    } catch (error) {
-      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
-        throw new ConflictError("A category with this name already exists for this shop");
-      }
-      throw error;
-    }
+    return toCategoryResult(updated);
   }
 }

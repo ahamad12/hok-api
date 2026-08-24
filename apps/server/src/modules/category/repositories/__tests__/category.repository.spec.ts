@@ -1,6 +1,8 @@
 // repositories/__tests__/category.repository.spec.ts
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { ConflictError } from "../../../../common/errors";
 import { buildCategory } from "../../../../test/fixtures/category.fixture";
+import { buildUniqueViolationError } from "../../../../test/fixtures/prisma-error.fixture";
 import { CategoryRepository } from "../category.repository";
 
 describe("CategoryRepository", () => {
@@ -58,6 +60,34 @@ describe("CategoryRepository", () => {
     expect(prisma.category.update).toHaveBeenCalledWith({
       where: { id: "category-1" },
       data: input,
+    });
+  });
+
+  describe("unique-violation translation", () => {
+    it("create translates a P2002 into a ConflictError", async () => {
+      prisma.category.create.mockRejectedValue(buildUniqueViolationError(["shopId_name"]));
+      await expect(repo.create({ shopId: "shop-1", name: "Dup" } as any)).rejects.toThrow(
+        new ConflictError("A category with this name already exists for this shop"),
+      );
+    });
+
+    it("update translates a P2002 into a ConflictError", async () => {
+      prisma.category.update.mockRejectedValue(buildUniqueViolationError(["shopId_name"]));
+      await expect(repo.update("category-1", { name: "Dup" } as any)).rejects.toThrow(
+        new ConflictError("A category with this name already exists for this shop"),
+      );
+    });
+
+    it("rethrows non-P2002 errors from create", async () => {
+      const error = new Error("database down");
+      prisma.category.create.mockRejectedValue(error);
+      await expect(repo.create({ shopId: "shop-1", name: "X" } as any)).rejects.toThrow(error);
+    });
+
+    it("rethrows non-P2002 errors from update", async () => {
+      const error = new Error("database down");
+      prisma.category.update.mockRejectedValue(error);
+      await expect(repo.update("category-1", { name: "X" } as any)).rejects.toThrow(error);
     });
   });
 });

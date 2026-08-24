@@ -2,6 +2,8 @@
 import { Injectable } from "@nestjs/common";
 import { type Category, PrismaService } from "@tapt-api/db";
 import type { Prisma } from "@tapt-api/db/prisma";
+import { ConflictError } from "../../../common/errors";
+import { isUniqueViolation } from "../../../common/prisma/errors";
 
 @Injectable()
 export class CategoryRepository {
@@ -17,11 +19,25 @@ export class CategoryRepository {
     return this.prisma.category.findMany({ where, orderBy: { name: "asc" } });
   }
 
-  create(data: Prisma.CategoryUncheckedCreateInput): Promise<Category> {
-    return this.prisma.category.create({ data });
+  async create(data: Prisma.CategoryUncheckedCreateInput): Promise<Category> {
+    try {
+      return await this.prisma.category.create({ data });
+    } catch (error) {
+      if (isUniqueViolation(error)) {
+        throw new ConflictError("A category with this name already exists for this shop");
+      }
+      throw error;
+    }
   }
 
-  update(id: string, data: Prisma.CategoryUncheckedUpdateInput): Promise<Category> {
-    return this.prisma.category.update({ where: { id }, data });
+  async update(id: string, data: Prisma.CategoryUncheckedUpdateInput): Promise<Category> {
+    try {
+      return await this.prisma.category.update({ where: { id }, data });
+    } catch (error) {
+      if (isUniqueViolation(error)) {
+        throw new ConflictError("A category with this name already exists for this shop");
+      }
+      throw error;
+    }
   }
 }

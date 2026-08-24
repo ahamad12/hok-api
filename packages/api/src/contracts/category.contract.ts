@@ -38,11 +38,13 @@ export const categoryContract = c.router(
     getById: {
       method: "GET",
       path: "/categories/:id",
+      pathParams: z.object({ id: z.string().uuid() }),
       responses: { 200: categorySchema },
     },
     update: {
       method: "PATCH",
       path: "/categories/:id",
+      pathParams: z.object({ id: z.string().uuid() }),
       body: z.object({
         name: z.string().trim().min(1).max(100).optional(),
         description: z.string().trim().max(500).nullable().optional(),

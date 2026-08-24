@@ -1,19 +1,10 @@
 // use-cases/__tests__/update-category.use-case.spec.ts
 
 import { UserRole } from "@tapt-api/db";
-import { Prisma } from "@tapt-api/db/prisma";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { AuthorizationError, ConflictError, NotFoundError } from "../../../../common/errors";
 import { buildCategory } from "../../../../test/fixtures/category.fixture";
 import { UpdateCategoryUseCase } from "../update-category.use-case";
-
-function buildP2002Error(target: string[] = ["name"]) {
-  return new Prisma.PrismaClientKnownRequestError("Unique constraint failed on the fields", {
-    code: "P2002",
-    clientVersion: "test",
-    meta: { target },
-  });
-}
 
 describe("UpdateCategoryUseCase", () => {
   let categoryRepository: any;
@@ -58,8 +49,10 @@ describe("UpdateCategoryUseCase", () => {
     expect(result).toBeDefined();
   });
 
-  it("translates a P2002 race on update into a ConflictError", async () => {
-    categoryRepository.update.mockRejectedValue(buildP2002Error());
+  it("propagates a ConflictError thrown by the repository unchanged", async () => {
+    categoryRepository.update.mockRejectedValue(
+      new ConflictError("A category with this name already exists for this shop"),
+    );
     await expect(
       useCase.execute({
         requesterRole: UserRole.OWNER,
