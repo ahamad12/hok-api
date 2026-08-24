@@ -8,7 +8,6 @@ import { VoidLicenseRenewalUseCase } from "../void-license-renewal.use-case";
 describe("VoidLicenseRenewalUseCase", () => {
   let licenseRepository: any;
   let licenseRenewalRepository: any;
-  let prisma: any;
   let useCase: VoidLicenseRenewalUseCase;
 
   const input = {
@@ -21,15 +20,22 @@ describe("VoidLicenseRenewalUseCase", () => {
   };
 
   beforeEach(() => {
-    licenseRepository = { findById: vi.fn() };
+    licenseRepository = { findById: vi.fn(), voidRenewalAndRecomputeCache: vi.fn() };
     licenseRenewalRepository = { findById: vi.fn(), findByLicense: vi.fn() };
-    prisma = { $transaction: vi.fn() };
-    useCase = new VoidLicenseRenewalUseCase(licenseRepository, licenseRenewalRepository, prisma);
+    useCase = new VoidLicenseRenewalUseCase(licenseRepository, licenseRenewalRepository);
 
     licenseRepository.findById.mockResolvedValue(buildLicense({ currentRenewalId: "renewal-2" }));
     licenseRenewalRepository.findById.mockResolvedValue(
       buildLicenseRenewal({ id: "renewal-2", source: "RENEWAL" }),
     );
+    licenseRepository.voidRenewalAndRecomputeCache.mockResolvedValue({
+      license: buildLicense({
+        currentRenewalId: null,
+        currentIssueDate: null,
+        currentExpiryDate: null,
+      }),
+      renewal: buildLicenseRenewal({ id: "renewal-2", voidedAt: new Date() }),
+    });
   });
 
   it("throws BusinessRuleError when the renewal is already voided", async () => {
@@ -67,46 +73,30 @@ describe("VoidLicenseRenewalUseCase", () => {
       buildLicenseRenewal({ id: "renewal-1", source: "INITIAL" }),
       buildLicenseRenewal({ id: "renewal-2", source: "RENEWAL", voidedAt: new Date() }),
     ]);
-    prisma.$transaction.mockImplementation(async (fn: any) =>
-      fn({
-        licenseRenewal: {
-          update: vi
-            .fn()
-            .mockResolvedValue(buildLicenseRenewal({ id: "renewal-1", voidedAt: new Date() })),
-          findFirst: vi.fn().mockResolvedValue(null),
-        },
-        license: {
-          update: vi
-            .fn()
-            .mockResolvedValue(buildLicense({ currentRenewalId: null, currentExpiryDate: null })),
-        },
-      }),
-    );
     await expect(useCase.execute({ ...input, renewalId: "renewal-1" })).resolves.toBeDefined();
+    expect(licenseRepository.voidRenewalAndRecomputeCache).toHaveBeenCalledWith(
+      expect.objectContaining({ id: "license-1" }),
+      "renewal-1",
+      { voidedById: "owner-1", voidReason: "Wrong expiry date entered" },
+      false,
+    );
   });
 
   it("recomputes the license's current-renewal cache when the voided row WAS current", async () => {
-    prisma.$transaction.mockImplementation(async (fn: any) =>
-      fn({
-        licenseRenewal: {
-          update: vi
-            .fn()
-            .mockResolvedValue(buildLicenseRenewal({ id: "renewal-2", voidedAt: new Date() })),
-          findFirst: vi
-            .fn()
-            .mockResolvedValue(buildLicenseRenewal({ id: "renewal-1", source: "INITIAL" })),
-        },
-        license: {
-          update: vi.fn().mockResolvedValue(
-            buildLicense({
-              currentRenewalId: "renewal-1",
-              currentExpiryDate: new Date("2027-01-01"),
-            }),
-          ),
-        },
+    licenseRepository.voidRenewalAndRecomputeCache.mockResolvedValue({
+      license: buildLicense({
+        currentRenewalId: "renewal-1",
+        currentExpiryDate: new Date("2027-01-01"),
       }),
-    );
+      renewal: buildLicenseRenewal({ id: "renewal-2", voidedAt: new Date() }),
+    });
     const result = await useCase.execute(input);
+    expect(licenseRepository.voidRenewalAndRecomputeCache).toHaveBeenCalledWith(
+      expect.objectContaining({ currentRenewalId: "renewal-2" }),
+      "renewal-2",
+      { voidedById: "owner-1", voidReason: "Wrong expiry date entered" },
+      true,
+    );
     expect(result.license.currentExpiryDate).toEqual(new Date("2027-01-01"));
   });
 });

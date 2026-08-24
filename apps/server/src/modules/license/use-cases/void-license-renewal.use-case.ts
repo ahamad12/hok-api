@@ -1,6 +1,6 @@
 // modules/license/use-cases/void-license-renewal.use-case.ts
 import { Injectable } from "@nestjs/common";
-import { PrismaService, UserRole } from "@tapt-api/db";
+import { UserRole } from "@tapt-api/db";
 import { AuthorizationError, BusinessRuleError, NotFoundError } from "../../../common/errors";
 import { type LicenseResult, toLicenseResult } from "../mappers/license.mapper";
 import {
@@ -24,7 +24,6 @@ export class VoidLicenseRenewalUseCase {
   constructor(
     private readonly licenseRepository: LicenseRepository,
     private readonly licenseRenewalRepository: LicenseRenewalRepository,
-    private readonly prisma: PrismaService,
   ) {}
 
   async execute(
@@ -46,10 +45,7 @@ export class VoidLicenseRenewalUseCase {
     if (renewal.source === "INITIAL") {
       const allRenewals = await this.licenseRenewalRepository.findByLicense(license.id);
       // C2 fix: an already-voided later renewal doesn't count as "later
-      // renewals exist" — only a currently-active one does. Previously
-      // this compared by id alone, so a license with one voided renewal
-      // sitting after the INITIAL row could never have its INITIAL voided,
-      // even though there was effectively no live history blocking it.
+      // renewals exist" — only a currently-active one does.
       const hasLiveLaterRenewal = allRenewals.some(
         (r) => r.id !== renewal.id && r.voidedAt === null,
       );
@@ -58,30 +54,15 @@ export class VoidLicenseRenewalUseCase {
       }
     }
 
-    const { updatedLicense, voidedRenewal } = await this.prisma.$transaction(async (tx) => {
-      const nowVoided = await tx.licenseRenewal.update({
-        where: { id: renewal.id },
-        data: { voidedAt: new Date(), voidedById: input.requesterId, voidReason: input.voidReason },
-      });
+    const wasCurrent = license.currentRenewalId === renewal.id;
 
-      let refreshedLicense = license;
-      if (license.currentRenewalId === renewal.id) {
-        const fallback = await tx.licenseRenewal.findFirst({
-          where: { licenseId: license.id, voidedAt: null },
-          orderBy: { createdAt: "desc" },
-        });
-        refreshedLicense = await tx.license.update({
-          where: { id: license.id },
-          data: {
-            currentRenewalId: fallback?.id ?? null,
-            currentIssueDate: fallback?.issueDate ?? null,
-            currentExpiryDate: fallback?.expiryDate ?? null,
-          },
-        });
-      }
-
-      return { updatedLicense: refreshedLicense, voidedRenewal: nowVoided };
-    });
+    const { license: updatedLicense, renewal: voidedRenewal } =
+      await this.licenseRepository.voidRenewalAndRecomputeCache(
+        license,
+        renewal.id,
+        { voidedById: input.requesterId, voidReason: input.voidReason },
+        wasCurrent,
+      );
 
     return {
       license: toLicenseResult(updatedLicense),

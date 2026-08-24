@@ -26,20 +26,18 @@ export class GetLicensesUseCase {
     }
 
     const { licenses, total } = await this.licenseRepository.findAll(
-      { shopId: input.shopId, isActive: input.isActive },
+      { shopId: input.shopId, isActive: input.isActive, isExpired: input.isExpired },
       { limit: input.limit, offset: input.offset },
     );
 
     let mapped = licenses.map((l) => toLicenseResult(l));
 
-    // C1, still open: total is the SQL count pre-filter; isExpiringSoon/
-    // isExpired narrow the mapped array afterward, so a caller filtering
-    // by one of those will see fewer rows than `total` claims. Accepted
-    // for v1 per the earlier review — isExpired could become a SQL
-    // predicate (expiryDate < now) if this needs fixing later;
-    // isExpiringSoon can't, since remindDays varies per row.
+    // isExpiringSoon varies per row (remindDays) — cannot be pushed to SQL,
+    // so filter in memory after the paginated fetch. `total` remains the
+    // DB count pre-filter for this case (accepted trade-off, documented).
+    // isExpired is now pushed to SQL via findAll where clause, so `total`
+    // is correct when filtering by isExpired alone.
     if (input.isExpiringSoon) mapped = mapped.filter((l) => l.isExpiringSoon);
-    if (input.isExpired) mapped = mapped.filter((l) => l.isExpired);
 
     return { licenses: mapped, total };
   }

@@ -40,7 +40,7 @@ describe("GetLicensesUseCase", () => {
   it("passes shopId and isActive through to the repository", async () => {
     await useCase.execute({ ...base, isActive: true });
     expect(licenseRepository.findAll).toHaveBeenCalledWith(
-      { shopId: "shop-1", isActive: true },
+      { shopId: "shop-1", isActive: true, isExpired: undefined },
       { limit: 50, offset: 0 },
     );
   });
@@ -57,15 +57,16 @@ describe("GetLicensesUseCase", () => {
     expect(result.licenses.map((l) => l.id)).toEqual(["soon"]);
   });
 
-  it("filters out non-expired rows in memory when isExpired is requested", async () => {
+  it("passes isExpired through to the repository (pushed to SQL, no in-memory filter)", async () => {
     licenseRepository.findAll.mockResolvedValue({
-      licenses: [
-        buildLicense({ id: "expired", currentExpiryDate: new Date("2025-01-01") }),
-        buildLicense({ id: "active", currentExpiryDate: new Date("2027-01-01") }),
-      ],
-      total: 2,
+      licenses: [buildLicense({ id: "expired", currentExpiryDate: new Date("2025-01-01") })],
+      total: 1,
     });
     const result = await useCase.execute({ ...base, isExpired: true });
+    expect(licenseRepository.findAll).toHaveBeenCalledWith(
+      { shopId: "shop-1", isActive: undefined, isExpired: true },
+      { limit: 50, offset: 0 },
+    );
     expect(result.licenses.map((l) => l.id)).toEqual(["expired"]);
   });
 

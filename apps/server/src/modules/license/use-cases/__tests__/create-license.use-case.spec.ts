@@ -1,5 +1,4 @@
 import { UserRole } from "@tapt-api/db";
-import { Prisma } from "@tapt-api/db/prisma";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   AuthorizationError,
@@ -8,21 +7,12 @@ import {
   NotFoundError,
 } from "../../../../common/errors";
 import { buildLicense } from "../../../../test/fixtures/license.fixture";
-import { buildLicenseRenewal } from "../../../../test/fixtures/license-renewal.fixture";
 import { buildShop } from "../../../../test/fixtures/shop.fixture";
 import { CreateLicenseUseCase } from "../create-license.use-case";
 
-function buildP2002Error(target: string[] = ["licenseNumber"]) {
-  return new Prisma.PrismaClientKnownRequestError("Unique constraint failed on the fields", {
-    code: "P2002",
-    clientVersion: "test",
-    meta: { target },
-  });
-}
-
 describe("CreateLicenseUseCase", () => {
   let shopRepository: { findById: ReturnType<typeof vi.fn> };
-  let prisma: { $transaction: ReturnType<typeof vi.fn> };
+  let licenseRepository: { createWithInitialRenewal: ReturnType<typeof vi.fn> };
   let useCase: CreateLicenseUseCase;
 
   const input = {
@@ -36,33 +26,14 @@ describe("CreateLicenseUseCase", () => {
     expiryDate: new Date("2027-01-01"),
   };
 
-  let txLicenseCreate: ReturnType<typeof vi.fn>;
-  let txRenewalCreate: ReturnType<typeof vi.fn>;
-  let txLicenseUpdate: ReturnType<typeof vi.fn>;
-
   beforeEach(() => {
     shopRepository = {
       findById: vi.fn().mockResolvedValue(buildShop({ id: "shop-1", isActive: true })),
     };
-
-    txLicenseCreate = vi.fn().mockResolvedValue(buildLicense({ id: "license-new" }));
-    txRenewalCreate = vi
-      .fn()
-      .mockResolvedValue(buildLicenseRenewal({ id: "renewal-new", licenseId: "license-new" }));
-    txLicenseUpdate = vi
-      .fn()
-      .mockResolvedValue(buildLicense({ id: "license-new", currentRenewalId: "renewal-new" }));
-
-    prisma = {
-      $transaction: vi.fn(async (fn: any) =>
-        fn({
-          license: { create: txLicenseCreate, update: txLicenseUpdate },
-          licenseRenewal: { create: txRenewalCreate },
-        }),
-      ),
+    licenseRepository = {
+      createWithInitialRenewal: vi.fn().mockResolvedValue(buildLicense({ id: "license-new" })),
     };
-
-    useCase = new CreateLicenseUseCase(shopRepository as any, prisma as any);
+    useCase = new CreateLicenseUseCase(shopRepository as any, licenseRepository as any);
   });
 
   it("throws AuthorizationError when STAFF targets a different shop", async () => {
@@ -103,57 +74,44 @@ describe("CreateLicenseUseCase", () => {
 
   it("defaults remindDays to 7 when not provided", async () => {
     await useCase.execute(input);
-    expect(txLicenseCreate).toHaveBeenCalledWith(
-      expect.objectContaining({ data: expect.objectContaining({ remindDays: 7 }) }),
+    expect(licenseRepository.createWithInitialRenewal).toHaveBeenCalledWith(
+      expect.objectContaining({ remindDays: 7 }),
+      expect.anything(),
     );
   });
 
-  it("does not pre-check license number uniqueness — goes straight into the transaction", async () => {
+  it("does not pre-check license number uniqueness — delegates straight to createWithInitialRenewal", async () => {
     await useCase.execute(input);
-    expect(prisma.$transaction).toHaveBeenCalledTimes(1);
+    expect(licenseRepository.createWithInitialRenewal).toHaveBeenCalledTimes(1);
   });
 
-  it("translates a P2002 race inside the transaction into a ConflictError", async () => {
-    prisma.$transaction.mockRejectedValue(buildP2002Error());
+  it("propagates a ConflictError thrown by the repository unchanged", async () => {
+    licenseRepository.createWithInitialRenewal.mockRejectedValue(
+      new ConflictError("A license with this number already exists for this shop"),
+    );
     await expect(useCase.execute(input)).rejects.toThrow(ConflictError);
   });
 
   it("rethrows non-P2002 errors from the transaction", async () => {
     const error = new Error("database down");
-    prisma.$transaction.mockRejectedValue(error);
+    licenseRepository.createWithInitialRenewal.mockRejectedValue(error);
     await expect(useCase.execute(input)).rejects.toThrow(error);
-  });
-
-  it("creates the initial renewal with source INITIAL, not RENEWAL", async () => {
-    await useCase.execute(input);
-    expect(txRenewalCreate).toHaveBeenCalledWith(
-      expect.objectContaining({ data: expect.objectContaining({ source: "INITIAL" }) }),
-    );
   });
 
   it("points the initial renewal's recordedById at the requester", async () => {
     await useCase.execute(input);
-    expect(txRenewalCreate).toHaveBeenCalledWith(
-      expect.objectContaining({ data: expect.objectContaining({ recordedById: "owner-1" }) }),
+    expect(licenseRepository.createWithInitialRenewal).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ recordedById: "owner-1" }),
     );
   });
 
-  it("updates the license cache to reference the newly created renewal", async () => {
+  it("forwards the issue and expiry dates into the initial renewal", async () => {
     await useCase.execute(input);
-    expect(txLicenseUpdate).toHaveBeenCalledWith(
-      expect.objectContaining({
-        data: expect.objectContaining({
-          currentRenewalId: "renewal-new",
-          currentIssueDate: input.issueDate,
-          currentExpiryDate: input.expiryDate,
-        }),
-      }),
+    expect(licenseRepository.createWithInitialRenewal).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ issueDate: input.issueDate, expiryDate: input.expiryDate }),
     );
-  });
-
-  it("runs all three writes inside a single prisma.$transaction", async () => {
-    await useCase.execute(input);
-    expect(prisma.$transaction).toHaveBeenCalledTimes(1);
   });
 
   it("returns the mapped, post-transaction license", async () => {

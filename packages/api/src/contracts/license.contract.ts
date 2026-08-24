@@ -79,11 +79,13 @@ export const licenseContract = c.router(
     getById: {
       method: "GET",
       path: "/licenses/:id",
+      pathParams: z.object({ id: z.string().uuid() }),
       responses: { 200: licenseSchema },
     },
     update: {
       method: "PATCH",
       path: "/licenses/:id",
+      pathParams: z.object({ id: z.string().uuid() }),
       body: z.object({
         productName: z.string().trim().min(1).max(200).optional(),
         licenseNumber: z.string().trim().min(1).max(100).optional(),
@@ -95,6 +97,7 @@ export const licenseContract = c.router(
     renew: {
       method: "POST",
       path: "/licenses/:id/renew",
+      pathParams: z.object({ id: z.string().uuid() }),
       body: z.object({
         issueDate: z.coerce.date(),
         expiryDate: z.coerce.date(),
@@ -108,11 +111,13 @@ export const licenseContract = c.router(
     getRenewalHistory: {
       method: "GET",
       path: "/licenses/:id/renewals",
+      pathParams: z.object({ id: z.string().uuid() }),
       responses: { 200: z.object({ renewals: z.array(licenseRenewalSchema) }) },
     },
     voidRenewal: {
       method: "POST",
       path: "/licenses/:id/renewals/:renewalId/void",
+      pathParams: z.object({ id: z.string().uuid(), renewalId: z.string().uuid() }),
       body: z.object({ voidReason: z.string().trim().min(3).max(500) }),
       responses: { 200: z.object({ license: licenseSchema, renewal: licenseRenewalSchema }) },
     },

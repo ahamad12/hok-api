@@ -1,6 +1,6 @@
 // modules/license/use-cases/renew-license.use-case.ts
 import { Injectable } from "@nestjs/common";
-import { PrismaService, UserRole } from "@tapt-api/db";
+import { UserRole } from "@tapt-api/db";
 import { AuthorizationError, BusinessRuleError, NotFoundError } from "../../../common/errors";
 import { type LicenseResult, toLicenseResult } from "../mappers/license.mapper";
 import {
@@ -8,7 +8,6 @@ import {
   toLicenseRenewalResult,
 } from "../mappers/license-renewal.mapper";
 import { LicenseRepository } from "../repositories/license.repository";
-// licenseRenewalRepository dropped — same reason as create-license (C5).
 
 export interface RenewLicenseInput {
   requesterId: string;
@@ -25,10 +24,7 @@ export interface RenewLicenseInput {
 
 @Injectable()
 export class RenewLicenseUseCase {
-  constructor(
-    private readonly licenseRepository: LicenseRepository,
-    private readonly prisma: PrismaService,
-  ) {}
+  constructor(private readonly licenseRepository: LicenseRepository) {}
 
   async execute(
     input: RenewLicenseInput,
@@ -54,32 +50,18 @@ export class RenewLicenseUseCase {
       throw new BusinessRuleError("New expiryDate must be after the current expiryDate");
     }
 
-    const { updatedLicense, renewal } = await this.prisma.$transaction(async (tx) => {
-      const newRenewal = await tx.licenseRenewal.create({
-        data: {
-          licenseId: license.id,
-          source: "RENEWAL",
-          issueDate: input.issueDate,
-          expiryDate: input.expiryDate,
-          paymentAmount: input.paymentAmount ?? null,
-          paymentDate: input.paymentDate ?? null,
-          documentUrl: input.documentUrl ?? null,
-          notes: input.notes ?? null,
-          recordedById: input.requesterId,
-        },
-      });
-
-      const refreshedLicense = await tx.license.update({
-        where: { id: license.id },
-        data: {
-          currentRenewalId: newRenewal.id,
-          currentIssueDate: newRenewal.issueDate,
-          currentExpiryDate: newRenewal.expiryDate,
-        },
-      });
-
-      return { updatedLicense: refreshedLicense, renewal: newRenewal };
-    });
+    const { license: updatedLicense, renewal } = await this.licenseRepository.renewAndUpdateCache(
+      license.id,
+      {
+        issueDate: input.issueDate,
+        expiryDate: input.expiryDate,
+        paymentAmount: input.paymentAmount ?? null,
+        paymentDate: input.paymentDate ?? null,
+        documentUrl: input.documentUrl ?? null,
+        notes: input.notes ?? null,
+        recordedById: input.requesterId,
+      },
+    );
 
     return { license: toLicenseResult(updatedLicense), renewal: toLicenseRenewalResult(renewal) };
   }

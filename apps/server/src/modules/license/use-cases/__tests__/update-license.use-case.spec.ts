@@ -1,5 +1,4 @@
 import { UserRole } from "@tapt-api/db";
-import { Prisma } from "@tapt-api/db/prisma";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   AuthorizationError,
@@ -9,14 +8,6 @@ import {
 } from "../../../../common/errors";
 import { buildLicense } from "../../../../test/fixtures/license.fixture";
 import { UpdateLicenseUseCase } from "../update-license.use-case";
-
-function buildP2002Error(target: string[] = ["licenseNumber"]) {
-  return new Prisma.PrismaClientKnownRequestError("Unique constraint failed on the fields", {
-    code: "P2002",
-    clientVersion: "test",
-    meta: { target },
-  });
-}
 
 describe("UpdateLicenseUseCase", () => {
   let licenseRepository: {
@@ -65,8 +56,10 @@ describe("UpdateLicenseUseCase", () => {
     expect(licenseRepository.update).toHaveBeenCalledTimes(1);
   });
 
-  it("translates a P2002 on update into a ConflictError", async () => {
-    licenseRepository.update.mockRejectedValue(buildP2002Error());
+  it("propagates a ConflictError thrown by the repository unchanged", async () => {
+    licenseRepository.update.mockRejectedValue(
+      new ConflictError("A license with this number already exists for this shop"),
+    );
     await expect(useCase.execute({ ...input, licenseNumber: "TB-2026-002" })).rejects.toThrow(
       ConflictError,
     );

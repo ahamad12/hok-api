@@ -7,7 +7,6 @@ import { RenewLicenseUseCase } from "../renew-license.use-case";
 
 describe("RenewLicenseUseCase", () => {
   let licenseRepository: any;
-  let prisma: any;
   let useCase: RenewLicenseUseCase;
 
   const input = {
@@ -20,31 +19,24 @@ describe("RenewLicenseUseCase", () => {
   };
 
   beforeEach(() => {
-    licenseRepository = { findById: vi.fn() };
-    const currentLicense = buildLicense({ currentExpiryDate: new Date("2027-01-01") });
-    licenseRepository.findById.mockResolvedValue(currentLicense);
-
-    prisma = {
-      $transaction: vi.fn(async (fn: any) =>
-        fn({
-          licenseRenewal: {
-            create: vi
-              .fn()
-              .mockResolvedValue(buildLicenseRenewal({ id: "renewal-2", source: "RENEWAL" })),
-          },
-          license: {
-            update: vi.fn().mockResolvedValue(
-              buildLicense({
-                currentRenewalId: "renewal-2",
-                currentExpiryDate: input.expiryDate,
-              }),
-            ),
-          },
-        }),
-      ),
-    };
-
-    useCase = new RenewLicenseUseCase(licenseRepository, prisma);
+    licenseRepository = { findById: vi.fn(), renewAndUpdateCache: vi.fn() };
+    licenseRepository.findById.mockResolvedValue(
+      buildLicense({ currentExpiryDate: new Date("2027-01-01") }),
+    );
+    licenseRepository.renewAndUpdateCache.mockResolvedValue({
+      license: buildLicense({
+        currentRenewalId: "renewal-2",
+        currentIssueDate: input.issueDate,
+        currentExpiryDate: input.expiryDate,
+      }),
+      renewal: buildLicenseRenewal({
+        id: "renewal-2",
+        source: "RENEWAL",
+        issueDate: input.issueDate,
+        expiryDate: input.expiryDate,
+      }),
+    });
+    useCase = new RenewLicenseUseCase(licenseRepository);
   });
 
   it("throws NotFoundError when the license doesn't exist", async () => {
@@ -72,6 +64,18 @@ describe("RenewLicenseUseCase", () => {
         expiryDate: new Date("2028-01-01"),
       }),
     ).rejects.toThrow(BusinessRuleError);
+  });
+
+  it("delegates the renew to renewAndUpdateCache with the license id", async () => {
+    await useCase.execute(input);
+    expect(licenseRepository.renewAndUpdateCache).toHaveBeenCalledWith(
+      "license-1",
+      expect.objectContaining({
+        issueDate: input.issueDate,
+        expiryDate: input.expiryDate,
+        recordedById: "owner-1",
+      }),
+    );
   });
 
   it("creates a RENEWAL-source row, not another INITIAL", async () => {

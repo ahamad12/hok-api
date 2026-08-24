@@ -6,7 +6,10 @@ import { TsRestHandler } from "@ts-rest/nest";
 import { CurrentUser, Roles } from "../../common/decorators";
 import type { RequestUser } from "../../common/types/request-user.interface";
 import { type CreateLicenseInput, CreateLicenseUseCase } from "./use-cases/create-license.use-case";
-import { GetExpiringLicensesUseCase } from "./use-cases/get-expiring-licenses.use-case";
+import {
+  type GetExpiringLicensesInput,
+  GetExpiringLicensesUseCase,
+} from "./use-cases/get-expiring-licenses.use-case";
 import { GetLicenseByIdUseCase } from "./use-cases/get-license-by-id.use-case";
 import { GetLicenseRenewalHistoryUseCase } from "./use-cases/get-license-renewal-history.use-case";
 import { type GetLicensesInput, GetLicensesUseCase } from "./use-cases/get-licenses.use-case";
@@ -68,7 +71,11 @@ export class LicenseController {
   @Roles(UserRole.OWNER, UserRole.MANAGER, UserRole.STAFF)
   @TsRestHandler(licenseContract.getExpiring)
   getExpiring(@CurrentUser() user: RequestUser) {
-    return async ({ query }: { query: { shopId: string } }) => {
+    return async ({
+      query,
+    }: {
+      query: Omit<GetExpiringLicensesInput, "requesterRole" | "requesterShopId">;
+    }) => {
       const result = await this.getExpiringLicensesUseCase.execute({
         requesterRole: user.role,
         requesterShopId: user.shopId,

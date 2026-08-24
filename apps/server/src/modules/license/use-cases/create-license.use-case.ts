@@ -1,15 +1,10 @@
 // modules/license/use-cases/create-license.use-case.ts
 import { Injectable } from "@nestjs/common";
-import { PrismaService, UserRole } from "@tapt-api/db";
-import { Prisma } from "@tapt-api/db/prisma";
-import {
-  AuthorizationError,
-  BusinessRuleError,
-  ConflictError,
-  NotFoundError,
-} from "../../../common/errors";
+import { UserRole } from "@tapt-api/db";
+import { AuthorizationError, BusinessRuleError, NotFoundError } from "../../../common/errors";
 import { ShopRepository } from "../../shop/repositories/shop.repository";
 import { type LicenseResult, toLicenseResult } from "../mappers/license.mapper";
+import { LicenseRepository } from "../repositories/license.repository";
 
 export interface CreateLicenseInput {
   requesterId: string;
@@ -31,7 +26,7 @@ export interface CreateLicenseInput {
 export class CreateLicenseUseCase {
   constructor(
     private readonly shopRepository: ShopRepository,
-    private readonly prisma: PrismaService,
+    private readonly licenseRepository: LicenseRepository,
   ) {}
 
   async execute(input: CreateLicenseInput): Promise<LicenseResult> {
@@ -48,48 +43,25 @@ export class CreateLicenseUseCase {
     const remindDays = input.remindDays ?? 7;
     if (remindDays < 0) throw new BusinessRuleError("remindDays must be non-negative");
 
-    try {
-      const license = await this.prisma.$transaction(async (tx) => {
-        const created = await tx.license.create({
-          data: {
-            shopId: input.shopId,
-            productName: input.productName,
-            licenseNumber: input.licenseNumber,
-            remindDays,
-            isActive: true,
-          },
-        });
+    const license = await this.licenseRepository.createWithInitialRenewal(
+      {
+        shopId: input.shopId,
+        productName: input.productName,
+        licenseNumber: input.licenseNumber,
+        remindDays,
+        isActive: true,
+      },
+      {
+        issueDate: input.issueDate,
+        expiryDate: input.expiryDate,
+        paymentAmount: input.paymentAmount ?? null,
+        paymentDate: input.paymentDate ?? null,
+        documentUrl: input.documentUrl ?? null,
+        notes: input.notes ?? null,
+        recordedById: input.requesterId,
+      },
+    );
 
-        const initialRenewal = await tx.licenseRenewal.create({
-          data: {
-            licenseId: created.id,
-            source: "INITIAL",
-            issueDate: input.issueDate,
-            expiryDate: input.expiryDate,
-            paymentAmount: input.paymentAmount ?? null,
-            paymentDate: input.paymentDate ?? null,
-            documentUrl: input.documentUrl ?? null,
-            notes: input.notes ?? null,
-            recordedById: input.requesterId,
-          },
-        });
-
-        return tx.license.update({
-          where: { id: created.id },
-          data: {
-            currentRenewalId: initialRenewal.id,
-            currentIssueDate: initialRenewal.issueDate,
-            currentExpiryDate: initialRenewal.expiryDate,
-          },
-        });
-      });
-
-      return toLicenseResult(license);
-    } catch (error) {
-      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
-        throw new ConflictError("A license with this number already exists for this shop");
-      }
-      throw error;
-    }
+    return toLicenseResult(license);
   }
 }
