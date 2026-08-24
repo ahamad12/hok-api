@@ -5,7 +5,11 @@ import { ChangePasswordUseCase } from "../change-password.use-case";
 
 describe("ChangePasswordUseCase", () => {
   let userRepository: { findById: ReturnType<typeof vi.fn>; update: ReturnType<typeof vi.fn> };
-  let passwordHasher: { compare: ReturnType<typeof vi.fn>; hash: ReturnType<typeof vi.fn> };
+  let passwordHasher: {
+    compare: ReturnType<typeof vi.fn>;
+    hash: ReturnType<typeof vi.fn>;
+    checkStrength: ReturnType<typeof vi.fn>;
+  };
   let tokenService: { revokeAllUserTokens: ReturnType<typeof vi.fn> };
   let tokenVersionService: { invalidateSessions: ReturnType<typeof vi.fn> };
   let eventEmitter: { emit: ReturnType<typeof vi.fn> };
@@ -15,7 +19,11 @@ describe("ChangePasswordUseCase", () => {
 
   beforeEach(() => {
     userRepository = { findById: vi.fn(), update: vi.fn().mockResolvedValue(buildUser()) };
-    passwordHasher = { compare: vi.fn(), hash: vi.fn().mockResolvedValue("new-hash") };
+    passwordHasher = {
+      compare: vi.fn(),
+      hash: vi.fn().mockResolvedValue("new-hash"),
+      checkStrength: vi.fn().mockReturnValue({ isValid: true, errors: [] }),
+    };
     tokenService = { revokeAllUserTokens: vi.fn().mockResolvedValue(2) };
     tokenVersionService = { invalidateSessions: vi.fn().mockResolvedValue(1) };
     eventEmitter = { emit: vi.fn() };
@@ -43,6 +51,16 @@ describe("ChangePasswordUseCase", () => {
   it("throws BusinessRuleError when the new password matches the current one", async () => {
     passwordHasher.compare.mockResolvedValueOnce(true).mockResolvedValueOnce(true);
     await expect(useCase.execute(input)).rejects.toThrow(BusinessRuleError);
+  });
+
+  it("throws BusinessRuleError when the new password is too weak", async () => {
+    passwordHasher.compare.mockResolvedValueOnce(true);
+    passwordHasher.checkStrength.mockReturnValue({
+      isValid: false,
+      errors: ["Password must contain at least one number"],
+    });
+    await expect(useCase.execute(input)).rejects.toThrow(BusinessRuleError);
+    expect(userRepository.update).not.toHaveBeenCalled();
   });
 
   it("hashes the new password and persists it", async () => {

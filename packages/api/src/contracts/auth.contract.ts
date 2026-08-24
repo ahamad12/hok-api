@@ -17,13 +17,13 @@ const userSummarySchema = z.object({
   id: z.string().uuid(),
   email: z.string().email(),
   displayName: z.string(),
+  username: z.string().nullable(),
   role: userRoleSchema,
   shopId: z.string().uuid().nullable(),
   isSupervisor: z.boolean(),
 });
 
 const userProfileSchema = userSummarySchema.extend({
-  username: z.string().nullable(),
   isActive: z.boolean(),
   lastLoginAt: z.coerce.date().nullable(),
   createdAt: z.coerce.date(),
@@ -90,6 +90,20 @@ const loginBodySchema = z.object({
   password: z.string().min(1),
 });
 
+const changePasswordBodySchema = z
+  .object({
+    currentPassword: z.string().min(1),
+    newPassword: z.string().min(8).max(128),
+  })
+  .superRefine((data, ctx) => {
+    // Same single source for password rules as register's body schema —
+    // the exact function PasswordHasherService calls server-side.
+    const { errors } = checkPasswordStrength(data.newPassword);
+    errors.forEach((message) => {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["newPassword"], message });
+    });
+  });
+
 const authTokensSchema = z.object({
   accessToken: z.string(),
   refreshToken: z.string(),
@@ -138,10 +152,7 @@ export const authContract = c.router(
     changePassword: {
       method: "POST",
       path: "/auth/change-password",
-      body: z.object({
-        currentPassword: z.string().min(1),
-        newPassword: z.string().min(8).max(128),
-      }),
+      body: changePasswordBodySchema,
       responses: { 200: z.object({ message: z.string(), sessionsRevoked: z.number() }) },
     },
   },

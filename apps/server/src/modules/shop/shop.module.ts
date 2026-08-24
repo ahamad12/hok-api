@@ -1,4 +1,4 @@
-import { Module } from "@nestjs/common";
+import { forwardRef, Module } from "@nestjs/common";
 import { AuthModule } from "../auth/auth.module"; // for UserRepository, TokenVersionService
 import { ShopRepository } from "./repositories/shop.repository";
 import { ShopController } from "./shop.controller";
@@ -12,7 +12,7 @@ import { RemoveStaffUseCase } from "./use-cases/remove-staff.use-case";
 import { UpdateShopUseCase } from "./use-cases/update-shop.use-case";
 
 @Module({
-  imports: [AuthModule],
+  imports: [forwardRef(() => AuthModule)],
   controllers: [ShopController],
   providers: [
     ShopRepository,

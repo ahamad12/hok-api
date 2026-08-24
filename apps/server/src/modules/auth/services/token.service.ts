@@ -3,9 +3,9 @@
 import { createHash, randomBytes } from "node:crypto";
 import { Injectable } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
-import { PrismaService } from "@tapt-api/db";
 import { AuthenticationError } from "../../../common/errors";
 import type { AccessTokenPayload } from "../../../common/schemas/jwt-payload.schema";
+import { RefreshTokenRepository } from "../repositories/refresh-token.repository";
 
 const REFRESH_TOKEN_TTL_DAYS = 7;
 
@@ -23,7 +23,7 @@ function hashToken(rawToken: string): string {
 export class TokenService {
   constructor(
     private readonly jwtService: JwtService,
-    private readonly prisma: PrismaService,
+    private readonly refreshTokenRepository: RefreshTokenRepository,
   ) {}
 
   generateAccessToken(payload: AccessTokenPayload): string {
@@ -35,25 +35,21 @@ export class TokenService {
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + REFRESH_TOKEN_TTL_DAYS);
 
-    await this.prisma.refreshToken.create({
-      data: {
-        user: { connect: { id: userId } },
-        token: hashToken(rawToken), // column holds the hash, not the raw value
-        expiresAt,
-      },
+    await this.refreshTokenRepository.create({
+      userId,
+      token: hashToken(rawToken), // column holds the hash, not the raw value
+      expiresAt,
     });
 
     return rawToken;
   }
 
   async verifyRefreshToken(rawToken: string): Promise<string> {
-    const record = await this.prisma.refreshToken.findUnique({
-      where: { token: hashToken(rawToken) },
-    });
+    const record = await this.refreshTokenRepository.findByToken(hashToken(rawToken));
     if (!record) throw new AuthenticationError("Invalid refresh token");
 
     if (record.expiresAt < new Date()) {
-      await this.prisma.refreshToken.delete({ where: { id: record.id } }).catch(() => undefined);
+      await this.refreshTokenRepository.deleteById(record.id);
       throw new AuthenticationError("Refresh token expired");
     }
 
@@ -61,20 +57,14 @@ export class TokenService {
   }
 
   async revokeRefreshToken(rawToken: string): Promise<void> {
-    await this.prisma.refreshToken
-      .delete({ where: { token: hashToken(rawToken) } })
-      .catch(() => undefined); // idempotent — revoking an unknown token is not an error
+    await this.refreshTokenRepository.deleteByToken(hashToken(rawToken)); // idempotent — revoking an unknown token is not an error
   }
 
   async revokeAllUserTokens(userId: string): Promise<number> {
-    const result = await this.prisma.refreshToken.deleteMany({ where: { userId } });
-    return result.count;
+    return this.refreshTokenRepository.deleteManyByUser(userId);
   }
 
   async cleanupExpiredTokens(): Promise<number> {
-    const result = await this.prisma.refreshToken.deleteMany({
-      where: { expiresAt: { lt: new Date() } },
-    });
-    return result.count;
+    return this.refreshTokenRepository.deleteExpired(new Date());
   }
 }

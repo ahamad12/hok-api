@@ -15,6 +15,7 @@ export class GetUserProfileUseCase {
   async execute(input: GetUserProfileInput): Promise<UserProfileResult> {
     const user = await this.userRepository.findById(input.userId);
     if (!user) throw new NotFoundError("User", input.userId);
+    if (!user.isActive) throw new NotFoundError("User", input.userId);
     return toUserProfile(user);
   }
 }

@@ -16,6 +16,7 @@ export interface LoginResult {
     id: string;
     email: string;
     displayName: string;
+    username: string | null;
     role: UserRole;
     shopId: string | null;
     isSupervisor: boolean;
@@ -59,6 +60,7 @@ export class LoginUseCase {
         id: user.id,
         email: user.email,
         displayName: user.displayName,
+        username: user.username,
         role: user.role,
         shopId: user.shopId,
         isSupervisor: user.isSupervisor,

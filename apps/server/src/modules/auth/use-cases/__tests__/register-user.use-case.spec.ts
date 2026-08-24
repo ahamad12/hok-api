@@ -1,24 +1,16 @@
-import { Prisma } from "@tapt-api/db/prisma";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { BusinessRuleError, ConflictError, NotFoundError } from "../../../../common/errors";
+import { buildShop } from "../../../../test/fixtures/shop.fixture";
 import { buildUser } from "../../../../test/fixtures/user.fixture";
 import { UserRole } from "../../../../test/prisma-client-mock";
 import { RegisterUserUseCase } from "../register-user.use-case";
-
-function buildP2002Error(target: string[] = ["email"]) {
-  return new Prisma.PrismaClientKnownRequestError("Unique constraint failed on the fields", {
-    code: "P2002",
-    clientVersion: "test",
-    meta: { target },
-  });
-}
 
 describe("RegisterUserUseCase", () => {
   let userRepository: {
     create: ReturnType<typeof vi.fn>;
   };
   let passwordHasher: { hash: ReturnType<typeof vi.fn> };
-  let prisma: { shop: { findUnique: ReturnType<typeof vi.fn> } };
+  let shopRepository: { findById: ReturnType<typeof vi.fn> };
   let useCase: RegisterUserUseCase;
 
   const validInput = {
@@ -33,10 +25,13 @@ describe("RegisterUserUseCase", () => {
   beforeEach(() => {
     userRepository = { create: vi.fn() };
     passwordHasher = { hash: vi.fn().mockResolvedValue("hashed-pw") };
-    prisma = { shop: { findUnique: vi.fn() } };
-    useCase = new RegisterUserUseCase(userRepository as any, passwordHasher as any, prisma as any);
+    shopRepository = { findById: vi.fn().mockResolvedValue(buildShop({ id: "shop-1" })) };
+    useCase = new RegisterUserUseCase(
+      userRepository as any,
+      passwordHasher as any,
+      shopRepository as any,
+    );
 
-    prisma.shop.findUnique.mockResolvedValue({ id: "shop-1" });
     userRepository.create.mockResolvedValue(buildUser(validInput as any));
   });
 
@@ -45,16 +40,11 @@ describe("RegisterUserUseCase", () => {
     expect(userRepository.create).toHaveBeenCalledTimes(1);
   });
 
-  it("translates a P2002 on email into a ConflictError", async () => {
-    userRepository.create.mockRejectedValue(buildP2002Error(["email"]));
-    await expect(useCase.execute(validInput)).rejects.toThrow(ConflictError);
-  });
-
-  it("translates a P2002 on username into a ConflictError", async () => {
-    userRepository.create.mockRejectedValue(buildP2002Error(["username"]));
-    await expect(useCase.execute({ ...validInput, username: "taken" })).rejects.toThrow(
-      ConflictError,
+  it("propagates a ConflictError thrown by the repository unchanged", async () => {
+    userRepository.create.mockRejectedValue(
+      new ConflictError("A user with this email already exists"),
     );
+    await expect(useCase.execute(validInput)).rejects.toThrow(ConflictError);
   });
 
   it("rethrows non-P2002 errors from create", async () => {
@@ -64,7 +54,7 @@ describe("RegisterUserUseCase", () => {
   });
 
   it("throws NotFoundError when shopId does not correspond to an existing shop", async () => {
-    prisma.shop.findUnique.mockResolvedValue(null);
+    shopRepository.findById.mockResolvedValue(null);
     await expect(useCase.execute(validInput)).rejects.toThrow(NotFoundError);
   });
 
@@ -81,7 +71,7 @@ describe("RegisterUserUseCase", () => {
       shopId: null,
       isSupervisor: false,
     });
-    expect(prisma.shop.findUnique).not.toHaveBeenCalled();
+    expect(shopRepository.findById).not.toHaveBeenCalled();
   });
 
   it("hashes the password before persisting the user", async () => {

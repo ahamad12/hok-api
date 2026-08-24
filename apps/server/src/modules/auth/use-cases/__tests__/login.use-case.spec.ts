@@ -75,6 +75,7 @@ describe("LoginUseCase", () => {
     expect(result.accessToken).toBe("access.jwt");
     expect(result.refreshToken).toBe("refresh-raw");
     expect(result.user.email).toBe("staff@shop.test");
+    expect(result.user.username).toBeNull();
   });
 
   it("generates the access token with the current tokenVersion from the DB row", async () => {

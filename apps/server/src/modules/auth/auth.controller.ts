@@ -12,7 +12,10 @@ import { type LoginInput, LoginUseCase } from "./use-cases/login.use-case";
 import { type LogoutInput, LogoutUseCase } from "./use-cases/logout.use-case";
 import { type RefreshTokenInput, RefreshTokenUseCase } from "./use-cases/refresh-token.use-case";
 import { type RegisterUserInput, RegisterUserUseCase } from "./use-cases/register-user.use-case";
-import { UpdateUserProfileUseCase } from "./use-cases/update-user-profile.use-case";
+import {
+  type UpdateUserProfileInput,
+  UpdateUserProfileUseCase,
+} from "./use-cases/update-user-profile.use-case";
 
 /**
  * NOT using ServerInferRequest/ServerInferResponses here — in this
@@ -82,7 +85,7 @@ export class AuthController {
 
   @TsRestHandler(authContract.updateProfile)
   updateProfile(@CurrentUser() user: RequestUser) {
-    return async ({ body }: { body: { displayName?: string; username?: string | null } }) => {
+    return async ({ body }: { body: Omit<UpdateUserProfileInput, "userId"> }) => {
       const result = await this.updateUserProfileUseCase.execute({ userId: user.userId, ...body });
       return { status: 200 as const, body: result };
     };

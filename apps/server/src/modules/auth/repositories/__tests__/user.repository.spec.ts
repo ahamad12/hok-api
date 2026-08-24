@@ -1,4 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
+import { ConflictError } from "../../../../common/errors";
+import { buildUniqueViolationError } from "../../../../test/fixtures/prisma-error.fixture";
 import { buildUser } from "../../../../test/fixtures/user.fixture";
 import {
   createPrismaServiceMock,
@@ -60,6 +62,44 @@ describe("UserRepository", () => {
         select: { tokenVersion: true },
       });
       expect(result).toBe(4);
+    });
+  });
+
+  describe("unique-violation translation", () => {
+    it("create translates a P2002 on email into a ConflictError", async () => {
+      prisma.user.create.mockRejectedValue(buildUniqueViolationError(["email"]));
+      await expect(
+        repo.create({ email: "taken@shop.test", passwordHash: "h", displayName: "X" } as any),
+      ).rejects.toThrow(new ConflictError("A user with this email already exists"));
+    });
+
+    it("create translates a P2002 on username into a username ConflictError", async () => {
+      prisma.user.create.mockRejectedValue(buildUniqueViolationError(["username"]));
+      await expect(
+        repo.create({ email: "new@shop.test", username: "taken", passwordHash: "h" } as any),
+      ).rejects.toThrow(new ConflictError("A user with this username already exists"));
+    });
+
+    it("update translates a P2002 on username into a ConflictError", async () => {
+      prisma.user.update.mockRejectedValue(buildUniqueViolationError(["username"]));
+      await expect(repo.update("user-1", { username: "taken" } as any)).rejects.toThrow(
+        new ConflictError("A user with this username already exists"),
+      );
+    });
+
+    it("update translates a P2002 on email into an email ConflictError", async () => {
+      prisma.user.update.mockRejectedValue(buildUniqueViolationError(["email"]));
+      await expect(repo.update("user-1", { email: "taken@shop.test" } as any)).rejects.toThrow(
+        new ConflictError("A user with this email already exists"),
+      );
+    });
+
+    it("rethrows non-P2002 errors from create", async () => {
+      const error = new Error("database down");
+      prisma.user.create.mockRejectedValue(error);
+      await expect(repo.create({ email: "x@shop.test", passwordHash: "h" } as any)).rejects.toThrow(
+        error,
+      );
     });
   });
 });

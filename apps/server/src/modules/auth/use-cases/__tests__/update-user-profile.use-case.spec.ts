@@ -1,16 +1,7 @@
-import { Prisma } from "@tapt-api/db/prisma";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ConflictError, NotFoundError } from "../../../../common/errors";
 import { buildUser } from "../../../../test/fixtures/user.fixture";
 import { UpdateUserProfileUseCase } from "../update-user-profile.use-case";
-
-function buildP2002Error(target: string[] = ["username"]) {
-  return new Prisma.PrismaClientKnownRequestError("Unique constraint failed on the fields", {
-    code: "P2002",
-    clientVersion: "test",
-    meta: { target },
-  });
-}
 
 describe("UpdateUserProfileUseCase", () => {
   let userRepository: {
@@ -38,8 +29,10 @@ describe("UpdateUserProfileUseCase", () => {
     expect(userRepository.update).toHaveBeenCalledTimes(1);
   });
 
-  it("translates a P2002 on username into a ConflictError", async () => {
-    userRepository.update.mockRejectedValue(buildP2002Error());
+  it("propagates a ConflictError thrown by the repository unchanged", async () => {
+    userRepository.update.mockRejectedValue(
+      new ConflictError("A user with this username already exists"),
+    );
     await expect(useCase.execute({ userId: "user-1", username: "taken" })).rejects.toThrow(
       ConflictError,
     );

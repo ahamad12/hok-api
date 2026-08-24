@@ -38,6 +38,20 @@ export class ChangePasswordUseCase {
     );
     if (!currentValid) throw new AuthenticationError("The current password is incorrect");
 
+    // Both the ts-rest contract (changePasswordBodySchema superRefine) and
+    // this use-case call the same checkPasswordStrength — contract gives
+    // early 422 on the HTTP path (TsRestHandler validates server-side), this
+    // is defense-in-depth for direct use-case calls outside HTTP.
+    // Register relies on contract validation alone; TsRestHandler already
+    // validates server-side, so no gap — this re-check exists for symmetry
+    // and direct-call safety.
+    const strength = this.passwordHasher.checkStrength(input.newPassword);
+    if (!strength.isValid) {
+      throw new BusinessRuleError("New password does not meet strength requirements", {
+        violations: strength.errors,
+      });
+    }
+
     if (await this.passwordHasher.compare(input.newPassword, user.passwordHash)) {
       throw new BusinessRuleError("New password must be different from the current password");
     }

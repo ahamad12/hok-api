@@ -1,13 +1,15 @@
 // modules/auth/auth.module.ts — fixed: JwtAuthGuard registered here (no cycle),
 // RedisModule imported, TokenVersionService wired
-import { Module } from "@nestjs/common";
+import { forwardRef, Module } from "@nestjs/common";
 import { APP_GUARD } from "@nestjs/core";
 import { JwtModule } from "@nestjs/jwt";
 import { env } from "@tapt-api/env/server";
 import { AccessTokenVerifierService } from "../../common/auth/access-token-verifier.service";
 import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
 import { RedisModule } from "../../common/redis/redis.module";
+import { ShopModule } from "../shop/shop.module";
 import { AuthController } from "./auth.controller";
+import { RefreshTokenRepository } from "./repositories/refresh-token.repository";
 import { UserRepository } from "./repositories/user.repository";
 import { PasswordHasherService } from "./services/password-hasher.service";
 import { TokenService } from "./services/token.service";
@@ -23,6 +25,7 @@ import { UpdateUserProfileUseCase } from "./use-cases/update-user-profile.use-ca
 @Module({
   imports: [
     RedisModule,
+    forwardRef(() => ShopModule),
     JwtModule.registerAsync({
       global: true,
       useFactory: () => ({
@@ -38,6 +41,7 @@ import { UpdateUserProfileUseCase } from "./use-cases/update-user-profile.use-ca
   controllers: [AuthController],
   providers: [
     UserRepository,
+    RefreshTokenRepository,
     PasswordHasherService,
     TokenService,
     TokenVersionService,
