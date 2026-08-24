@@ -14,7 +14,6 @@ import { ReverseTillEntryUseCase } from "../reverse-till-entry.use-case";
 describe("ReverseTillEntryUseCase", () => {
   let repo: {
     findById: ReturnType<typeof vi.fn>;
-    findReversalFor: ReturnType<typeof vi.fn>;
     create: ReturnType<typeof vi.fn>;
   };
   let useCase: ReverseTillEntryUseCase;
@@ -27,12 +26,11 @@ describe("ReverseTillEntryUseCase", () => {
   };
 
   beforeEach(() => {
-    repo = { findById: vi.fn(), findReversalFor: vi.fn(), create: vi.fn() };
+    repo = { findById: vi.fn(), create: vi.fn() };
     useCase = new ReverseTillEntryUseCase(repo as any);
     repo.findById.mockResolvedValue(
       buildTillEntry({ id: "entry-1", shopId: "shop-1", amount: 5000, category: "EXPENSE" }),
     );
-    repo.findReversalFor.mockResolvedValue(null);
     repo.create.mockResolvedValue(
       buildTillEntry({ id: "entry-2", amount: -5000, reversesEntryId: "entry-1" }),
     );
@@ -56,11 +54,20 @@ describe("ReverseTillEntryUseCase", () => {
     );
   });
 
-  it("throws ConflictError when the entry has already been reversed", async () => {
-    repo.findReversalFor.mockResolvedValue(
-      buildTillEntry({ id: "entry-2", reversesEntryId: "entry-1" }),
-    );
+  it("does not pre-check for an existing reversal — goes straight to create", async () => {
+    await useCase.execute(input);
+    expect(repo.create).toHaveBeenCalledTimes(1);
+  });
+
+  it("propagates a ConflictError thrown by the repository unchanged", async () => {
+    repo.create.mockRejectedValue(new ConflictError("This entry has already been reversed"));
     await expect(useCase.execute(input)).rejects.toThrow(ConflictError);
+  });
+
+  it("rethrows non-P2002 errors from create", async () => {
+    const error = new Error("database down");
+    repo.create.mockRejectedValue(error);
+    await expect(useCase.execute(input)).rejects.toThrow(error);
   });
 
   it("creates the reversal with the amount NEGATED, not duplicated", async () => {

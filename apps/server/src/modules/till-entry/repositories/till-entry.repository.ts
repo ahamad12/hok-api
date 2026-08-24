@@ -1,6 +1,8 @@
 import { Injectable } from "@nestjs/common";
 import { PrismaService, type TillEntry, type TillEntryCategory } from "@tapt-api/db"; // value import — required for Nest DI, `import type` breaks bootstrap
 import type { Prisma } from "@tapt-api/db/prisma";
+import { ConflictError } from "../../../common/errors";
+import { isUniqueViolation } from "../../../common/prisma/errors";
 
 export interface TillEntryFilters {
   shopId: string;
@@ -15,13 +17,6 @@ export class TillEntryRepository {
 
   findById(id: string): Promise<TillEntry | null> {
     return this.prisma.tillEntry.findUnique({ where: { id } });
-  }
-
-  /** Whether the given entry already has a reversal pointing at it — used
-   *  to reject reversing the same mistake twice. Application-level guard;
-   *  the DB enforces it atomically via @@unique([reversesEntryId]). */
-  findReversalFor(entryId: string): Promise<TillEntry | null> {
-    return this.prisma.tillEntry.findFirst({ where: { reversesEntryId: entryId } });
   }
 
   async findAll(
@@ -49,8 +44,15 @@ export class TillEntryRepository {
     return { entries, total };
   }
 
-  create(data: Prisma.TillEntryUncheckedCreateInput): Promise<TillEntry> {
-    return this.prisma.tillEntry.create({ data });
+  async create(data: Prisma.TillEntryUncheckedCreateInput): Promise<TillEntry> {
+    try {
+      return await this.prisma.tillEntry.create({ data });
+    } catch (error) {
+      if (isUniqueViolation(error)) {
+        throw new ConflictError("This entry has already been reversed");
+      }
+      throw error;
+    }
   }
 
   /**

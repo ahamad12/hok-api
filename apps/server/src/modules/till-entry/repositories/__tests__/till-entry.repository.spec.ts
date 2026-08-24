@@ -1,5 +1,7 @@
 // modules/till-entry/repositories/__tests__/till-entry.repository.spec.ts
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { ConflictError } from "../../../../common/errors";
+import { buildUniqueViolationError } from "../../../../test/fixtures/prisma-error.fixture";
 import { buildTillEntry } from "../../../../test/fixtures/till-entry.fixture";
 import { TillEntryRepository } from "../till-entry.repository";
 
@@ -37,14 +39,6 @@ describe("TillEntryRepository", () => {
   it("findById returns null when no entry matches", async () => {
     prisma.tillEntry.findUnique.mockResolvedValue(null);
     await expect(repo.findById("missing")).resolves.toBeNull();
-  });
-
-  it("findReversalFor queries by reversesEntryId, not by id", async () => {
-    prisma.tillEntry.findFirst.mockResolvedValue(null);
-    await repo.findReversalFor("entry-1");
-    expect(prisma.tillEntry.findFirst).toHaveBeenCalledWith({
-      where: { reversesEntryId: "entry-1" },
-    });
   });
 
   it("findAll applies shopId, category, and date range filters together", async () => {
@@ -120,5 +114,22 @@ describe("TillEntryRepository", () => {
     await repo.getCategoryTotalsBefore("shop-1", new Date("2026-07-30"));
     const callArgs = prisma.tillEntry.groupBy.mock.calls[0]![0];
     expect(callArgs.where!.transactionDate).toEqual({ lt: new Date("2026-07-30") });
+  });
+
+  describe("unique-violation translation", () => {
+    it("create translates a P2002 into a ConflictError", async () => {
+      prisma.tillEntry.create.mockRejectedValue(buildUniqueViolationError(["reversesEntryId"]));
+      await expect(
+        repo.create({ shopId: "shop-1", category: "EXPENSE", amount: -1000 } as any),
+      ).rejects.toThrow(new ConflictError("This entry has already been reversed"));
+    });
+
+    it("rethrows non-P2002 errors from create", async () => {
+      const error = new Error("database down");
+      prisma.tillEntry.create.mockRejectedValue(error);
+      await expect(
+        repo.create({ shopId: "shop-1", category: "SALES", amount: 1000 } as any),
+      ).rejects.toThrow(error);
+    });
   });
 });
