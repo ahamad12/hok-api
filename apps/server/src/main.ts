@@ -1,6 +1,5 @@
 import "./instrument";
 import "reflect-metadata";
-import { VersioningType } from "@nestjs/common";
 import { NestFactory } from "@nestjs/core";
 import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
 import { env } from "@tapt-api/env/server";
@@ -18,15 +17,11 @@ async function bootstrap() {
 
   app.enableShutdownHooks();
 
-  app.setGlobalPrefix("api", {
-    exclude: ["health", "metrics"],
-  });
-
-  app.enableVersioning({
-    type: VersioningType.URI,
-    prefix: "v",
-    defaultVersion: "1",
-  });
+  // API routing: versioning and the "/api" prefix live in the ts-rest contracts
+  // (pathPrefix: "/api/v1" in packages/api/src/contracts/*). Do not re-add
+  // app.setGlobalPrefix("api") or app.enableVersioning() here — they would
+  // double-prefix to /api/v1/api/v1/... Health (/health) and docs (/api/docs)
+  // are intentionally outside the contract prefix.
 
   if (env.NODE_ENV !== "production") {
     const swaggerConfig = new DocumentBuilder()
@@ -61,7 +56,7 @@ async function bootstrap() {
 
   app.enableCors({
     origin: env.CORS_ORIGIN,
-    methods: ["GET", "POST", "OPTIONS"],
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
   });
 
   app.useWebSocketAdapter(new RedisIoAdapter(app));
