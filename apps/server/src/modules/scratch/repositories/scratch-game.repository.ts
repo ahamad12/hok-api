@@ -1,6 +1,8 @@
 import { Injectable } from "@nestjs/common";
 import { PrismaService, type ScratchGame } from "@tapt-api/db"; // value import — `import type` breaks Nest DI at bootstrap
 import type { Prisma } from "@tapt-api/db/prisma";
+import { ConflictError } from "../../../common/errors";
+import { isUniqueViolation } from "../../../common/prisma/errors";
 
 export interface ScratchGameFilters {
   shopId: string;
@@ -29,7 +31,14 @@ export class ScratchGameRepository {
     return this.prisma.scratchGame.findMany({ where, orderBy: { name: "asc" } });
   }
 
-  create(data: CreateScratchGameData): Promise<ScratchGame> {
-    return this.prisma.scratchGame.create({ data });
+  async create(data: CreateScratchGameData): Promise<ScratchGame> {
+    try {
+      return await this.prisma.scratchGame.create({ data });
+    } catch (error) {
+      if (isUniqueViolation(error)) {
+        throw new ConflictError("A scratch game with this name already exists for this shop");
+      }
+      throw error;
+    }
   }
 }

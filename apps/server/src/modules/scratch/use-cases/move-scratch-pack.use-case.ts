@@ -25,12 +25,18 @@ export class MoveScratchPackUseCase {
 
     // STATE MACHINE: only ACTIVE packs can move. A FINISHED or RETURNED
     // pack is off the floor for good — moving it would misrepresent
-    // where a physically-gone pack is.
+    // where a physically-gone pack is. This is a fast-fail only — the
+    // repo's updateLocationIfActive re-checks status: "ACTIVE" atomically
+    // with the write, so a pack that transitions concurrently between
+    // this check and the write still can't be moved.
     if (pack.status !== "ACTIVE") {
       throw new BusinessRuleError(`Cannot move a pack with status ${pack.status}`);
     }
 
-    const updated = await this.scratchPackRepository.updateLocation(pack.id, input.location);
+    const updated = await this.scratchPackRepository.updateLocationIfActive(
+      pack.id,
+      input.location,
+    );
     return toScratchPackResult(updated);
   }
 }

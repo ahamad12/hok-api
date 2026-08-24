@@ -135,6 +135,7 @@ export const scratchGameContract = c.router(
     getById: {
       method: "GET",
       path: "/scratch/games/:id",
+      pathParams: z.object({ id: z.string().uuid() }),
       responses: { 200: scratchGameSchema },
     },
   },
@@ -158,23 +159,27 @@ export const scratchPackContract = c.router(
     getById: {
       method: "GET",
       path: "/scratch/packs/:id",
+      pathParams: z.object({ id: z.string().uuid() }),
       responses: { 200: scratchPackSchema },
     },
     move: {
       method: "PATCH",
       path: "/scratch/packs/:id/location",
+      pathParams: z.object({ id: z.string().uuid() }),
       body: moveScratchPackBodySchema,
       responses: { 200: scratchPackSchema },
     },
     returnPack: {
       method: "POST",
       path: "/scratch/packs/:id/return",
+      pathParams: z.object({ id: z.string().uuid() }),
       body: z.object({}),
       responses: { 200: scratchPackSchema },
     },
     scan: {
       method: "POST",
       path: "/scratch/packs/:id/scans",
+      pathParams: z.object({ id: z.string().uuid() }),
       body: recordScratchScanBodySchema,
       responses: { 201: scratchScanEventSchema },
     },
@@ -199,6 +204,7 @@ export const scratchScanContract = c.router(
     void: {
       method: "POST",
       path: "/scratch/scans/:id/void",
+      pathParams: z.object({ id: z.string().uuid() }),
       body: voidScratchScanBodySchema,
       responses: { 200: scratchScanEventSchema },
     },

@@ -7,7 +7,10 @@ import { buildScratchPack } from "../../../../test/fixtures/scratch.fixture";
 import { MoveScratchPackUseCase } from "../move-scratch-pack.use-case";
 
 describe("MoveScratchPackUseCase", () => {
-  let packRepo: { findById: ReturnType<typeof vi.fn>; updateLocation: ReturnType<typeof vi.fn> };
+  let packRepo: {
+    findById: ReturnType<typeof vi.fn>;
+    updateLocationIfActive: ReturnType<typeof vi.fn>;
+  };
   let useCase: MoveScratchPackUseCase;
   const input = {
     requesterRole: UserRole.STAFF,
@@ -17,12 +20,12 @@ describe("MoveScratchPackUseCase", () => {
   };
 
   beforeEach(() => {
-    packRepo = { findById: vi.fn(), updateLocation: vi.fn() };
+    packRepo = { findById: vi.fn(), updateLocationIfActive: vi.fn() };
     useCase = new MoveScratchPackUseCase(packRepo as any);
     packRepo.findById.mockResolvedValue(
       buildScratchPack({ status: "ACTIVE", location: "DISPLAY" }),
     );
-    packRepo.updateLocation.mockResolvedValue(buildScratchPack({ location: "BACKSTOCK" }));
+    packRepo.updateLocationIfActive.mockResolvedValue(buildScratchPack({ location: "BACKSTOCK" }));
   });
 
   it("throws NotFoundError when the pack does not exist", async () => {
@@ -47,6 +50,13 @@ describe("MoveScratchPackUseCase", () => {
 
   it("updates the location field only, with no separate movement log", async () => {
     await useCase.execute(input);
-    expect(packRepo.updateLocation).toHaveBeenCalledWith("pack-1", "BACKSTOCK");
+    expect(packRepo.updateLocationIfActive).toHaveBeenCalledWith("pack-1", "BACKSTOCK");
+  });
+
+  it("propagates BusinessRuleError when the repo guard rejects the move", async () => {
+    packRepo.updateLocationIfActive.mockRejectedValue(
+      new BusinessRuleError("Pack status changed before the move could be applied"),
+    );
+    await expect(useCase.execute(input)).rejects.toThrow(BusinessRuleError);
   });
 });

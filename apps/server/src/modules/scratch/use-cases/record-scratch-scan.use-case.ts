@@ -51,7 +51,11 @@ export class RecordScratchScanUseCase {
     // shift is a duplicate or a correction, and this endpoint doesn't
     // support corrections (no reversal concept for scans, unlike till
     // entries — a bad scan should be fixed by asking staff to re-scan
-    // correctly next shift, not by editing history).
+    // correctly next shift, not by editing history). This read is a
+    // fast-fail for the common case; the load-bearing guarantee is the
+    // DB partial unique index scratch_scan_events_pack_shift_active_key,
+    // which rejects a race-losing concurrent insert (translated to the
+    // same ConflictError by the repository).
     const existingScan = await this.scratchScanEventRepository.findActiveByPackAndShift(
       input.packId,
       input.scanDate,
@@ -92,31 +96,22 @@ export class RecordScratchScanUseCase {
     const ticketsRemainingRaw = game.ticketsPerPack - cumulativeSold;
     const ticketsRemaining = Math.max(ticketsRemainingRaw, 0);
 
-    const scanEvent = await this.scratchScanEventRepository.create({
-      packId: pack.id,
-      gameId: pack.gameId,
-      shopId: pack.shopId,
-      scanDate: input.scanDate,
-      shiftPeriod: input.shiftPeriod,
-      scannedSerial: input.scannedSerial,
-      ticketsSoldSincePrevious,
-      ticketsRemaining,
-      unitPriceCents: game.priceCents,
-      revenueCents: ticketsSoldSincePrevious * game.priceCents,
-      scannedById: input.requesterId,
-    });
-
-    // STATE MACHINE: ACTIVE -> FINISHED, the only transition into
-    // FINISHED. Once every ticket is accounted for, the pack stops
-    // accepting further scans (enforced by the guard above on the next
-    // call), matching the physical reality that there's nothing left in
-    // the bin to scan.
-    if (ticketsRemainingRaw <= 0) {
-      await this.scratchPackRepository.updateStatus(pack.id, {
-        status: "FINISHED",
-        finishedAt: new Date(),
-      });
-    }
+    const scanEvent = await this.scratchScanEventRepository.createScanAndFinishPackIfDepleted(
+      {
+        packId: pack.id,
+        gameId: pack.gameId,
+        shopId: pack.shopId,
+        scanDate: input.scanDate,
+        shiftPeriod: input.shiftPeriod,
+        scannedSerial: input.scannedSerial,
+        ticketsSoldSincePrevious,
+        ticketsRemaining,
+        unitPriceCents: game.priceCents,
+        revenueCents: ticketsSoldSincePrevious * game.priceCents,
+        scannedById: input.requesterId,
+      },
+      ticketsRemainingRaw <= 0,
+    );
 
     return toScratchScanEventResult(scanEvent);
   }

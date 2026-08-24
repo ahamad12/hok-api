@@ -7,15 +7,18 @@ import { buildScratchPack } from "../../../../test/fixtures/scratch.fixture";
 import { ReturnScratchPackUseCase } from "../return-scratch-pack.use-case";
 
 describe("ReturnScratchPackUseCase", () => {
-  let packRepo: { findById: ReturnType<typeof vi.fn>; updateStatus: ReturnType<typeof vi.fn> };
+  let packRepo: {
+    findById: ReturnType<typeof vi.fn>;
+    updateStatusIfActive: ReturnType<typeof vi.fn>;
+  };
   let useCase: ReturnScratchPackUseCase;
   const input = { requesterRole: UserRole.MANAGER, requesterShopId: null, packId: "pack-1" };
 
   beforeEach(() => {
-    packRepo = { findById: vi.fn(), updateStatus: vi.fn() };
+    packRepo = { findById: vi.fn(), updateStatusIfActive: vi.fn() };
     useCase = new ReturnScratchPackUseCase(packRepo as any);
     packRepo.findById.mockResolvedValue(buildScratchPack({ status: "ACTIVE" }));
-    packRepo.updateStatus.mockResolvedValue(buildScratchPack({ status: "RETURNED" }));
+    packRepo.updateStatusIfActive.mockResolvedValue(buildScratchPack({ status: "RETURNED" }));
   });
 
   it("throws NotFoundError when the pack does not exist", async () => {
@@ -42,9 +45,16 @@ describe("ReturnScratchPackUseCase", () => {
 
   it("sets status to RETURNED and stamps returnedAt", async () => {
     await useCase.execute(input);
-    expect(packRepo.updateStatus).toHaveBeenCalledWith("pack-1", {
+    expect(packRepo.updateStatusIfActive).toHaveBeenCalledWith("pack-1", {
       status: "RETURNED",
       returnedAt: expect.any(Date),
     });
+  });
+
+  it("propagates BusinessRuleError when the repo guard rejects the return", async () => {
+    packRepo.updateStatusIfActive.mockRejectedValue(
+      new BusinessRuleError("Pack status changed before this update could be applied"),
+    );
+    await expect(useCase.execute(input)).rejects.toThrow(BusinessRuleError);
   });
 });

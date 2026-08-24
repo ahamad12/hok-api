@@ -5,7 +5,6 @@ import {
   type ScratchScanEventResult,
   toScratchScanEventResult,
 } from "../mappers/scratch-scan-event.mapper";
-import { ScratchPackRepository } from "../repositories/scratch-pack.repository";
 import { ScratchScanEventRepository } from "../repositories/scratch-scan-event.repository";
 
 export interface VoidScratchScanInput {
@@ -17,10 +16,7 @@ export interface VoidScratchScanInput {
 
 @Injectable()
 export class VoidScratchScanUseCase {
-  constructor(
-    private readonly scratchScanEventRepository: ScratchScanEventRepository,
-    private readonly scratchPackRepository: ScratchPackRepository,
-  ) {}
+  constructor(private readonly scratchScanEventRepository: ScratchScanEventRepository) {}
 
   async execute(input: VoidScratchScanInput): Promise<ScratchScanEventResult> {
     const scan = await this.scratchScanEventRepository.findById(input.scanId);
@@ -30,13 +26,11 @@ export class VoidScratchScanUseCase {
       throw new ConflictError("This scan has already been voided");
     }
 
-    // Only the most recent (non-voided) scan for a pack can be voided.
-    // Every later scan derived its ticketsSoldSincePrevious from THIS
-    // scan's scannedSerial — voiding an earlier one without recomputing
-    // everything after it would silently corrupt those numbers. This
-    // deliberately only covers the "caught it right after entering it"
-    // case; voiding older scans needs its own design pass, not a default
-    // baked in here.
+    // Fast-fail only: gives a quick, friendly error in the common case.
+    // NOT the authoritative check — a scan landing concurrently after
+    // this read would slip past it. The real enforcement of "only the
+    // latest scan can be voided" happens atomically inside
+    // voidScanAndRevertPackIfFinished below.
     const latest = await this.scratchScanEventRepository.findLatestForPack(scan.packId);
     if (!latest || latest.id !== scan.id) {
       throw new BusinessRuleError(
@@ -44,26 +38,22 @@ export class VoidScratchScanUseCase {
       );
     }
 
-    const voided = await this.scratchScanEventRepository.voidScan(scan.id, {
-      voidedById: input.requesterId,
-      voidedAt: new Date(),
-      voidReason: input.voidReason,
-    });
-
-    // If this scan was the one that auto-finished the pack — the only
-    // way a pack reaches FINISHED — voiding it must revert the pack to
-    // ACTIVE too, or it's left FINISHED with no scan actually backing
-    // that state, and permanently unable to accept further scans. Safe
-    // to do unconditionally here BECAUSE of the latest-only constraint
-    // above: a FINISHED pack's status can only have come from its own
-    // latest scan.
-    const pack = await this.scratchPackRepository.findById(scan.packId);
-    if (pack && pack.status === "FINISHED") {
-      await this.scratchPackRepository.updateStatus(pack.id, {
-        status: "ACTIVE",
-        finishedAt: null,
-      });
-    }
+    // Every later scan derived its ticketsSoldSincePrevious from THIS
+    // scan's scannedSerial — voiding an earlier one without recomputing
+    // everything after it would silently corrupt those numbers. This
+    // deliberately only covers the "caught it right after entering it"
+    // case; voiding older scans needs its own design pass, not a default
+    // baked in here.
+    const voided = await this.scratchScanEventRepository.voidScanAndRevertPackIfFinished(
+      scan.id,
+      scan.packId,
+      scan.sequenceNumber,
+      {
+        voidedById: input.requesterId,
+        voidedAt: new Date(),
+        voidReason: input.voidReason,
+      },
+    );
 
     return toScratchScanEventResult(voided);
   }

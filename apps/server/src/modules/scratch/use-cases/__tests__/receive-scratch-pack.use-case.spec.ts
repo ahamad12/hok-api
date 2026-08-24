@@ -8,10 +8,7 @@ import { buildShop } from "../../../../test/fixtures/shop.fixture";
 import { ReceiveScratchPackUseCase } from "../receive-scratch-pack.use-case";
 
 describe("ReceiveScratchPackUseCase", () => {
-  let packRepo: {
-    findByGameAndSerialStart: ReturnType<typeof vi.fn>;
-    create: ReturnType<typeof vi.fn>;
-  };
+  let packRepo: { create: ReturnType<typeof vi.fn> };
   let gameRepo: { findById: ReturnType<typeof vi.fn> };
   let shopRepo: { findById: ReturnType<typeof vi.fn> };
   let useCase: ReceiveScratchPackUseCase;
@@ -27,14 +24,13 @@ describe("ReceiveScratchPackUseCase", () => {
   };
 
   beforeEach(() => {
-    packRepo = { findByGameAndSerialStart: vi.fn(), create: vi.fn() };
+    packRepo = { create: vi.fn() };
     gameRepo = { findById: vi.fn() };
     shopRepo = { findById: vi.fn() };
     useCase = new ReceiveScratchPackUseCase(packRepo as any, gameRepo as any, shopRepo as any);
 
     shopRepo.findById.mockResolvedValue(buildShop({ id: "shop-1", isActive: true }));
     gameRepo.findById.mockResolvedValue(buildScratchGame({ shopId: "shop-1", isActive: true }));
-    packRepo.findByGameAndSerialStart.mockResolvedValue(null);
     packRepo.create.mockResolvedValue(buildScratchPack());
   });
 
@@ -66,9 +62,22 @@ describe("ReceiveScratchPackUseCase", () => {
     await expect(useCase.execute(input)).rejects.toThrow(NotFoundError);
   });
 
-  it("throws ConflictError when this game + serialStart has already been received", async () => {
-    packRepo.findByGameAndSerialStart.mockResolvedValue(buildScratchPack());
+  it("does not pre-check duplicate receipt — goes straight to create", async () => {
+    await useCase.execute(input);
+    expect(packRepo.create).toHaveBeenCalledTimes(1);
+  });
+
+  it("propagates a ConflictError thrown by the repository unchanged", async () => {
+    packRepo.create.mockRejectedValue(
+      new ConflictError("A pack with this serial start has already been received for this game"),
+    );
     await expect(useCase.execute(input)).rejects.toThrow(ConflictError);
+  });
+
+  it("rethrows non-P2002 errors from create", async () => {
+    const error = new Error("database down");
+    packRepo.create.mockRejectedValue(error);
+    await expect(useCase.execute(input)).rejects.toThrow(error);
   });
 
   it("creates the pack as ACTIVE with the given location — no WAREHOUSE holding state", async () => {

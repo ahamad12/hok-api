@@ -1,6 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import { UserRole } from "@tapt-api/db";
-import { AuthorizationError, ConflictError, NotFoundError } from "../../../common/errors";
+import { AuthorizationError, NotFoundError } from "../../../common/errors";
 import { ShopRepository } from "../../shop/repositories/shop.repository";
 import { type ScratchPackResult, toScratchPackResult } from "../mappers/scratch-pack.mapper";
 import { ScratchGameRepository } from "../repositories/scratch-game.repository";
@@ -37,22 +37,10 @@ export class ReceiveScratchPackUseCase {
       throw new NotFoundError("ScratchGame", input.gameId);
     }
 
-    // Prevents the same physical pack (game + starting serial) from being
-    // received twice, which would otherwise create two independently-
-    // scanned rows for what is physically one pack.
-    const existing = await this.scratchPackRepository.findByGameAndSerialStart(
-      input.gameId,
-      input.serialStart,
-    );
-    if (existing) {
-      throw new ConflictError(
-        "A pack with this serial start has already been received for this game",
-      );
-    }
-
-    // STATE MACHINE: receive = immediately ACTIVE. Confirmed there's no
-    // separate "warehouse, not yet on the floor" holding state — the
-    // caller always knows the pack's location at receiving time.
+    // Duplicate (gameId + serialStart) receives are rejected by the DB
+    // unique constraint and translated to a 409 ConflictError in the
+    // repository, so a concurrent double-receive cannot fall through to
+    // a 500.
     const pack = await this.scratchPackRepository.create({
       gameId: input.gameId,
       shopId: input.shopId,

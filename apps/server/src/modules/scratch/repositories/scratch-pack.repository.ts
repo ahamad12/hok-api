@@ -6,6 +6,8 @@ import {
   type ScratchPackStatus,
 } from "@tapt-api/db";
 import type { Prisma } from "@tapt-api/db/prisma";
+import { BusinessRuleError, ConflictError, NotFoundError } from "../../../common/errors";
+import { isNotFound, isUniqueViolation } from "../../../common/prisma/errors";
 
 export interface ScratchPackFilters {
   shopId: string;
@@ -38,13 +40,6 @@ export class ScratchPackRepository {
     return this.prisma.scratchPack.findUnique({ where: { id } });
   }
 
-  /** Used to reject receiving the same physical pack twice (same game + starting serial). */
-  findByGameAndSerialStart(gameId: string, serialStart: string): Promise<ScratchPack | null> {
-    return this.prisma.scratchPack.findUnique({
-      where: { gameId_serialStart: { gameId, serialStart } },
-    });
-  }
-
   async findAll(
     filters: ScratchPackFilters,
     pagination: { limit: number; offset: number },
@@ -67,17 +62,64 @@ export class ScratchPackRepository {
     return { packs, total };
   }
 
-  create(data: CreateScratchPackData): Promise<ScratchPack> {
-    return this.prisma.scratchPack.create({ data });
+  async create(data: CreateScratchPackData): Promise<ScratchPack> {
+    try {
+      return await this.prisma.scratchPack.create({ data });
+    } catch (error) {
+      if (isUniqueViolation(error)) {
+        throw new ConflictError(
+          "A pack with this serial start has already been received for this game",
+        );
+      }
+      throw error;
+    }
   }
 
-  /** Plain field update, no history kept — per the confirmed design, moving
-   *  between display/backstock is not a logged event. */
-  updateLocation(id: string, location: ScratchPackLocation): Promise<ScratchPack> {
-    return this.prisma.scratchPack.update({ where: { id }, data: { location } });
+  /**
+   * Guarded: only moves a pack that's still ACTIVE at write time, so a
+   * pack concurrently RETURNED (or FINISHED) between the use-case's read
+   * and this write isn't silently moved anyway — count === 0 means the
+   * guard caught a race and the caller should treat it as a state
+   * conflict, not a successful move. Plain field update otherwise, no
+   * history kept — per the confirmed design, moving between
+   * display/backstock is not a logged event.
+   */
+  async updateLocationIfActive(id: string, location: ScratchPackLocation): Promise<ScratchPack> {
+    const result = await this.prisma.scratchPack.updateMany({
+      where: { id, status: "ACTIVE" },
+      data: { location },
+    });
+    if (result.count === 0) {
+      throw new BusinessRuleError("Pack status changed before the move could be applied");
+    }
+    try {
+      return await this.prisma.scratchPack.findUniqueOrThrow({ where: { id } });
+    } catch (error) {
+      if (isNotFound(error)) throw new NotFoundError("ScratchPack", id);
+      throw error;
+    }
   }
 
-  updateStatus(id: string, data: UpdateScratchPackStatusData): Promise<ScratchPack> {
-    return this.prisma.scratchPack.update({ where: { id }, data });
+  /**
+   * Guarded: only applies a status transition if the pack is still
+   * ACTIVE at write time, so a pack concurrently transitioned (e.g. by
+   * an auto-finishing scan racing a manual return) isn't clobbered.
+   * count === 0 means the guard caught a race — the caller should treat
+   * that as a state conflict, not a successful transition.
+   */
+  async updateStatusIfActive(id: string, data: UpdateScratchPackStatusData): Promise<ScratchPack> {
+    const result = await this.prisma.scratchPack.updateMany({
+      where: { id, status: "ACTIVE" },
+      data,
+    });
+    if (result.count === 0) {
+      throw new BusinessRuleError("Pack status changed before this update could be applied");
+    }
+    try {
+      return await this.prisma.scratchPack.findUniqueOrThrow({ where: { id } });
+    } catch (error) {
+      if (isNotFound(error)) throw new NotFoundError("ScratchPack", id);
+      throw error;
+    }
   }
 }
