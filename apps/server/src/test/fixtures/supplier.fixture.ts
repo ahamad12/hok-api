@@ -8,6 +8,7 @@ export function buildSupplier(overrides: Partial<Supplier> = {}): Supplier {
     name: "Acme Wholesale",
     phone: "555-0100",
     address: null,
+    isActive: true,
     createdAt: new Date("2026-01-01"),
     updatedAt: new Date("2026-01-01"),
     ...overrides,

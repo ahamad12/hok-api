@@ -5,6 +5,7 @@ export type {
   DeliveryPayment,
   License,
   LicenseRenewal,
+  RefreshToken,
   ScratchGame,
   ScratchPack,
   ScratchScanEvent,

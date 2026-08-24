@@ -209,6 +209,7 @@ model ScratchGame {
 
   packs ScratchPack[]
 
+  @@unique([shopId, name])
   @@index([shopId, isActive])
   @@map("scratch_games")
 }
@@ -360,6 +361,7 @@ model Supplier {
 
   deliveries Delivery[]
 
+  @@unique([shopId, name])
   @@index([shopId])
   @@index([categoryId])
   @@index([shopId, isActive])
