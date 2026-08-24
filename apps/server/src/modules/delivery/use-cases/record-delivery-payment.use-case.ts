@@ -1,6 +1,6 @@
 // modules/delivery/use-cases/record-delivery-payment.use-case.ts
 import { Injectable } from "@nestjs/common";
-import { type PaymentMode, PrismaService, UserRole } from "@tapt-api/db";
+import { type PaymentMode, UserRole } from "@tapt-api/db";
 import { AuthorizationError, BusinessRuleError, NotFoundError } from "../../../common/errors";
 import { type DeliveryResult, toDeliveryResult } from "../mappers/delivery.mapper";
 import {
@@ -22,10 +22,7 @@ export interface RecordDeliveryPaymentInput {
 
 @Injectable()
 export class RecordDeliveryPaymentUseCase {
-  constructor(
-    private readonly deliveryRepository: DeliveryRepository,
-    private readonly prisma: PrismaService,
-  ) {}
+  constructor(private readonly deliveryRepository: DeliveryRepository) {}
 
   async execute(
     input: RecordDeliveryPaymentInput,
@@ -40,51 +37,29 @@ export class RecordDeliveryPaymentUseCase {
       throw new BusinessRuleError("Cannot record a payment against a voided delivery");
     if (input.amountCents <= 0) throw new BusinessRuleError("amountCents must be positive");
 
-    // Fast-fail on the obvious case before touching the DB — the atomic
-    // updateMany below is what actually closes the race (two concurrent
-    // payments both reading the same pre-payment balance), this check
-    // just avoids an unnecessary transaction for the common non-race case.
+    // Fast-fail on the obvious case before touching the DB — the repo's
+    // guarded updateMany is what actually closes the race (two
+    // concurrent payments both reading the same pre-payment balance),
+    // this check just avoids an unnecessary transaction for the common
+    // non-race case.
     if (delivery.totalPaidCents + input.amountCents > delivery.totalAmountCents) {
       throw new BusinessRuleError(
         `Payment would exceed the amount owed (balance due: ${delivery.totalAmountCents - delivery.totalPaidCents} cents)`,
       );
     }
 
-    const { updatedDelivery, payment } = await this.prisma.$transaction(async (tx) => {
-      const newPayment = await tx.deliveryPayment.create({
-        data: {
-          deliveryId: delivery.id,
+    const { delivery: updatedDelivery, payment } =
+      await this.deliveryRepository.recordPaymentIfWithinBalance(
+        delivery.id,
+        delivery.totalAmountCents,
+        {
           amountCents: input.amountCents,
           paymentMode: input.paymentMode,
           paidAt: input.paidAt ?? new Date(),
           recordedById: input.requesterId,
           notes: input.notes ?? null,
         },
-      });
-
-      // The conditional WHERE is the actual guard: only applies the
-      // increment if the row's CURRENT totalPaidCents still leaves room
-      // for this amount. If a concurrent payment landed between our read
-      // above and this write, the condition fails, count is 0, and we
-      // throw — which rolls back the payment insert too, since we're
-      // inside the same interactive transaction.
-      const updateResult = await tx.delivery.updateMany({
-        where: {
-          id: delivery.id,
-          totalPaidCents: { lte: delivery.totalAmountCents - input.amountCents },
-        },
-        data: { totalPaidCents: { increment: input.amountCents } },
-      });
-
-      if (updateResult.count === 0) {
-        throw new BusinessRuleError(
-          "Payment would exceed the amount owed (concurrent payment detected)",
-        );
-      }
-
-      const refreshed = await tx.delivery.findUniqueOrThrow({ where: { id: delivery.id } });
-      return { updatedDelivery: refreshed, payment: newPayment };
-    });
+      );
 
     return {
       delivery: toDeliveryResult(updatedDelivery),

@@ -13,7 +13,6 @@ import { VoidDeliveryPaymentUseCase } from "../void-delivery-payment.use-case";
 describe("VoidDeliveryPaymentUseCase", () => {
   let deliveryRepository: any;
   let deliveryPaymentRepository: any;
-  let prisma: any;
   let useCase: VoidDeliveryPaymentUseCase;
 
   const input = {
@@ -36,21 +35,12 @@ describe("VoidDeliveryPaymentUseCase", () => {
       findById: vi
         .fn()
         .mockResolvedValue(buildDeliveryWithRelations({ id: "delivery-1", totalPaidCents: 4_000 })),
+      voidPaymentIfUnvoided: vi.fn().mockResolvedValue({
+        delivery: buildDelivery({ totalPaidCents: 0 }),
+        payment: buildDeliveryPayment({ voidedAt: new Date() }),
+      }),
     };
-    prisma = {
-      $transaction: vi.fn(async (fn: any) =>
-        fn({
-          deliveryPayment: {
-            updateMany: vi.fn().mockResolvedValue({ count: 1 }),
-            findUniqueOrThrow: vi
-              .fn()
-              .mockResolvedValue(buildDeliveryPayment({ voidedAt: new Date() })),
-          },
-          delivery: { update: vi.fn().mockResolvedValue(buildDelivery({ totalPaidCents: 0 })) },
-        }),
-      ),
-    };
-    useCase = new VoidDeliveryPaymentUseCase(deliveryRepository, deliveryPaymentRepository, prisma);
+    useCase = new VoidDeliveryPaymentUseCase(deliveryRepository, deliveryPaymentRepository);
   });
 
   it("throws NotFoundError when the payment doesn't exist", async () => {
@@ -71,39 +61,21 @@ describe("VoidDeliveryPaymentUseCase", () => {
     ).rejects.toThrow(AuthorizationError);
   });
 
-  it("throws BusinessRuleError when the atomic updateMany detects a concurrent double-void (count 0)", async () => {
-    prisma.$transaction.mockImplementation(async (fn: any) =>
-      fn({
-        deliveryPayment: {
-          updateMany: vi.fn().mockResolvedValue({ count: 0 }),
-          findUniqueOrThrow: vi.fn(),
-        },
-        delivery: { update: vi.fn() },
-      }),
+  it("delegates the void to voidPaymentIfUnvoided with the payment's amount", async () => {
+    await useCase.execute(input);
+    expect(deliveryRepository.voidPaymentIfUnvoided).toHaveBeenCalledWith(
+      "payment-1",
+      "delivery-1",
+      4_000,
+      { voidedById: "owner-1", voidReason: "duplicate entry" },
     );
-    await expect(useCase.execute(input)).rejects.toThrow(BusinessRuleError);
   });
 
-  it("decrements the delivery's totalPaidCents by exactly the voided payment's amount", async () => {
-    let decrementArg: any;
-    prisma.$transaction.mockImplementation(async (fn: any) =>
-      fn({
-        deliveryPayment: {
-          updateMany: vi.fn().mockResolvedValue({ count: 1 }),
-          findUniqueOrThrow: vi
-            .fn()
-            .mockResolvedValue(buildDeliveryPayment({ voidedAt: new Date() })),
-        },
-        delivery: {
-          update: vi.fn((args: any) => {
-            decrementArg = args.data.totalPaidCents.decrement;
-            return buildDelivery({ totalPaidCents: 0 });
-          }),
-        },
-      }),
+  it("propagates the repo's BusinessRuleError when the guarded updateMany detects a concurrent double-void", async () => {
+    deliveryRepository.voidPaymentIfUnvoided.mockRejectedValue(
+      new BusinessRuleError("This payment has already been voided"),
     );
-    await useCase.execute(input);
-    expect(decrementArg).toBe(4_000);
+    await expect(useCase.execute(input)).rejects.toThrow(BusinessRuleError);
   });
 
   it("returns both the refreshed delivery and the voided payment", async () => {

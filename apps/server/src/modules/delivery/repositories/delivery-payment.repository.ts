@@ -1,7 +1,6 @@
 // modules/delivery/repositories/delivery-payment.repository.ts
 import { Injectable } from "@nestjs/common";
 import { type DeliveryPayment, PrismaService } from "@tapt-api/db";
-import type { Prisma } from "@tapt-api/db/prisma";
 
 @Injectable()
 export class DeliveryPaymentRepository {
@@ -16,9 +15,5 @@ export class DeliveryPaymentRepository {
       where: { deliveryId },
       orderBy: { paidAt: "desc" },
     });
-  }
-
-  create(data: Prisma.DeliveryPaymentUncheckedCreateInput): Promise<DeliveryPayment> {
-    return this.prisma.deliveryPayment.create({ data });
   }
 }

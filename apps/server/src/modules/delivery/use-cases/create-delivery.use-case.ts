@@ -1,11 +1,12 @@
 // modules/delivery/use-cases/create-delivery.use-case.ts
 import { Injectable } from "@nestjs/common";
 import { EventEmitter2 } from "@nestjs/event-emitter";
-import { PrismaService, UserRole } from "@tapt-api/db";
+import { UserRole } from "@tapt-api/db";
 import { AuthorizationError, BusinessRuleError, NotFoundError } from "../../../common/errors";
 import { ShopRepository } from "../../shop/repositories/shop.repository";
 import { SupplierRepository } from "../../supplier/repositories/supplier.repository";
 import { type DeliveryResult, toDeliveryResult } from "../mappers/delivery.mapper";
+import { DeliveryRepository } from "../repositories/delivery.repository";
 
 export interface CreateDeliveryLineItemInput {
   productName: string;
@@ -32,7 +33,7 @@ export class CreateDeliveryUseCase {
   constructor(
     private readonly shopRepository: ShopRepository,
     private readonly supplierRepository: SupplierRepository,
-    private readonly prisma: PrismaService,
+    private readonly deliveryRepository: DeliveryRepository,
     private readonly eventEmitter: EventEmitter2,
   ) {}
 
@@ -48,6 +49,9 @@ export class CreateDeliveryUseCase {
     if (!supplier) throw new NotFoundError("Supplier", input.supplierId);
     if (supplier.shopId !== input.shopId) {
       throw new BusinessRuleError("Supplier does not belong to the specified shop");
+    }
+    if (!supplier.isActive) {
+      throw new BusinessRuleError("Cannot create a delivery for a deactivated supplier");
     }
 
     if (input.lineItems.length === 0) {
@@ -70,27 +74,22 @@ export class CreateDeliveryUseCase {
       0,
     );
 
-    const delivery = await this.prisma.delivery.create({
-      data: {
-        shopId: input.shopId,
-        supplierId: input.supplierId,
-        billUrl: input.billUrl ?? null,
-        totalAmountCents,
-        totalPaidCents: 0,
-        deliveredById: input.requesterId,
-        deliveredAt: input.deliveredAt ?? new Date(),
-        lineItems: {
-          create: lineItemsWithTotals.map((item) => ({
-            productName: item.productName,
-            quantityOrdered: item.quantityOrdered,
-            quantityReceived: item.quantityReceived,
-            unit: item.unit,
-            unitPriceCents: item.unitPriceCents,
-            lineTotalCents: item.lineTotalCents,
-            discrepancyNote: item.discrepancyNote ?? null,
-          })),
-        },
-      },
+    const delivery = await this.deliveryRepository.createWithLineItems({
+      shopId: input.shopId,
+      supplierId: input.supplierId,
+      billUrl: input.billUrl ?? null,
+      totalAmountCents,
+      deliveredById: input.requesterId,
+      deliveredAt: input.deliveredAt ?? new Date(),
+      lineItems: lineItemsWithTotals.map((item) => ({
+        productName: item.productName,
+        quantityOrdered: item.quantityOrdered,
+        quantityReceived: item.quantityReceived,
+        unit: item.unit,
+        unitPriceCents: item.unitPriceCents,
+        lineTotalCents: item.lineTotalCents,
+        discrepancyNote: item.discrepancyNote ?? null,
+      })),
     });
 
     this.eventEmitter.emit("delivery.created", {

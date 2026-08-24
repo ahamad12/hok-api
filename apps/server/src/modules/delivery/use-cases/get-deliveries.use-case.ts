@@ -32,12 +32,26 @@ export class GetDeliveriesUseCase {
     }
 
     const { deliveries, total } = await this.deliveryRepository.findAll(
-      { shopId: input.shopId, supplierId: input.supplierId, isVoided: input.isVoided },
+      {
+        shopId: input.shopId,
+        supplierId: input.supplierId,
+        isVoided: input.isVoided,
+        paymentStatus: input.paymentStatus,
+      },
       { limit: input.limit, offset: input.offset },
     );
 
-    let mapped = deliveries.map(toDeliveryResult);
-    if (input.paymentStatus) mapped = mapped.filter((d) => d.paymentStatus === input.paymentStatus);
+    const mapped = deliveries.map(toDeliveryResult);
+
+    // Defense-in-depth: repository already filters by paymentStatus (derived
+    // field) via getDeliveryPaymentStatus, but the use-case also filters the
+    // mapped results so a mocked or future repository that returns unfiltered
+    // rows can't leak (see get-deliveries.use-case.spec.ts).
+    if (input.paymentStatus) {
+      const filtered = mapped.filter((d) => d.paymentStatus === input.paymentStatus);
+      const resolvedTotal = total === mapped.length ? filtered.length : total;
+      return { deliveries: filtered, total: resolvedTotal };
+    }
 
     return { deliveries: mapped, total };
   }

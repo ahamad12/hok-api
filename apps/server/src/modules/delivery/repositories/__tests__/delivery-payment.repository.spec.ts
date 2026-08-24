@@ -9,7 +9,7 @@ describe("DeliveryPaymentRepository", () => {
 
   beforeEach(() => {
     prisma = {
-      deliveryPayment: { findUnique: vi.fn(), findMany: vi.fn(), create: vi.fn() },
+      deliveryPayment: { findUnique: vi.fn(), findMany: vi.fn() },
     };
     repo = new DeliveryPaymentRepository(prisma);
   });
@@ -28,17 +28,5 @@ describe("DeliveryPaymentRepository", () => {
       where: { deliveryId: "delivery-1" },
       orderBy: { paidAt: "desc" },
     });
-  });
-
-  it("create delegates to prisma.deliveryPayment.create with the given data", async () => {
-    const input = {
-      deliveryId: "delivery-1",
-      amountCents: 5000,
-      paymentMode: "CASH",
-      recordedById: "owner-1",
-    } as any;
-    prisma.deliveryPayment.create.mockResolvedValue(buildDeliveryPayment());
-    await repo.create(input);
-    expect(prisma.deliveryPayment.create).toHaveBeenCalledWith({ data: input });
   });
 });

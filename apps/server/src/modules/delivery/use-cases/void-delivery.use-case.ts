@@ -42,6 +42,7 @@ export class VoidDeliveryUseCase {
     }
 
     const refreshed = await this.deliveryRepository.findById(delivery.id);
-    return toDeliveryResult(refreshed!);
+    if (!refreshed) throw new NotFoundError("Delivery", delivery.id);
+    return toDeliveryResult(refreshed);
   }
 }

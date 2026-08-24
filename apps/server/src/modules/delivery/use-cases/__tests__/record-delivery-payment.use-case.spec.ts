@@ -12,7 +12,6 @@ import { RecordDeliveryPaymentUseCase } from "../record-delivery-payment.use-cas
 
 describe("RecordDeliveryPaymentUseCase", () => {
   let deliveryRepository: any;
-  let prisma: any;
   let useCase: RecordDeliveryPaymentUseCase;
 
   const input = {
@@ -31,22 +30,12 @@ describe("RecordDeliveryPaymentUseCase", () => {
         .mockResolvedValue(
           buildDeliveryWithRelations({ totalAmountCents: 10_000, totalPaidCents: 0 }),
         ),
+      recordPaymentIfWithinBalance: vi.fn().mockResolvedValue({
+        delivery: buildDelivery({ totalPaidCents: 4_000 }),
+        payment: buildDeliveryPayment({ amountCents: 4_000 }),
+      }),
     };
-    prisma = {
-      $transaction: vi.fn(async (fn: any) =>
-        fn({
-          deliveryPayment: {
-            create: vi.fn().mockResolvedValue(buildDeliveryPayment({ amountCents: 4_000 })),
-            findUniqueOrThrow: vi.fn(),
-          },
-          delivery: {
-            updateMany: vi.fn().mockResolvedValue({ count: 1 }),
-            findUniqueOrThrow: vi.fn().mockResolvedValue(buildDelivery({ totalPaidCents: 4_000 })),
-          },
-        }),
-      ),
-    };
-    useCase = new RecordDeliveryPaymentUseCase(deliveryRepository, prisma);
+    useCase = new RecordDeliveryPaymentUseCase(deliveryRepository);
   });
 
   it("throws NotFoundError when the delivery doesn't exist", async () => {
@@ -80,41 +69,24 @@ describe("RecordDeliveryPaymentUseCase", () => {
     );
   });
 
-  it("throws BusinessRuleError when the atomic updateMany detects a concurrent overpayment (count 0)", async () => {
-    prisma.$transaction.mockImplementation(async (fn: any) =>
-      fn({
-        deliveryPayment: {
-          create: vi.fn().mockResolvedValue(buildDeliveryPayment()),
-          findUniqueOrThrow: vi.fn(),
-        },
-        delivery: {
-          updateMany: vi.fn().mockResolvedValue({ count: 0 }),
-          findUniqueOrThrow: vi.fn(),
-        },
+  it("delegates to recordPaymentIfWithinBalance with the delivery's balance cap", async () => {
+    await useCase.execute(input);
+    expect(deliveryRepository.recordPaymentIfWithinBalance).toHaveBeenCalledWith(
+      "delivery-1",
+      10_000,
+      expect.objectContaining({
+        amountCents: 4_000,
+        paymentMode: "CASH",
+        recordedById: "owner-1",
       }),
     );
-    await expect(useCase.execute(input)).rejects.toThrow(BusinessRuleError);
   });
 
-  it("increments totalPaidCents via the conditional updateMany, not a blind write", async () => {
-    let capturedWhere: any;
-    prisma.$transaction.mockImplementation(async (fn: any) =>
-      fn({
-        deliveryPayment: {
-          create: vi.fn().mockResolvedValue(buildDeliveryPayment()),
-          findUniqueOrThrow: vi.fn(),
-        },
-        delivery: {
-          updateMany: vi.fn((args: any) => {
-            capturedWhere = args.where;
-            return { count: 1 };
-          }),
-          findUniqueOrThrow: vi.fn().mockResolvedValue(buildDelivery()),
-        },
-      }),
+  it("propagates the repo's BusinessRuleError when the guarded updateMany detects a concurrent overpayment", async () => {
+    deliveryRepository.recordPaymentIfWithinBalance.mockRejectedValue(
+      new BusinessRuleError("Payment would exceed the amount owed (concurrent payment detected)"),
     );
-    await useCase.execute(input);
-    expect(capturedWhere).toEqual({ id: "delivery-1", totalPaidCents: { lte: 10_000 - 4_000 } });
+    await expect(useCase.execute(input)).rejects.toThrow(BusinessRuleError);
   });
 
   it("returns both the updated delivery and the created payment", async () => {

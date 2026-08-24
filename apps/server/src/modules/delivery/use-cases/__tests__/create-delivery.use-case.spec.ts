@@ -11,7 +11,7 @@ import { CreateDeliveryUseCase } from "../create-delivery.use-case";
 describe("CreateDeliveryUseCase", () => {
   let shopRepository: any;
   let supplierRepository: any;
-  let prisma: any;
+  let deliveryRepository: any;
   let useCase: CreateDeliveryUseCase;
 
   const input = {
@@ -38,8 +38,10 @@ describe("CreateDeliveryUseCase", () => {
     supplierRepository = {
       findById: vi.fn().mockResolvedValue(buildSupplier({ id: "supplier-1", shopId: "shop-1" })),
     };
-    prisma = { delivery: { create: vi.fn().mockResolvedValue(buildDelivery()) } };
-    useCase = new CreateDeliveryUseCase(shopRepository, supplierRepository, prisma, {
+    deliveryRepository = {
+      createWithLineItems: vi.fn().mockResolvedValue(buildDelivery()),
+    };
+    useCase = new CreateDeliveryUseCase(shopRepository, supplierRepository, deliveryRepository, {
       emit: vi.fn(),
     } as any);
   });
@@ -63,6 +65,13 @@ describe("CreateDeliveryUseCase", () => {
   it("throws BusinessRuleError when the supplier belongs to a different shop", async () => {
     supplierRepository.findById.mockResolvedValue(
       buildSupplier({ id: "supplier-1", shopId: "some-other-shop" }),
+    );
+    await expect(useCase.execute(input)).rejects.toThrow(BusinessRuleError);
+  });
+
+  it("throws BusinessRuleError when the supplier is deactivated", async () => {
+    supplierRepository.findById.mockResolvedValue(
+      buildSupplier({ id: "supplier-1", shopId: "shop-1", isActive: false }),
     );
     await expect(useCase.execute(input)).rejects.toThrow(BusinessRuleError);
   });
@@ -93,8 +102,8 @@ describe("CreateDeliveryUseCase", () => {
         },
       ],
     });
-    const createArgs = prisma.delivery.create.mock.calls[0][0];
-    expect(createArgs.data.lineItems.create[0].lineTotalCents).toBe(9_000); // 18 * 500, not 20 * 500
+    const createArgs = deliveryRepository.createWithLineItems.mock.calls[0][0];
+    expect(createArgs.lineItems[0].lineTotalCents).toBe(9_000); // 18 * 500, not 20 * 500
   });
 
   it("sums totalAmountCents across all line items", async () => {
@@ -117,14 +126,13 @@ describe("CreateDeliveryUseCase", () => {
         },
       ],
     });
-    const createArgs = prisma.delivery.create.mock.calls[0][0];
-    expect(createArgs.data.totalAmountCents).toBe(10_000 + 2_000);
+    const createArgs = deliveryRepository.createWithLineItems.mock.calls[0][0];
+    expect(createArgs.totalAmountCents).toBe(10_000 + 2_000);
   });
 
-  it("initializes totalPaidCents to 0 on creation", async () => {
-    await useCase.execute(input);
-    expect(prisma.delivery.create).toHaveBeenCalledWith(
-      expect.objectContaining({ data: expect.objectContaining({ totalPaidCents: 0 }) }),
-    );
+  it("returns a delivery that starts unpaid", async () => {
+    const result = await useCase.execute(input);
+    expect(result.totalPaidCents).toBe(0);
+    expect(result.paymentStatus).toBe("UNPAID");
   });
 });

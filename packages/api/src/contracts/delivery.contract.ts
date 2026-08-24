@@ -110,6 +110,7 @@ export const deliveryContract = c.router(
     getById: {
       method: "GET",
       path: "/deliveries/:id",
+      pathParams: z.object({ id: z.string().uuid() }),
       responses: {
         200: z.object({
           delivery: deliverySchema,
@@ -121,6 +122,7 @@ export const deliveryContract = c.router(
     recordPayment: {
       method: "POST",
       path: "/deliveries/:id/payments",
+      pathParams: z.object({ id: z.string().uuid() }),
       body: z.object({
         amountCents: z.number().int().positive(),
         paymentMode: z.enum(["CASH", "CARD", "UPI", "BANK_TRANSFER"]),
@@ -132,12 +134,14 @@ export const deliveryContract = c.router(
     voidPayment: {
       method: "POST",
       path: "/deliveries/payments/:paymentId/void",
+      pathParams: z.object({ paymentId: z.string().uuid() }),
       body: voidBodySchema,
       responses: { 200: z.object({ delivery: deliverySchema, payment: deliveryPaymentSchema }) },
     },
     voidDelivery: {
       method: "POST",
       path: "/deliveries/:id/void",
+      pathParams: z.object({ id: z.string().uuid() }),
       body: voidBodySchema,
       responses: { 200: deliverySchema },
     },
