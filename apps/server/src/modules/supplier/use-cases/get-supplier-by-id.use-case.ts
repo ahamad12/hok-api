@@ -18,6 +18,7 @@ export class GetSupplierByIdUseCase {
   async execute(input: GetSupplierByIdInput): Promise<SupplierResult> {
     const supplier = await this.supplierRepository.findById(input.supplierId);
     if (!supplier) throw new NotFoundError("Supplier", input.supplierId);
+    if (!supplier.isActive) throw new NotFoundError("Supplier", input.supplierId);
 
     if (input.requesterRole === UserRole.STAFF && input.requesterShopId !== supplier.shopId) {
       throw new AuthorizationError("Access denied for this supplier");

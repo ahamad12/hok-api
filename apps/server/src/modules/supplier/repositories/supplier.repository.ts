@@ -5,6 +5,8 @@
 import { Injectable } from "@nestjs/common";
 import { PrismaService, type Supplier } from "@tapt-api/db";
 import type { Prisma } from "@tapt-api/db/prisma";
+import { ConflictError } from "../../../common/errors";
+import { isUniqueViolation } from "../../../common/prisma/errors";
 
 @Injectable()
 export class SupplierRepository {
@@ -24,11 +26,25 @@ export class SupplierRepository {
     return this.prisma.supplier.findMany({ where, orderBy: { name: "asc" } });
   }
 
-  create(data: Prisma.SupplierUncheckedCreateInput): Promise<Supplier> {
-    return this.prisma.supplier.create({ data });
+  async create(data: Prisma.SupplierUncheckedCreateInput): Promise<Supplier> {
+    try {
+      return await this.prisma.supplier.create({ data });
+    } catch (error) {
+      if (isUniqueViolation(error)) {
+        throw new ConflictError("A supplier with this name already exists for this shop");
+      }
+      throw error;
+    }
   }
 
-  update(id: string, data: Prisma.SupplierUncheckedUpdateInput): Promise<Supplier> {
-    return this.prisma.supplier.update({ where: { id }, data });
+  async update(id: string, data: Prisma.SupplierUncheckedUpdateInput): Promise<Supplier> {
+    try {
+      return await this.prisma.supplier.update({ where: { id }, data });
+    } catch (error) {
+      if (isUniqueViolation(error)) {
+        throw new ConflictError("A supplier with this name already exists for this shop");
+      }
+      throw error;
+    }
   }
 }

@@ -26,6 +26,17 @@ describe("GetSupplierByIdUseCase", () => {
     ).rejects.toThrow(NotFoundError);
   });
 
+  it("throws NotFoundError when the supplier is soft-deleted (inactive)", async () => {
+    supplierRepository.findById.mockResolvedValue(buildSupplier({ isActive: false }));
+    await expect(
+      useCase.execute({
+        requesterRole: UserRole.OWNER,
+        requesterShopId: null,
+        supplierId: "supplier-1",
+      }),
+    ).rejects.toThrow(NotFoundError);
+  });
+
   it("throws AuthorizationError when STAFF requests a different shop's supplier", async () => {
     supplierRepository.findById.mockResolvedValue(buildSupplier({ shopId: "shop-1" }));
     await expect(

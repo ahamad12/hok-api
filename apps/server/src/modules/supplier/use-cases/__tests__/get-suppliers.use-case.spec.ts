@@ -2,17 +2,21 @@
 
 import { UserRole } from "@tapt-api/db";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { AuthorizationError } from "../../../../common/errors";
+import { AuthorizationError, NotFoundError } from "../../../../common/errors";
+import { buildShop } from "../../../../test/fixtures/shop.fixture";
 import { buildSupplier } from "../../../../test/fixtures/supplier.fixture";
 import { GetSuppliersUseCase } from "../get-suppliers.use-case";
 
 describe("GetSuppliersUseCase", () => {
   let supplierRepository: any;
+  let shopRepository: { findById: ReturnType<typeof vi.fn> };
   let useCase: GetSuppliersUseCase;
 
   beforeEach(() => {
     supplierRepository = { findAll: vi.fn().mockResolvedValue([]) };
-    useCase = new GetSuppliersUseCase(supplierRepository);
+    shopRepository = { findById: vi.fn() };
+    useCase = new GetSuppliersUseCase(supplierRepository, shopRepository as any);
+    shopRepository.findById.mockResolvedValue(buildShop({ id: "shop-1", isActive: true }));
   });
 
   it("throws AuthorizationError when STAFF requests a different shop", async () => {
@@ -23,6 +27,40 @@ describe("GetSuppliersUseCase", () => {
         shopId: "shop-1",
       }),
     ).rejects.toThrow(AuthorizationError);
+  });
+
+  it("throws NotFoundError when the shop does not exist", async () => {
+    shopRepository.findById.mockResolvedValue(null);
+    await expect(
+      useCase.execute({
+        requesterRole: UserRole.OWNER,
+        requesterShopId: null,
+        shopId: "missing",
+      }),
+    ).rejects.toThrow(NotFoundError);
+  });
+
+  it("throws NotFoundError when the shop is soft-deleted", async () => {
+    shopRepository.findById.mockResolvedValue(buildShop({ id: "shop-1", isActive: false }));
+    await expect(
+      useCase.execute({
+        requesterRole: UserRole.OWNER,
+        requesterShopId: null,
+        shopId: "shop-1",
+      }),
+    ).rejects.toThrow(NotFoundError);
+  });
+
+  it("defaults isActive to true when the caller omits it (no soft-deleted leak)", async () => {
+    await useCase.execute({
+      requesterRole: UserRole.OWNER,
+      requesterShopId: null,
+      shopId: "shop-1",
+    });
+    expect(supplierRepository.findAll).toHaveBeenCalledWith("shop-1", {
+      categoryId: undefined,
+      isActive: true,
+    });
   });
 
   it("delegates categoryId and isActive filters to the repository", async () => {

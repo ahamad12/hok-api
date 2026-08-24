@@ -38,6 +38,9 @@ export class UpdateSupplierUseCase {
       if (newCategory.shopId !== supplier.shopId) {
         throw new BusinessRuleError("Category does not belong to this supplier's shop");
       }
+      if (!newCategory.isActive) {
+        throw new BusinessRuleError("Cannot move a supplier to an inactive category");
+      }
     }
 
     const updated = await this.supplierRepository.update(supplier.id, {

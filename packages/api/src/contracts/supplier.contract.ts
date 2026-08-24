@@ -43,11 +43,13 @@ export const supplierContract = c.router(
     getById: {
       method: "GET",
       path: "/suppliers/:id",
+      pathParams: z.object({ id: z.string().uuid() }),
       responses: { 200: supplierSchema },
     },
     update: {
       method: "PATCH",
       path: "/suppliers/:id",
+      pathParams: z.object({ id: z.string().uuid() }),
       body: z.object({
         categoryId: z.string().uuid().optional(),
         name: z.string().trim().min(1).max(200).optional(),
