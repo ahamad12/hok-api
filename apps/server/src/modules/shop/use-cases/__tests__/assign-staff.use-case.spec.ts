@@ -60,11 +60,22 @@ describe("AssignStaffUseCase", () => {
 
   it("allows a MANAGER requester (not just OWNER) to assign staff", async () => {
     userRepository.findById.mockImplementation(async (id: string) => {
-      if (id === "owner-1") return buildUser({ id: "owner-1", role: UserRole.MANAGER });
+      if (id === "owner-1")
+        return buildUser({ id: "owner-1", role: UserRole.MANAGER, shopId: "shop-1" });
       if (id === "staff-1") return buildUser({ id: "staff-1", role: UserRole.STAFF, shopId: null });
       return null;
     });
     await expect(useCase.execute(input)).resolves.toBeDefined();
+  });
+
+  it("throws AuthorizationError when a MANAGER tries to assign staff to a shop they do not belong to", async () => {
+    userRepository.findById.mockImplementation(async (id: string) => {
+      if (id === "owner-1")
+        return buildUser({ id: "owner-1", role: UserRole.MANAGER, shopId: "other-shop" });
+      if (id === "staff-1") return buildUser({ id: "staff-1", role: UserRole.STAFF, shopId: null });
+      return null;
+    });
+    await expect(useCase.execute(input)).rejects.toThrow(AuthorizationError);
   });
 
   it("throws BusinessRuleError when the target user is not STAFF (e.g. attempting to assign a MANAGER)", async () => {

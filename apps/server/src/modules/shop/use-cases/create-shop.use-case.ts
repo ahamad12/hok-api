@@ -1,7 +1,8 @@
 import { Injectable } from "@nestjs/common";
+import { shopAddressSchema } from "@tapt-api/api/contracts/shop.contract";
 import { UserRole } from "@tapt-api/db";
-import { Prisma } from "@tapt-api/db/prisma";
-import { AuthorizationError, ConflictError, NotFoundError } from "../../../common/errors";
+import type { z } from "zod";
+import { AuthorizationError, NotFoundError } from "../../../common/errors";
 import { UserRepository } from "../../auth/repositories/user.repository";
 import { type ShopResult, toShopResult } from "../mappers/shop.mapper";
 import { ShopRepository } from "../repositories/shop.repository";
@@ -9,7 +10,7 @@ import { ShopRepository } from "../repositories/shop.repository";
 export interface CreateShopInput {
   requesterId: string;
   name: string;
-  address: Prisma.InputJsonValue;
+  address: z.infer<typeof shopAddressSchema>;
   phone: string;
 }
 
@@ -32,21 +33,14 @@ export class CreateShopUseCase {
       throw new AuthorizationError("Only an OWNER can create a shop");
     }
 
-    try {
-      const shop = await this.shopRepository.create({
-        name: input.name,
-        address: input.address,
-        phone: input.phone,
-        ownerId: input.requesterId,
-        isActive: true,
-      });
+    const shop = await this.shopRepository.create({
+      name: input.name,
+      address: input.address,
+      phone: input.phone,
+      ownerId: input.requesterId,
+      isActive: true,
+    });
 
-      return { shop: toShopResult(shop) };
-    } catch (error) {
-      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
-        throw new ConflictError("You already have a shop with this name");
-      }
-      throw error;
-    }
+    return { shop: toShopResult(shop) };
   }
 }

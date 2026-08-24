@@ -4,6 +4,7 @@ import { UserRole } from "@tapt-api/db";
 import { AuthorizationError, NotFoundError } from "../../../common/errors";
 import { UserRepository } from "../../auth/repositories/user.repository";
 import { TokenVersionService } from "../../auth/services/token-version.service";
+import { ShopRepository } from "../repositories/shop.repository";
 
 export interface RemoveStaffInput {
   requesterId: string;
@@ -18,14 +19,24 @@ export interface RemoveStaffResult {
 @Injectable()
 export class RemoveStaffUseCase {
   constructor(
+    private readonly shopRepository: ShopRepository,
     private readonly userRepository: UserRepository,
     private readonly tokenVersionService: TokenVersionService,
   ) {}
 
   async execute(input: RemoveStaffInput): Promise<RemoveStaffResult> {
+    const shop = await this.shopRepository.findById(input.shopId);
+    if (!shop || !shop.isActive) throw new NotFoundError("Shop", input.shopId);
+
     const requester = await this.userRepository.findById(input.requesterId);
     if (!requester || (requester.role !== UserRole.OWNER && requester.role !== UserRole.MANAGER)) {
       throw new AuthorizationError("Only OWNER or MANAGER can remove staff");
+    }
+
+    // MANAGERs are shop-scoped: they may only remove staff inside their own
+    // shop. OWNERs bypass because they manage multiple shops.
+    if (requester.role === UserRole.MANAGER && requester.shopId !== input.shopId) {
+      throw new AuthorizationError("You can only manage staff in your own shop");
     }
 
     const targetUser = await this.userRepository.findById(input.userId);

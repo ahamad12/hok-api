@@ -18,7 +18,7 @@ export class DeleteShopUseCase {
 
   async execute(input: DeleteShopInput): Promise<DeleteShopResult> {
     const shop = await this.shopRepository.findById(input.shopId);
-    if (!shop) throw new NotFoundError("Shop", input.shopId);
+    if (!shop || !shop.isActive) throw new NotFoundError("Shop", input.shopId);
 
     // BUG FIX vs tapt-backend: legacy DeleteShopUseCase threw NotFoundError
     // when the requester wasn't the owner — which is wrong on two counts:

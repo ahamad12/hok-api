@@ -1,4 +1,9 @@
 import { beforeEach, describe, expect, it } from "vitest";
+import { ConflictError, NotFoundError } from "../../../../common/errors";
+import {
+  buildNotFoundError,
+  buildUniqueViolationError,
+} from "../../../../test/fixtures/prisma-error.fixture";
 import { buildShop } from "../../../../test/fixtures/shop.fixture";
 import {
   createPrismaServiceMock,
@@ -77,6 +82,49 @@ describe("ShopRepository", () => {
       prisma.shop.update.mockResolvedValue(buildShop());
       await repo.softDelete("shop-1");
       expect((prisma.shop as any).delete).toBeUndefined();
+    });
+  });
+
+  describe("unique-violation translation", () => {
+    it("create translates a P2002 into a ConflictError", async () => {
+      prisma.shop.create.mockRejectedValue(buildUniqueViolationError(["ownerId_name"]));
+      await expect(repo.create({ name: "Dup", ownerId: "owner-1" } as any)).rejects.toThrow(
+        new ConflictError("You already have a shop with this name"),
+      );
+    });
+
+    it("update translates a P2002 into a ConflictError", async () => {
+      prisma.shop.update.mockRejectedValue(buildUniqueViolationError(["ownerId_name"]));
+      await expect(repo.update("shop-1", { name: "Dup" } as any)).rejects.toThrow(
+        new ConflictError("You already have a shop with this name"),
+      );
+    });
+
+    it("rethrows non-P2002 errors from create", async () => {
+      const error = new Error("database down");
+      prisma.shop.create.mockRejectedValue(error);
+      await expect(repo.create({ name: "X", ownerId: "owner-1" } as any)).rejects.toThrow(error);
+    });
+
+    it("rethrows non-P2002 errors from update", async () => {
+      const error = new Error("database down");
+      prisma.shop.update.mockRejectedValue(error);
+      await expect(repo.update("shop-1", { name: "X" } as any)).rejects.toThrow(error);
+    });
+  });
+
+  describe("not-found translation", () => {
+    it("softDelete translates P2025 into NotFoundError", async () => {
+      prisma.shop.update.mockRejectedValue(buildNotFoundError());
+      await expect(repo.softDelete("missing")).rejects.toThrow(
+        new NotFoundError("Shop", "missing"),
+      );
+    });
+
+    it("softDelete rethrows non-P2025 errors", async () => {
+      const error = new Error("database down");
+      prisma.shop.update.mockRejectedValue(error);
+      await expect(repo.softDelete("shop-1")).rejects.toThrow(error);
     });
   });
 });

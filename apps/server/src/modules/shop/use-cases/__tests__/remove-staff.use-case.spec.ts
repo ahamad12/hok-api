@@ -5,6 +5,7 @@ import { buildUser } from "../../../../test/fixtures/user.fixture";
 import { RemoveStaffUseCase } from "../remove-staff.use-case";
 
 describe("RemoveStaffUseCase", () => {
+  let shopRepository: { findById: ReturnType<typeof vi.fn> };
   let userRepository: { findById: ReturnType<typeof vi.fn>; update: ReturnType<typeof vi.fn> };
   let tokenVersionService: { invalidateSessions: ReturnType<typeof vi.fn> };
   let useCase: RemoveStaffUseCase;
@@ -12,9 +13,14 @@ describe("RemoveStaffUseCase", () => {
   const input = { requesterId: "owner-1", shopId: "shop-1", userId: "staff-1" };
 
   beforeEach(() => {
+    shopRepository = { findById: vi.fn().mockResolvedValue({ id: "shop-1", isActive: true }) };
     userRepository = { findById: vi.fn(), update: vi.fn() };
     tokenVersionService = { invalidateSessions: vi.fn().mockResolvedValue(1) };
-    useCase = new RemoveStaffUseCase(userRepository as any, tokenVersionService as any);
+    useCase = new RemoveStaffUseCase(
+      shopRepository as any,
+      userRepository as any,
+      tokenVersionService as any,
+    );
 
     userRepository.findById.mockImplementation(async (id: string) => {
       if (id === "owner-1") return buildUser({ id: "owner-1", role: UserRole.OWNER });
@@ -42,12 +48,24 @@ describe("RemoveStaffUseCase", () => {
 
   it("allows a MANAGER requester to remove staff", async () => {
     userRepository.findById.mockImplementation(async (id: string) => {
-      if (id === "owner-1") return buildUser({ id: "owner-1", role: UserRole.MANAGER });
+      if (id === "owner-1")
+        return buildUser({ id: "owner-1", role: UserRole.MANAGER, shopId: "shop-1" });
       if (id === "staff-1")
         return buildUser({ id: "staff-1", role: UserRole.STAFF, shopId: "shop-1" });
       return null;
     });
     await expect(useCase.execute(input)).resolves.toBeDefined();
+  });
+
+  it("throws AuthorizationError when a MANAGER tries to remove staff from a shop they do not belong to", async () => {
+    userRepository.findById.mockImplementation(async (id: string) => {
+      if (id === "owner-1")
+        return buildUser({ id: "owner-1", role: UserRole.MANAGER, shopId: "other-shop" });
+      if (id === "staff-1")
+        return buildUser({ id: "staff-1", role: UserRole.STAFF, shopId: "shop-1" });
+      return null;
+    });
+    await expect(useCase.execute(input)).rejects.toThrow(AuthorizationError);
   });
 
   it("throws NotFoundError when the target user does not exist", async () => {

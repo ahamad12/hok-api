@@ -5,12 +5,12 @@ const c = initContract();
 
 const userRoleSchema = z.enum(["OWNER", "MANAGER", "STAFF"]);
 
-const shopAddressSchema = z.object({
-  street: z.string(),
-  city: z.string(),
-  region: z.string().optional(),
-  postalCode: z.string().optional(),
-  country: z.string().optional(),
+export const shopAddressSchema = z.object({
+  street: z.string().trim().min(1).max(200),
+  city: z.string().trim().min(1).max(100),
+  region: z.string().trim().max(100).optional(),
+  postalCode: z.string().trim().max(20).optional(),
+  country: z.string().trim().max(100).optional(),
 });
 
 const shopSchema = z.object({
@@ -60,6 +60,7 @@ export const shopContract = c.router(
     getById: {
       method: "GET",
       path: "/shops/:id",
+      pathParams: z.object({ id: z.string().uuid() }),
       responses: { 200: shopSchema },
     },
     getMyShops: {
@@ -70,29 +71,34 @@ export const shopContract = c.router(
     update: {
       method: "PUT",
       path: "/shops/:id",
+      pathParams: z.object({ id: z.string().uuid() }),
       body: updateShopBodySchema,
       responses: { 200: shopSchema },
     },
     delete: {
       method: "DELETE",
       path: "/shops/:id",
+      pathParams: z.object({ id: z.string().uuid() }),
       body: z.object({}),
       responses: { 200: z.object({ message: z.string() }) },
     },
     getStaff: {
       method: "GET",
       path: "/shops/:id/staff",
+      pathParams: z.object({ id: z.string().uuid() }),
       responses: { 200: z.object({ staff: z.array(staffSummarySchema) }) },
     },
     assignStaff: {
       method: "POST",
       path: "/shops/:id/staff",
+      pathParams: z.object({ id: z.string().uuid() }),
       body: z.object({ userId: z.string().uuid() }),
       responses: { 200: staffSummarySchema },
     },
     removeStaff: {
       method: "DELETE",
       path: "/shops/:id/staff/:userId",
+      pathParams: z.object({ id: z.string().uuid(), userId: z.string().uuid() }),
       body: z.object({}),
       responses: { 200: z.object({ message: z.string() }) },
     },

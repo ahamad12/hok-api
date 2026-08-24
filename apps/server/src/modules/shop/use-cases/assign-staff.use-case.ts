@@ -39,6 +39,12 @@ export class AssignStaffUseCase {
       throw new AuthorizationError("Only OWNER or MANAGER can assign staff");
     }
 
+    // MANAGERs are shop-scoped: they may only assign staff inside their own
+    // shop. OWNERs bypass because they manage multiple shops.
+    if (requester.role === UserRole.MANAGER && requester.shopId !== input.shopId) {
+      throw new AuthorizationError("You can only manage staff in your own shop");
+    }
+
     // Same invariant as user-role-invariants.ts's OWNER/MANAGER rule —
     // only STAFF can be assigned to a specific shop.
     if (targetUser.role !== UserRole.STAFF) {

@@ -1,18 +1,9 @@
 import { UserRole } from "@tapt-api/db";
-import { Prisma } from "@tapt-api/db/prisma";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { AuthorizationError, ConflictError, NotFoundError } from "../../../../common/errors";
 import { buildShop } from "../../../../test/fixtures/shop.fixture";
 import { buildUser } from "../../../../test/fixtures/user.fixture";
 import { CreateShopUseCase } from "../create-shop.use-case";
-
-function buildP2002Error(target: string[] = ["name"]) {
-  return new Prisma.PrismaClientKnownRequestError("Unique constraint failed on the fields", {
-    code: "P2002",
-    clientVersion: "test",
-    meta: { target },
-  });
-}
 
 describe("CreateShopUseCase", () => {
   let shopRepository: {
@@ -57,8 +48,10 @@ describe("CreateShopUseCase", () => {
     expect(shopRepository.create).toHaveBeenCalledTimes(1);
   });
 
-  it("translates a P2002 race on create into a ConflictError", async () => {
-    shopRepository.create.mockRejectedValue(buildP2002Error());
+  it("propagates a ConflictError thrown by the repository unchanged", async () => {
+    shopRepository.create.mockRejectedValue(
+      new ConflictError("You already have a shop with this name"),
+    );
     await expect(useCase.execute(input)).rejects.toThrow(ConflictError);
   });
 
