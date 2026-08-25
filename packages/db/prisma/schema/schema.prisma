@@ -90,6 +90,7 @@ model User {
   ownedShops      Shop[]            @relation("ShopOwner")
   assignedTasks   Task[]            @relation("TaskAssignee")
   createdTasks    Task[]            @relation("TaskCreator")
+  voidedTasks     Task[]            @relation("TaskVoidedBy")
   receivedScratchPacks ScratchPack[]      @relation("ScratchPackReceivedBy")
   scratchScanEvents    ScratchScanEvent[] @relation("ScratchScanScannedBy")
   voidedScratchScans   ScratchScanEvent[] @relation("ScratchScanVoidedBy")
@@ -184,6 +185,10 @@ model Task {
   createdById     String      @map("created_by_id")
   createdBy       User        @relation("TaskCreator", fields: [createdById], references: [id], onDelete: Cascade)
   completedAt     DateTime?   @map("completed_at")
+  voidedAt        DateTime?   @map("voided_at")
+  voidedById      String?     @map("voided_by_id")
+  voidedBy        User?       @relation("TaskVoidedBy", fields: [voidedById], references: [id], onDelete: SetNull)
+  voidReason      String?     @db.Text @map("void_reason")
   createdAt       DateTime    @default(now()) @map("created_at")
   updatedAt       DateTime    @updatedAt @map("updated_at")
 
@@ -192,6 +197,7 @@ model Task {
   @@index([dueDate])
   @@index([createdById])
   @@index([status, dueDate])
+  @@index([shopId, voidedAt])
   @@map("tasks")
 }
 

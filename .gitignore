@@ -55,3 +55,8 @@ coverage
 .cache
 tmp
 temp
+
+# Obsidian Mind vault scaffold (local only, not part of tapt-api)
+.mcp.json
+.om-project
+CLAUDE.md

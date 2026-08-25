@@ -19,4 +19,8 @@ export class TaskEventsListener {
       status: payload.status,
     });
   }
+
+  // task.voided is emitted but not yet broadcast over WS — add a
+  // TASK_VOIDED event + schema in packages/api/src/events/schemas.ts
+  // first, then wire a handler here (see confirmation note above).
 }

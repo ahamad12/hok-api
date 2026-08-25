@@ -28,6 +28,7 @@ import { LicenseModule } from "./modules/license/license.module";
 import { ScratchModule } from "./modules/scratch/scratch.module";
 import { ShopModule } from "./modules/shop/shop.module";
 import { SupplierModule } from "./modules/supplier/supplier.module";
+import { TaskModule } from "./modules/task/task.module";
 import { TillEntryModule } from "./modules/till-entry/till-entry.module";
 
 @Module({
@@ -51,6 +52,7 @@ import { TillEntryModule } from "./modules/till-entry/till-entry.module";
     CategoryModule,
     SupplierModule,
     DeliveryModule,
+    TaskModule,
     ThrottlerModule.forRootAsync({
       useFactory: () => ({
         throttlers: [
