@@ -2,7 +2,7 @@ import { ThrottlerStorageRedisService } from "@nest-lab/throttler-storage-redis"
 import { Module } from "@nestjs/common";
 import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from "@nestjs/core";
 import { EventEmitterModule } from "@nestjs/event-emitter";
-import { ThrottlerGuard, ThrottlerModule } from "@nestjs/throttler";
+import { ThrottlerModule } from "@nestjs/throttler";
 import { DbModule } from "@tapt-api/db";
 import { env } from "@tapt-api/env/server";
 import { WinstonModule } from "nest-winston";
@@ -11,6 +11,7 @@ import { AppService } from "./app.service";
 import { GlobalExceptionFilter } from "./common/filters/global-exception.filter";
 import { RolesGuard } from "./common/guards/roles.guard";
 import { ShopAccessGuard } from "./common/guards/shop-access.guard";
+import { UserThrottlerGuard } from "./common/guards/user-throttler.guard";
 import { LoggingInterceptor } from "./common/interceptors/logging.interceptor";
 import { TransformInterceptor } from "./common/interceptors/transform.interceptor";
 import { HealthModule } from "./health/health.module";
@@ -29,6 +30,7 @@ import { ScratchModule } from "./modules/scratch/scratch.module";
 import { ShopModule } from "./modules/shop/shop.module";
 import { SupplierModule } from "./modules/supplier/supplier.module";
 import { TaskModule } from "./modules/task/task.module";
+import { TicketModule } from "./modules/ticket/ticket.module";
 import { TillEntryModule } from "./modules/till-entry/till-entry.module";
 
 @Module({
@@ -53,6 +55,7 @@ import { TillEntryModule } from "./modules/till-entry/till-entry.module";
     SupplierModule,
     DeliveryModule,
     TaskModule,
+    TicketModule,
     ThrottlerModule.forRootAsync({
       useFactory: () => ({
         throttlers: [
@@ -60,6 +63,16 @@ import { TillEntryModule } from "./modules/till-entry/till-entry.module";
             name: "default",
             ttl: env.THROTTLE_TTL,
             limit: env.THROTTLE_LIMIT,
+          },
+          {
+            name: "message-burst",
+            ttl: 1000,
+            limit: 3,
+          },
+          {
+            name: "message-sustained",
+            ttl: 60000,
+            limit: 30,
           },
         ],
         storage: env.REDIS_URL
@@ -90,7 +103,7 @@ import { TillEntryModule } from "./modules/till-entry/till-entry.module";
     },
     {
       provide: APP_GUARD,
-      useClass: ThrottlerGuard,
+      useClass: UserThrottlerGuard,
     },
     {
       provide: APP_GUARD,

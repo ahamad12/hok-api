@@ -77,6 +77,16 @@ export class UserRepository {
     return this.prisma.user.findMany({ where: { shopId, role: UserRole.STAFF, isActive: true } });
   }
 
+  async findActiveByShop(
+    shopId: string,
+    excludeUserId?: string,
+  ): Promise<{ id: string; displayName: string }[]> {
+    return this.prisma.user.findMany({
+      where: { shopId, isActive: true, ...(excludeUserId && { id: { not: excludeUserId } }) },
+      select: { id: true, displayName: true },
+    });
+  }
+
   async softDelete(id: string): Promise<void> {
     try {
       await this.prisma.user.update({ where: { id }, data: { isActive: false } });

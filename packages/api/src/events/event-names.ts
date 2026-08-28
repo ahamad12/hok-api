@@ -5,6 +5,9 @@ export const SOCKET_EVENTS = {
   TICKET_CREATED: "ticket:created",
   TICKET_UPDATED: "ticket:updated",
   TICKET_MESSAGE_CREATED: "ticket:message_created",
+  TICKET_STATUS_CHANGED: "ticket:status_changed",
+  TICKET_ASSIGNED: "ticket:assigned",
+  TICKET_ACKNOWLEDGED: "ticket:acknowledged",
 
   TILL_ENTRY_CREATED: "till:created",
 

@@ -19,8 +19,10 @@ export const taskUpdatedPayloadSchema = z.object({
 
 export const ticketCreatedPayloadSchema = z.object({
   ticketId: z.string().uuid(),
+  shopId: z.string().uuid(),
+  type: z.enum(["ISSUE", "INSTRUCTION", "ANNOUNCEMENT"]),
   subject: z.string(),
-  priority: z.enum(["LOW", "NORMAL", "HIGH", "URGENT"]),
+  priority: z.enum(["LOW", "NORMAL", "HIGH", "URGENT"]).optional(),
 });
 
 export const ticketUpdatedPayloadSchema = z.object({
@@ -30,8 +32,31 @@ export const ticketUpdatedPayloadSchema = z.object({
 
 export const ticketMessageCreatedPayloadSchema = z.object({
   ticketId: z.string().uuid(),
-  message: z.string(),
-  senderName: z.string(),
+  shopId: z.string().uuid(),
+  senderId: z.string().uuid(),
+  assigneeId: z.string().uuid().nullable(),
+  message: z.string().optional(),
+  senderName: z.string().optional(),
+});
+
+export const ticketStatusChangedPayloadSchema = z.object({
+  ticketId: z.string().uuid(),
+  shopId: z.string().uuid(),
+  type: z.enum(["ISSUE", "INSTRUCTION", "ANNOUNCEMENT"]),
+  from: ticketStatusSchema,
+  to: ticketStatusSchema,
+});
+
+export const ticketAssignedPayloadSchema = z.object({
+  ticketId: z.string().uuid(),
+  assigneeId: z.string().uuid(),
+  subject: z.string(),
+});
+
+export const ticketAcknowledgedPayloadSchema = z.object({
+  ticketId: z.string().uuid(),
+  userId: z.string().uuid(),
+  acknowledgedAt: z.coerce.date(),
 });
 
 export const tillEntryCreatedPayloadSchema = z.object({
@@ -93,6 +118,9 @@ export const socketEventSchemas = {
   [SOCKET_EVENTS.TICKET_CREATED]: ticketCreatedPayloadSchema,
   [SOCKET_EVENTS.TICKET_UPDATED]: ticketUpdatedPayloadSchema,
   [SOCKET_EVENTS.TICKET_MESSAGE_CREATED]: ticketMessageCreatedPayloadSchema,
+  [SOCKET_EVENTS.TICKET_STATUS_CHANGED]: ticketStatusChangedPayloadSchema,
+  [SOCKET_EVENTS.TICKET_ASSIGNED]: ticketAssignedPayloadSchema,
+  [SOCKET_EVENTS.TICKET_ACKNOWLEDGED]: ticketAcknowledgedPayloadSchema,
   [SOCKET_EVENTS.TILL_ENTRY_CREATED]: tillEntryCreatedPayloadSchema,
   [SOCKET_EVENTS.SCRATCH_SALE_CREATED]: scratchSaleCreatedPayloadSchema,
   [SOCKET_EVENTS.DELIVERY_CREATED]: deliveryCreatedPayloadSchema,

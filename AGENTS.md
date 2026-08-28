@@ -2,6 +2,36 @@
 
 This file provides context about the project for AI assistants.
 
+## Where design decisions live
+
+Design rationale for this project is recorded outside this repo, reachable through the `om` MCP server (vault at `C:/Users/Mr Rager/obsidian-mind`).
+
+- **`search`** reaches the written record: why a choice was made, what was rejected, what a constraint was set against. **Start here.**
+- **`expand`** shows a known note's links and backlinks, which is cheaper than searching again for its neighbourhood.
+- **`recall`** returns short durable lessons scoped to this project (`tapt-api`). It is empty until sessions put things in it, so early on it returns nothing — that is *not* evidence the record is missing.
+- **`health`** when something that should be there cannot be found. Every failure in this layer looks identical from outside (no results), and this tells them apart.
+
+Consult the record before changing:
+
+- the Prisma schema (`packages/db/prisma/schema/schema.prisma`) — money as `Int` cents, `@@unique([shopId,name])`, partial index `scratch_scan_events_pack_shift_active_key`, denormalized `License.current*` / `Delivery.totalPaidCents`
+- token lifecycle (`tokenVersion` + Redis `tokenver:${userId}` + SHA-256 `refresh_tokens.token`) and `isUniqueViolation` / `isNotFound` single predicate
+- the ts-rest contract (`packages/api/src/contracts/*` with `pathPrefix "/api/v1"`) — DTOs via `z.infer`, route order matters
+- guarded `updateMany` + `$transaction` concurrency (delivery payments, scratch scans, dailySummary) and `Json` schema validation
+- the infra boundaries (`infra/gateway` Redis adapter, `infra/queue` BullMQ, `infra/storage` Cloudinary)
+
+If that record and this repo disagree, the record holds the *why*. Reconcile before changing behaviour.
+
+**Say what came back, in whatever you write before implementing:** a plan, a design note, an issue comment. Name the recorded decisions the work rests on, anything you found that argues *against* the approach, and an explicit "nothing recorded on this" when the record is empty, which is a finding rather than a blank to skip.
+
+## Recording what you learn
+
+Two tools — picking the wrong one is the common mistake. The test is whether it would help someone working on a **different** project.
+
+- **`remember`** stores a durable lesson: a constraint you discovered, a gotcha that cost time, a rule that generalises. Set `confidence` (`verified` / `inferred` / `unverified`) honestly. For something specific to this project use `scope: "project"` with `projects: ["tapt-api"]`. Reach for `scope: "platform"` before `"general"`.
+- **`record_work`** files what happened *here*: changes, decisions and the alternatives rejected, what was learned, what is still open, how it was verified.
+
+Vault details: `C:/Users/Mr Rager/obsidian-mind/CLAUDE.md` is the operating manual. `reference/tapt-api-codebase.md` is the codebase map. `brain/Patterns.md#TAPT`, `brain/Gotchas.md#TAPT`, `brain/Key Decisions.md` hold the durable rules.
+
 ## Project Overview
 
 - **Ecosystem**: Typescript

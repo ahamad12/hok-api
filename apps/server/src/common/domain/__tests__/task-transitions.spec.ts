@@ -1,5 +1,7 @@
 // apps/server/src/common/domain/__tests__/task-transitions.spec.ts
+
 import { TaskStatus } from "@tapt-api/db";
+import { describe, expect, it } from "vitest";
 import { allowedNextStates, isValidTransition, TASK_TRANSITIONS } from "../task-transitions";
 
 describe("task-transitions", () => {
