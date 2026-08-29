@@ -136,6 +136,38 @@ export class DeliveryRepository {
     }));
   }
 
+  async getTotalsByDeliveredAtDate(
+    shopId: string,
+    date: Date,
+  ): Promise<{
+    totalAmountCents: number;
+    bySupplier: { supplierId: string; totalAmountCents: number; totalPaidCents: number }[];
+  }> {
+    const dayStart = new Date(
+      Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate(), 0, 0, 0, 0),
+    );
+    const dayEnd = new Date(
+      Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate(), 23, 59, 59, 999),
+    );
+
+    const rows = await this.prisma.delivery.groupBy({
+      by: ["supplierId"],
+      where: { shopId, deliveredAt: { gte: dayStart, lte: dayEnd }, voidedAt: null },
+      _sum: { totalAmountCents: true, totalPaidCents: true },
+    });
+
+    const bySupplier = rows.map((r) => ({
+      supplierId: r.supplierId,
+      totalAmountCents: r._sum.totalAmountCents ?? 0,
+      totalPaidCents: r._sum.totalPaidCents ?? 0,
+    }));
+
+    return {
+      totalAmountCents: bySupplier.reduce((sum, s) => sum + s.totalAmountCents, 0),
+      bySupplier,
+    };
+  }
+
   /**
    * Atomic void: only succeeds if the delivery is still un-voided AND has
    * no live (non-voided) payments against it. Returns the affected row

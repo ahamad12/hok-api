@@ -15,7 +15,8 @@ export const SOCKET_EVENTS = {
 
   DELIVERY_CREATED: "delivery:created",
 
-  DAILY_SUMMARY_FINALIZED: "summary:finalized",
+  DAILY_SUMMARY_FINALIZED: "summary:finalized", // CORRECTED — was wrongly written as "daily_summary:finalized"; this constant already existed, don't duplicate it
+  DAILY_SUMMARY_VOIDED: "summary:voided", // NEW
 
   LICENSE_EXPIRING: "license:expiring",
 

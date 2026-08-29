@@ -25,6 +25,7 @@ import { SentryModule } from "./infra/sentry/sentry.module";
 import { StorageModule } from "./infra/storage/storage.module";
 import { AuthModule } from "./modules/auth/auth.module";
 import { CategoryModule } from "./modules/category/category.module";
+import { DailySummaryModule } from "./modules/daily-summary/daily-summary.module";
 import { DeliveryModule } from "./modules/delivery/delivery.module";
 import { ExpenseModule } from "./modules/expense/expense.module";
 import { ExpenseCategoryModule } from "./modules/expense-category/expense-category.module";
@@ -63,6 +64,7 @@ import { TillEntryModule } from "./modules/till-entry/till-entry.module";
     FormModule,
     ExpenseCategoryModule,
     ExpenseModule,
+    DailySummaryModule,
     ThrottlerModule.forRootAsync({
       useFactory: () => ({
         throttlers: [

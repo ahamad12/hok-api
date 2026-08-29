@@ -12,5 +12,6 @@ import { VoidExpenseUseCase } from "./use-cases/void-expense.use-case";
   imports: [ShopModule, ExpenseCategoryModule],
   controllers: [ExpenseController],
   providers: [ExpenseRepository, CreateExpenseUseCase, GetExpensesUseCase, VoidExpenseUseCase],
+  exports: [ExpenseRepository],
 })
 export class ExpenseModule {}

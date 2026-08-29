@@ -84,8 +84,18 @@ export const deliveryCreatedPayloadSchema = z.object({
 
 export const dailySummaryFinalizedPayloadSchema = z.object({
   summaryId: z.string().uuid(),
+  shopId: z.string().uuid(),
   date: z.coerce.date(),
   closingBalance: z.number().int(),
+  variance: z.number().int(),
+  finalizedById: z.string().uuid(),
+});
+
+export const dailySummaryVoidedPayloadSchema = z.object({
+  summaryId: z.string().uuid(),
+  shopId: z.string().uuid(),
+  date: z.coerce.date(),
+  voidedById: z.string().uuid(),
 });
 
 export const licenseExpiringPayloadSchema = z.object({
@@ -125,7 +135,8 @@ export const socketEventSchemas = {
   [SOCKET_EVENTS.TILL_ENTRY_CREATED]: tillEntryCreatedPayloadSchema,
   [SOCKET_EVENTS.SCRATCH_SALE_CREATED]: scratchSaleCreatedPayloadSchema,
   [SOCKET_EVENTS.DELIVERY_CREATED]: deliveryCreatedPayloadSchema,
-  [SOCKET_EVENTS.DAILY_SUMMARY_FINALIZED]: dailySummaryFinalizedPayloadSchema,
+  [SOCKET_EVENTS.DAILY_SUMMARY_FINALIZED]: dailySummaryFinalizedPayloadSchema, // extended in place, not a new key
+  [SOCKET_EVENTS.DAILY_SUMMARY_VOIDED]: dailySummaryVoidedPayloadSchema,
   [SOCKET_EVENTS.LICENSE_EXPIRING]: licenseExpiringPayloadSchema,
   [SOCKET_EVENTS.PROFIT_REPORT_GENERATED]: profitReportGeneratedPayloadSchema,
   [SOCKET_EVENTS.FORM_SUBMITTED]: formSubmittedPayloadSchema,

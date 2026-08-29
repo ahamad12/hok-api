@@ -1,4 +1,4 @@
-﻿-- AlterTable
+-- AlterTable
 ALTER TABLE "expenses" ADD COLUMN "voided_at" TIMESTAMP(3);
 ALTER TABLE "expenses" ADD COLUMN "voided_by_id" TEXT;
 ALTER TABLE "expenses" ADD COLUMN "void_reason" TEXT;

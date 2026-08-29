@@ -1,4 +1,4 @@
-﻿-- Drop existing plain uniques (allow NULLs bypass)
+-- Drop existing plain uniques (allow NULLs bypass)
 DROP INDEX IF EXISTS "tickets_createdById_creationClientId_key";
 DROP INDEX IF EXISTS "ticket_messages_ticket_id_client_message_id_key";
 

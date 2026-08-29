@@ -1,4 +1,4 @@
-﻿-- CreateEnum
+-- CreateEnum
 CREATE TYPE "TicketType" AS ENUM ('ISSUE', 'INSTRUCTION', 'ANNOUNCEMENT');
 
 -- AlterTable

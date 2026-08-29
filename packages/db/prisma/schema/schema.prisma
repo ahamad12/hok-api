@@ -77,6 +77,11 @@ enum TillEntryCategory {
   DEPOSIT
 }
 
+enum DailySummaryStatus {
+  DRAFT
+  FINALIZED
+}
+
 model User {
   id           String    @id @default(uuid())
   email        String    @unique
@@ -112,7 +117,9 @@ model User {
   ticketAcknowledgements   TicketAcknowledgement[]
   formSubmissions          FormSubmission[]
   tillEntries              TillEntry[]
-  dailySummaries           DailySummary[]
+  dailySummaries           DailySummary[]          @relation("DailySummaryCreator")
+  finalizedDailySummaries  DailySummary[]          @relation("DailySummaryFinalizedBy")
+  voidedDailySummaries     DailySummary[]          @relation("DailySummaryVoidedBy")
   expenses                 Expense[]
   voidedExpenses           Expense[]               @relation("ExpenseVoidedBy")
   profitReports            ProfitReport[]
@@ -588,25 +595,59 @@ model TillEntry {
 }
 
 model DailySummary {
-  id              String   @id @default(uuid())
-  shopId          String   @map("shop_id")
-  shop            Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
-  date            DateTime @db.Date
-  openingBalance  Int      @map("opening_balance")
-  closingBalance  Int      @map("closing_balance")
-  totalCashIn     Int      @map("total_cash_in")
-  totalCashOut    Int      @map("total_cash_out")
-  scratchRevenue  Int      @map("scratch_revenue")
-  deliveryExpense Int      @map("delivery_expense")
-  otherIncome     Int      @map("other_income")
-  otherExpense    Int      @map("other_expense")
-  createdById     String   @map("created_by_id")
-  createdBy       User     @relation(fields: [createdById], references: [id], onDelete: Cascade)
-  createdAt       DateTime @default(now()) @map("created_at")
-  updatedAt       DateTime @updatedAt @map("updated_at")
+  id     String             @id @default(uuid())
+  shopId String             @map("shop_id")
+  shop   Shop               @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  date   DateTime           @db.Date
+  status DailySummaryStatus @default(DRAFT)
 
-  @@unique([shopId, date])
+  openingBalance  Int @map("opening_balance")
+  closingBalance  Int @map("closing_balance") // as counted/entered by the preparer
+  totalCashIn     Int @map("total_cash_in")
+  totalCashOut    Int @map("total_cash_out")
+  scratchRevenue  Int @map("scratch_revenue")
+  deliveryExpense Int @map("delivery_expense")
+  otherIncome     Int @map("other_income")
+  otherExpense    Int @map("other_expense")
+
+  // expected = opening + totalCashIn - totalCashOut + scratchRevenue
+  //          - deliveryExpense + otherIncome - otherExpense
+  // variance = closingBalance - expected ("over" if positive, "short" if negative)
+  // Stored, not recomputed on read — a finalized report's variance must
+  // never drift even if a later correction changes an underlying aggregate
+  // method; it reflects what was known and closed on that date.
+  variance Int @default(0)
+
+  // Point-in-time drill-down snapshot: till category totals, scratch
+  // revenue per game, delivery totals per supplier, expense totals per
+  // category — computed once at creation, never recomputed. Same pattern
+  // as Form.schema / FormSubmission.answers: structured data that doesn't
+  // need to be queried or indexed on its own, only displayed.
+  breakdown Json
+
+  notes String? @db.Text
+
+  createdById String @map("created_by_id")
+  createdBy   User   @relation("DailySummaryCreator", fields: [createdById], references: [id], onDelete: Cascade)
+
+  finalizedAt   DateTime? @map("finalized_at")
+  finalizedById String?   @map("finalized_by_id")
+  finalizedBy   User?     @relation("DailySummaryFinalizedBy", fields: [finalizedById], references: [id], onDelete: SetNull)
+
+  voidedAt   DateTime? @map("voided_at")
+  voidedById String?   @map("voided_by_id")
+  voidedBy   User?     @relation("DailySummaryVoidedBy", fields: [voidedById], references: [id], onDelete: SetNull)
+  voidReason String?   @map("void_reason") @db.Text
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // NOTE: the plain @@unique([shopId, date]) that used to be here is
+  // REMOVED — replaced by a partial unique index in the migration below
+  // (WHERE voided_at IS NULL), so a voided summary can be re-closed for
+  // the same date without permanently blocking that date forever.
   @@index([shopId, date])
+  @@index([shopId, status])
   @@index([date])
   @@map("daily_summaries")
 }

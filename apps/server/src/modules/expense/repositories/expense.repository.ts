@@ -57,6 +57,23 @@ export class ExpenseRepository {
     return { expenses, total };
   }
 
+  async getTotalsByExpenseDate(
+    shopId: string,
+    date: Date,
+  ): Promise<{ totalCents: number; byCategory: { categoryId: string; amountCents: number }[] }> {
+    const rows = await this.prisma.expense.groupBy({
+      by: ["categoryId"],
+      where: { shopId, expenseDate: date, voidedAt: null },
+      _sum: { amount: true },
+    });
+
+    const byCategory = rows.map((r) => ({
+      categoryId: r.categoryId,
+      amountCents: r._sum.amount ?? 0,
+    }));
+    return { totalCents: byCategory.reduce((sum, c) => sum + c.amountCents, 0), byCategory };
+  }
+
   // Guarded on voidedAt IS NULL — voiding twice is a safe 0-affected no-op,
   // never a double-void that overwrites the original voidReason/voidedById.
   async voidIfNotVoided(
