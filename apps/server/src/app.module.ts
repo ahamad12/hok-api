@@ -9,6 +9,7 @@ import { WinstonModule } from "nest-winston";
 import { AppController } from "./app.controller";
 import { AppService } from "./app.service";
 import { GlobalExceptionFilter } from "./common/filters/global-exception.filter";
+import { JwtAuthGuard } from "./common/guards/jwt-auth.guard";
 import { RolesGuard } from "./common/guards/roles.guard";
 import { ShopAccessGuard } from "./common/guards/shop-access.guard";
 import { UserThrottlerGuard } from "./common/guards/user-throttler.guard";
@@ -27,6 +28,7 @@ import { CategoryModule } from "./modules/category/category.module";
 import { DeliveryModule } from "./modules/delivery/delivery.module";
 import { ExpenseModule } from "./modules/expense/expense.module";
 import { ExpenseCategoryModule } from "./modules/expense-category/expense-category.module";
+import { FormModule } from "./modules/form/form.module";
 import { LicenseModule } from "./modules/license/license.module";
 import { ScratchModule } from "./modules/scratch/scratch.module";
 import { ShopModule } from "./modules/shop/shop.module";
@@ -58,6 +60,7 @@ import { TillEntryModule } from "./modules/till-entry/till-entry.module";
     DeliveryModule,
     TaskModule,
     TicketModule,
+    FormModule,
     ExpenseCategoryModule,
     ExpenseModule,
     ThrottlerModule.forRootAsync({
@@ -104,6 +107,18 @@ import { TillEntryModule } from "./modules/till-entry/till-entry.module";
     {
       provide: APP_FILTER,
       useClass: GlobalExceptionFilter,
+    },
+    // Guard order is load-bearing: JwtAuthGuard must run first to populate
+    // request.user (via AccessTokenVerifierService) before any guard that
+    // reads it. UserThrottlerGuard uses req.user?.userId for per-user
+    // throttling, RolesGuard/ShopAccessGuard check request.user for auth.
+    // Previously JwtAuthGuard lived in AuthModule as APP_GUARD and ran
+    // after AppModule's guards for some controllers (POST /shops, POST
+    // /forms) causing 403 "No authenticated user found" despite valid
+    // Bearer token — GET without @Roles succeeded, POST with @Roles failed.
+    {
+      provide: APP_GUARD,
+      useClass: JwtAuthGuard,
     },
     {
       provide: APP_GUARD,

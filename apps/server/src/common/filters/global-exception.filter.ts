@@ -13,6 +13,7 @@ import type { Logger } from "winston";
 import { ZodError } from "zod";
 import { SentryService } from "../../infra/sentry/sentry.service";
 import { DomainError } from "../errors";
+import { FormValidationError } from "../errors/form-validation.error";
 
 interface ErrorResponseBody {
   success: false;
@@ -55,6 +56,22 @@ export class GlobalExceptionFilter implements ExceptionFilter {
 
   private resolve(exception: unknown, path: string): ResolvedException {
     const timestamp = new Date().toISOString();
+
+    if (exception instanceof FormValidationError) {
+      return {
+        status: HttpStatus.UNPROCESSABLE_ENTITY,
+        body: {
+          success: false,
+          error: {
+            code: "VALIDATION_ERROR",
+            message: exception.message,
+            details: exception.errors,
+          },
+          timestamp,
+          path,
+        },
+      };
+    }
 
     if (exception instanceof DomainError) {
       return {

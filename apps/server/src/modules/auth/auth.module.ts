@@ -1,11 +1,9 @@
 // modules/auth/auth.module.ts — fixed: JwtAuthGuard registered here (no cycle),
 // RedisModule imported, TokenVersionService wired
 import { forwardRef, Module } from "@nestjs/common";
-import { APP_GUARD } from "@nestjs/core";
 import { JwtModule } from "@nestjs/jwt";
 import { env } from "@tapt-api/env/server";
 import { AccessTokenVerifierService } from "../../common/auth/access-token-verifier.service";
-import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
 import { RedisModule } from "../../common/redis/redis.module";
 import { ShopModule } from "../shop/shop.module";
 import { AuthController } from "./auth.controller";
@@ -53,7 +51,6 @@ import { UpdateUserProfileUseCase } from "./use-cases/update-user-profile.use-ca
     GetUserProfileUseCase,
     UpdateUserProfileUseCase,
     AccessTokenVerifierService,
-    { provide: APP_GUARD, useClass: JwtAuthGuard },
   ],
   exports: [TokenService, UserRepository, TokenVersionService, AccessTokenVerifierService],
 })

@@ -103,9 +103,10 @@ export const profitReportGeneratedPayloadSchema = z.object({
 });
 
 export const formSubmittedPayloadSchema = z.object({
+  formId: z.string().uuid(),
+  shopId: z.string().uuid(),
   submissionId: z.string().uuid(),
-  formTitle: z.string(),
-  staffName: z.string(),
+  staffId: z.string().uuid(),
 });
 
 export const sessionRevokedPayloadSchema = z.object({

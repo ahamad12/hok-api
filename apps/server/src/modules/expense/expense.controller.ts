@@ -2,6 +2,7 @@
 import { Controller } from "@nestjs/common";
 import { expenseContract } from "@tapt-api/api/contracts/expense.contract";
 import { UserRole } from "@tapt-api/db";
+import { TsRestHandler, tsRestHandler } from "@ts-rest/nest";
 import { CurrentUser } from "../../common/decorators/current-user.decorator";
 import { Roles } from "../../common/decorators/roles.decorator";
 import type { RequestUser } from "../../common/types/request-user.interface";
