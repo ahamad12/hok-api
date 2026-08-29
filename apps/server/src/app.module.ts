@@ -25,6 +25,8 @@ import { StorageModule } from "./infra/storage/storage.module";
 import { AuthModule } from "./modules/auth/auth.module";
 import { CategoryModule } from "./modules/category/category.module";
 import { DeliveryModule } from "./modules/delivery/delivery.module";
+import { ExpenseModule } from "./modules/expense/expense.module";
+import { ExpenseCategoryModule } from "./modules/expense-category/expense-category.module";
 import { LicenseModule } from "./modules/license/license.module";
 import { ScratchModule } from "./modules/scratch/scratch.module";
 import { ShopModule } from "./modules/shop/shop.module";
@@ -56,6 +58,8 @@ import { TillEntryModule } from "./modules/till-entry/till-entry.module";
     DeliveryModule,
     TaskModule,
     TicketModule,
+    ExpenseCategoryModule,
+    ExpenseModule,
     ThrottlerModule.forRootAsync({
       useFactory: () => ({
         throttlers: [

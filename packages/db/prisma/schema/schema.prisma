@@ -114,6 +114,7 @@ model User {
   tillEntries              TillEntry[]
   dailySummaries           DailySummary[]
   expenses                 Expense[]
+  voidedExpenses           Expense[]               @relation("ExpenseVoidedBy")
   profitReports            ProfitReport[]
   refreshTokens            RefreshToken[]
 
@@ -638,11 +639,21 @@ model Expense {
   expenseDate  DateTime        @map("expense_date") @db.Date
   recordedById String          @map("recorded_by_id")
   recordedBy   User            @relation(fields: [recordedById], references: [id], onDelete: Cascade)
-  createdAt    DateTime        @default(now()) @map("created_at")
+
+  // Void pattern — matches Task/Delivery/DeliveryPayment/ScratchScanEvent/
+  // LicenseRenewal. A wrong expense is corrected by voiding, never
+  // hard-deleted — the audit trail of "money was recorded as spent" is
+  // never erased.
+  voidedAt   DateTime? @map("voided_at")
+  voidedById String?   @map("voided_by_id")
+  voidedBy   User?     @relation("ExpenseVoidedBy", fields: [voidedById], references: [id], onDelete: SetNull)
+  voidReason String?   @map("void_reason") @db.Text
+  createdAt  DateTime  @default(now()) @map("created_at")
 
   @@index([shopId, expenseDate])
   @@index([categoryId])
   @@index([expenseDate])
+  @@index([shopId, voidedAt])
   @@map("expenses")
 }
 
