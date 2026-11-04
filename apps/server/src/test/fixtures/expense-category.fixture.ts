@@ -7,8 +7,9 @@ export function buildExpenseCategory(overrides: Partial<ExpenseCategory> = {}): 
     shopId: "shop-1",
     name: "Utilities",
     description: null,
+    bucket: "OTHER",
     isActive: true,
     createdAt: new Date("2026-01-01"),
     ...overrides,
-  } as ExpenseCategory;
+  } as unknown as ExpenseCategory;
 }

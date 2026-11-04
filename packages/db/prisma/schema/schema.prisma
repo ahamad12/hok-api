@@ -82,6 +82,15 @@ enum DailySummaryStatus {
   FINALIZED
 }
 
+enum ExpenseBucket {
+  PURCHASE
+  LICENSE
+  SALARY
+  UTILITY
+  RENT
+  OTHER
+}
+
 model User {
   id           String    @id @default(uuid())
   email        String    @unique
@@ -123,6 +132,7 @@ model User {
   expenses                 Expense[]
   voidedExpenses           Expense[]               @relation("ExpenseVoidedBy")
   profitReports            ProfitReport[]
+  voidedProfitReports      ProfitReport[]          @relation("ProfitReportVoidedBy")
   refreshTokens            RefreshToken[]
 
   @@index([email])
@@ -653,18 +663,20 @@ model DailySummary {
 }
 
 model ExpenseCategory {
-  id          String   @id @default(uuid())
-  shopId      String?  @map("shop_id")
-  shop        Shop?    @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  id          String        @id @default(uuid())
+  shopId      String?       @map("shop_id")
+  shop        Shop?         @relation(fields: [shopId], references: [id], onDelete: Cascade)
   name        String
-  description String?  @db.Text
-  isActive    Boolean  @default(true) @map("is_active")
-  createdAt   DateTime @default(now()) @map("created_at")
+  description String?       @db.Text
+  bucket      ExpenseBucket @default(OTHER) @map("bucket")
+  isActive    Boolean       @default(true) @map("is_active")
+  createdAt   DateTime      @default(now()) @map("created_at")
 
   expenses Expense[]
 
   @@index([shopId])
   @@index([isActive])
+  @@index([bucket])
   @@map("expense_categories")
 }
 
@@ -728,25 +740,37 @@ model ProfitReport {
 
   generatedAt   DateTime @default(now()) @map("generated_at")
   generatedById String   @map("generated_by_id")
-  generatedBy   User     @relation(fields: [generatedById], references: [id], onDelete: Cascade)
+  generatedBy   User     @relation(fields: [generatedById], references: [id], onDelete: Restrict)
 
+  voidedAt   DateTime? @map("voided_at")
+  voidedById String?   @map("voided_by_id")
+  voidedBy   User?     @relation("ProfitReportVoidedBy", fields: [voidedById], references: [id], onDelete: SetNull)
+  voidReason String?   @map("void_reason") @db.Text
+
+  reports Report[]
+
+  // "one live report per period" is a partial unique index in the migration
+  // (WHERE voided_at IS NULL) — Prisma can't express it, this index is speed only.
   @@index([shopId, periodStart, periodEnd])
   @@index([generatedAt])
   @@map("profit_reports")
 }
 
 model Report {
-  id          String   @id @default(uuid())
-  shopId      String   @map("shop_id")
-  shop        Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
-  type        String
-  periodStart DateTime @map("period_start") @db.Date
-  periodEnd   DateTime @map("period_end") @db.Date
-  format      String
-  url         String
-  generatedAt DateTime @default(now()) @map("generated_at")
+  id             String        @id @default(uuid())
+  shopId         String        @map("shop_id")
+  shop           Shop          @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  type           String
+  periodStart    DateTime      @map("period_start") @db.Date
+  periodEnd      DateTime      @map("period_end") @db.Date
+  format         String
+  url            String
+  profitReportId String?       @map("profit_report_id")
+  profitReport   ProfitReport? @relation(fields: [profitReportId], references: [id], onDelete: SetNull)
+  generatedAt    DateTime      @default(now()) @map("generated_at")
 
   @@index([shopId, type])
   @@index([shopId, generatedAt])
+  @@index([profitReportId])
   @@map("reports")
 }
