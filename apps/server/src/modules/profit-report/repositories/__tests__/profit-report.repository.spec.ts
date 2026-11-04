@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { NotFoundError } from "../../../../common/errors";
+import { ConflictError, NotFoundError } from "../../../../common/errors";
+import { buildUniqueViolationError } from "../../../../test/fixtures/prisma-error.fixture";
 import { buildProfitReport } from "../../../../test/fixtures/profit-report.fixture";
 import { ProfitReportRepository } from "../profit-report.repository";
 
@@ -52,6 +53,19 @@ describe("ProfitReportRepository", () => {
       prisma.profitReport.create.mockResolvedValue(buildProfitReport());
       await repo.create(input as any);
       expect(prisma.profitReport.create).toHaveBeenCalledWith({ data: input });
+    });
+
+    it("translates a P2002 from the live-period partial index into a ConflictError", async () => {
+      prisma.profitReport.create.mockRejectedValue(
+        buildUniqueViolationError(["shop_id", "period_start", "period_end"]),
+      );
+      await expect(repo.create({ shopId: "shop-1" } as any)).rejects.toBeInstanceOf(ConflictError);
+    });
+
+    it("rethrows non-unique errors unchanged", async () => {
+      const boom = new Error("db down");
+      prisma.profitReport.create.mockRejectedValue(boom);
+      await expect(repo.create({ shopId: "shop-1" } as any)).rejects.toBe(boom);
     });
   });
 

@@ -1,7 +1,8 @@
 import { Injectable } from "@nestjs/common";
 import { PrismaService, type ProfitReport } from "@tapt-api/db";
 import type { Prisma } from "@tapt-api/db/prisma";
-import { NotFoundError } from "../../../common/errors";
+import { ConflictError, NotFoundError } from "../../../common/errors";
+import { isUniqueViolation } from "../../../common/prisma/errors";
 
 @Injectable()
 export class ProfitReportRepository {
@@ -17,10 +18,21 @@ export class ProfitReportRepository {
     return report;
   }
 
-  // No @@unique on Prisma-visible columns — "one live report per period"
-  // lives in a partial index the client can't see, so P2002 isn't expected here.
-  create(data: Prisma.ProfitReportUncheckedCreateInput): Promise<ProfitReport> {
-    return this.prisma.profitReport.create({ data });
+  // "One live report per period" is the partial unique index
+  // profit_reports_shop_period_live_key (WHERE voided_at IS NULL). Prisma
+  // can't model it, but Postgres still raises it as P2002 — so a duplicate
+  // or concurrent generate for the same period lands here.
+  async create(data: Prisma.ProfitReportUncheckedCreateInput): Promise<ProfitReport> {
+    try {
+      return await this.prisma.profitReport.create({ data });
+    } catch (error) {
+      if (isUniqueViolation(error)) {
+        throw new ConflictError(
+          "A live profit report already exists for this period. Void it before regenerating.",
+        );
+      }
+      throw error;
+    }
   }
 
   async findAll(params: {
