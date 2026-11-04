@@ -2,9 +2,10 @@
 import { Controller } from "@nestjs/common";
 import { Throttle } from "@nestjs/throttler";
 import { ticketContract } from "@tapt-api/api/contracts/ticket.contract";
-import { TsRestHandler, tsRestHandler } from "@ts-rest/nest";
+import { TsRestHandler } from "@ts-rest/nest";
 import { CurrentUser } from "../../common/decorators/current-user.decorator";
 import type { RequestUser } from "../../common/types/request-user.interface";
+import type { UseCaseArg } from "../../common/types/use-case-arg.type";
 import {
   toMessageResult,
   toMessageResults,
@@ -37,48 +38,60 @@ export class TicketController {
 
   @TsRestHandler(ticketContract.create)
   create(@CurrentUser() user: RequestUser) {
-    return tsRestHandler(ticketContract.create, async ({ body }) => {
+    return async ({ body }: { body: UseCaseArg<CreateTicketUseCase, 1> }) => {
       const { ticket, message } = await this.createTicketUseCase.execute(user, body);
       return {
-        status: 201,
+        status: 201 as const,
         body: { ticket: toTicketResult(ticket), message: toMessageResult(message) },
       };
-    });
+    };
   }
 
   @TsRestHandler(ticketContract.getAll)
   getAll(@CurrentUser() user: RequestUser) {
-    return tsRestHandler(ticketContract.getAll, async ({ query }) => {
+    return async ({ query }: { query: UseCaseArg<GetTicketsUseCase, 1> }) => {
       const { tickets, total } = await this.getTicketsUseCase.execute(user, query);
-      return { status: 200, body: { tickets: toTicketResults(tickets), total } };
-    });
+      return { status: 200 as const, body: { tickets: toTicketResults(tickets), total } };
+    };
   }
 
   @TsRestHandler(ticketContract.getById)
   getById(@CurrentUser() user: RequestUser) {
-    return tsRestHandler(ticketContract.getById, async ({ params, query }) => {
+    return async ({
+      params,
+      query,
+    }: {
+      params: { id: string };
+      query: { recentMessages: number };
+    }) => {
       const { ticket, messages } = await this.getTicketByIdUseCase.execute(
         user,
         params.id,
         query.recentMessages,
       );
       return {
-        status: 200,
+        status: 200 as const,
         body: { ticket: toTicketResult(ticket), messages: toMessageResults(messages) },
       };
-    });
+    };
   }
 
   @TsRestHandler(ticketContract.getMessages)
   getMessages(@CurrentUser() user: RequestUser) {
-    return tsRestHandler(ticketContract.getMessages, async ({ params, query }) => {
+    return async ({
+      params,
+      query,
+    }: {
+      params: { id: string };
+      query: UseCaseArg<GetMessagesUseCase, 2>;
+    }) => {
       const { messages, nextCursor } = await this.getMessagesUseCase.execute(
         user,
         params.id,
         query,
       );
-      return { status: 200, body: { messages: toMessageResults(messages), nextCursor } };
-    });
+      return { status: 200 as const, body: { messages: toMessageResults(messages), nextCursor } };
+    };
   }
 
   @Throttle({
@@ -87,41 +100,59 @@ export class TicketController {
   })
   @TsRestHandler(ticketContract.createMessage)
   createMessage(@CurrentUser() user: RequestUser) {
-    return tsRestHandler(ticketContract.createMessage, async ({ params, body }) => {
+    return async ({
+      params,
+      body,
+    }: {
+      params: { id: string };
+      body: UseCaseArg<CreateMessageUseCase, 2>;
+    }) => {
       const message = await this.createMessageUseCase.execute(user, params.id, body);
-      return { status: 201, body: toMessageResult(message) };
-    });
+      return { status: 201 as const, body: toMessageResult(message) };
+    };
   }
 
   @TsRestHandler(ticketContract.transition)
   transition(@CurrentUser() user: RequestUser) {
-    return tsRestHandler(ticketContract.transition, async ({ params, body }) => {
+    return async ({
+      params,
+      body,
+    }: {
+      params: { id: string };
+      body: { to: UseCaseArg<TransitionTicketUseCase, 2> };
+    }) => {
       const ticket = await this.transitionTicketUseCase.execute(user, params.id, body.to);
-      return { status: 200, body: toTicketResult(ticket) };
-    });
+      return { status: 200 as const, body: toTicketResult(ticket) };
+    };
   }
 
   @TsRestHandler(ticketContract.assign)
   assign(@CurrentUser() user: RequestUser) {
-    return tsRestHandler(ticketContract.assign, async ({ params, body }) => {
+    return async ({
+      params,
+      body,
+    }: {
+      params: { id: string };
+      body: { assigneeId: UseCaseArg<AssignTicketUseCase, 2> };
+    }) => {
       const ticket = await this.assignTicketUseCase.execute(user, params.id, body.assigneeId);
-      return { status: 200, body: toTicketResult(ticket) };
-    });
+      return { status: 200 as const, body: toTicketResult(ticket) };
+    };
   }
 
   @TsRestHandler(ticketContract.acknowledge)
   acknowledge(@CurrentUser() user: RequestUser) {
-    return tsRestHandler(ticketContract.acknowledge, async ({ params }) => {
+    return async ({ params }: { params: { id: string } }) => {
       const result = await this.acknowledgeTicketUseCase.execute(user, params.id);
-      return { status: 200, body: result };
-    });
+      return { status: 200 as const, body: result };
+    };
   }
 
   @TsRestHandler(ticketContract.getAcknowledgements)
   getAcknowledgements(@CurrentUser() user: RequestUser) {
-    return tsRestHandler(ticketContract.getAcknowledgements, async ({ params }) => {
+    return async ({ params }: { params: { id: string } }) => {
       const result = await this.getAcknowledgementsUseCase.execute(user, params.id);
-      return { status: 200, body: result };
-    });
+      return { status: 200 as const, body: result };
+    };
   }
 }

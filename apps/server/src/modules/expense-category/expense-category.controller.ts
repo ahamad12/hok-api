@@ -2,10 +2,11 @@
 import { Controller } from "@nestjs/common";
 import { expenseCategoryContract } from "@tapt-api/api/contracts/expense-category.contract";
 import { UserRole } from "@tapt-api/db";
-import { TsRestHandler, tsRestHandler } from "@ts-rest/nest";
+import { TsRestHandler } from "@ts-rest/nest";
 import { CurrentUser } from "../../common/decorators/current-user.decorator";
 import { Roles } from "../../common/decorators/roles.decorator";
 import type { RequestUser } from "../../common/types/request-user.interface";
+import type { UseCaseArg } from "../../common/types/use-case-arg.type";
 import {
   toExpenseCategoryResult,
   toExpenseCategoryResults,
@@ -25,27 +26,33 @@ export class ExpenseCategoryController {
   @Roles(UserRole.OWNER, UserRole.MANAGER)
   @TsRestHandler(expenseCategoryContract.create)
   create(@CurrentUser() user: RequestUser) {
-    return tsRestHandler(expenseCategoryContract.create, async ({ body }) => {
+    return async ({ body }: { body: UseCaseArg<CreateExpenseCategoryUseCase, 1> }) => {
       const category = await this.createExpenseCategoryUseCase.execute(user, body);
-      return { status: 201, body: toExpenseCategoryResult(category) };
-    });
+      return { status: 201 as const, body: toExpenseCategoryResult(category) };
+    };
   }
 
   @Roles(UserRole.OWNER, UserRole.MANAGER)
   @TsRestHandler(expenseCategoryContract.getAll)
   getAll(@CurrentUser() user: RequestUser) {
-    return tsRestHandler(expenseCategoryContract.getAll, async ({ query }) => {
+    return async ({ query }: { query: UseCaseArg<GetExpenseCategoriesUseCase, 1> }) => {
       const categories = await this.getExpenseCategoriesUseCase.execute(user, query);
-      return { status: 200, body: { categories: toExpenseCategoryResults(categories) } };
-    });
+      return { status: 200 as const, body: { categories: toExpenseCategoryResults(categories) } };
+    };
   }
 
   @Roles(UserRole.OWNER, UserRole.MANAGER)
   @TsRestHandler(expenseCategoryContract.update)
   update(@CurrentUser() user: RequestUser) {
-    return tsRestHandler(expenseCategoryContract.update, async ({ params, body }) => {
+    return async ({
+      params,
+      body,
+    }: {
+      params: { id: string };
+      body: UseCaseArg<UpdateExpenseCategoryUseCase, 2>;
+    }) => {
       const category = await this.updateExpenseCategoryUseCase.execute(user, params.id, body);
-      return { status: 200, body: toExpenseCategoryResult(category) };
-    });
+      return { status: 200 as const, body: toExpenseCategoryResult(category) };
+    };
   }
 }

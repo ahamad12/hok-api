@@ -1,10 +1,11 @@
 import { Controller } from "@nestjs/common";
 import { formContract } from "@tapt-api/api/contracts/form.contract";
 import { UserRole } from "@tapt-api/db";
-import { TsRestHandler, tsRestHandler } from "@ts-rest/nest";
+import { TsRestHandler } from "@ts-rest/nest";
 import { CurrentUser } from "../../common/decorators/current-user.decorator";
 import { Roles } from "../../common/decorators/roles.decorator";
 import type { RequestUser } from "../../common/types/request-user.interface";
+import type { UseCaseArg } from "../../common/types/use-case-arg.type";
 import {
   toFormResult,
   toFormResults,
@@ -32,54 +33,75 @@ export class FormController {
   @Roles(UserRole.OWNER, UserRole.MANAGER)
   @TsRestHandler(formContract.create)
   create(@CurrentUser() user: RequestUser) {
-    return tsRestHandler(formContract.create, async ({ body }) => {
+    return async ({ body }: { body: UseCaseArg<CreateFormUseCase, 1> }) => {
       const form = await this.createForm.execute(user, body);
-      return { status: 201, body: toFormResult(form) };
-    });
+      return { status: 201 as const, body: toFormResult(form) };
+    };
   }
 
   // No @Roles — shop-scoping is enforced inside GetFormsUseCase, not the
   // guard, because STAFF must hit this endpoint too (they fill forms out).
   @TsRestHandler(formContract.getAll)
   getAll(@CurrentUser() user: RequestUser) {
-    return tsRestHandler(formContract.getAll, async ({ query }) => {
+    return async ({ query }: { query: UseCaseArg<GetFormsUseCase, 1> }) => {
       const forms = await this.getForms.execute(user, query);
-      return { status: 200, body: { forms: toFormResults(forms) } };
-    });
+      return { status: 200 as const, body: { forms: toFormResults(forms) } };
+    };
   }
 
   @TsRestHandler(formContract.getById)
   getById(@CurrentUser() user: RequestUser) {
-    return tsRestHandler(formContract.getById, async ({ params }) => {
+    return async ({ params }: { params: { id: string } }) => {
       const form = await this.getFormById.execute(user, params.id);
-      return { status: 200, body: toFormResult(form) };
-    });
+      return { status: 200 as const, body: toFormResult(form) };
+    };
   }
 
   @Roles(UserRole.OWNER, UserRole.MANAGER)
   @TsRestHandler(formContract.update)
   update(@CurrentUser() user: RequestUser) {
-    return tsRestHandler(formContract.update, async ({ params, body }) => {
+    return async ({
+      params,
+      body,
+    }: {
+      params: { id: string };
+      body: UseCaseArg<UpdateFormUseCase, 2>;
+    }) => {
       const form = await this.updateForm.execute(user, params.id, body);
-      return { status: 200, body: toFormResult(form) };
-    });
+      return { status: 200 as const, body: toFormResult(form) };
+    };
   }
 
   // No @Roles — submission is STAFF's entire reason to hit this module;
   // OWNER/MANAGER can also submit (e.g. testing a form pre-publish).
   @TsRestHandler(formContract.submit)
   submit(@CurrentUser() user: RequestUser) {
-    return tsRestHandler(formContract.submit, async ({ params, body }) => {
+    return async ({
+      params,
+      body,
+    }: {
+      params: { id: string };
+      body: { answers: UseCaseArg<SubmitFormUseCase, 2> };
+    }) => {
       const submission = await this.submitForm.execute(user, params.id, body.answers);
-      return { status: 201, body: toFormSubmissionResult(submission) };
-    });
+      return { status: 201 as const, body: toFormSubmissionResult(submission) };
+    };
   }
 
   @TsRestHandler(formContract.getSubmissions)
   getSubmissionsHandler(@CurrentUser() user: RequestUser) {
-    return tsRestHandler(formContract.getSubmissions, async ({ params, query }) => {
+    return async ({
+      params,
+      query,
+    }: {
+      params: { id: string };
+      query: UseCaseArg<GetSubmissionsUseCase, 2>;
+    }) => {
       const { submissions, total } = await this.getSubmissions.execute(user, params.id, query);
-      return { status: 200, body: { submissions: toFormSubmissionResults(submissions), total } };
-    });
+      return {
+        status: 200 as const,
+        body: { submissions: toFormSubmissionResults(submissions), total },
+      };
+    };
   }
 }

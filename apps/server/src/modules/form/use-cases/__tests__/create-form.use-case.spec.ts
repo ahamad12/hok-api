@@ -1,6 +1,6 @@
 import type { FormField } from "@tapt-api/api/contracts/form.contract";
 import { UserRole } from "@tapt-api/db";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { AuthorizationError, BusinessRuleError } from "../../../../common/errors";
 import { CreateFormUseCase } from "../create-form.use-case";
 

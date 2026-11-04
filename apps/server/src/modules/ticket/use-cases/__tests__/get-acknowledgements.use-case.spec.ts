@@ -57,13 +57,14 @@ describe("GetAcknowledgementsUseCase", () => {
   it("marks acknowledgedAt null for a member who has not acknowledged", async () => {
     const result = await useCase.execute(buildRequestUser({ role: "OWNER" }), "ticket-1");
     const staffThree = result.audience.find((a: any) => a.userId === "user-3");
-    expect(staffThree.acknowledgedAt).toBeNull();
+    expect(staffThree).toBeDefined();
+    expect(staffThree?.acknowledgedAt).toBeNull();
   });
 
   it("carries through the timestamp for a member who has acknowledged", async () => {
     const result = await useCase.execute(buildRequestUser({ role: "OWNER" }), "ticket-1");
     const staffTwo = result.audience.find((a: any) => a.userId === "user-2");
-    expect(staffTwo.acknowledgedAt).toEqual(new Date("2026-01-02"));
+    expect(staffTwo?.acknowledgedAt).toEqual(new Date("2026-01-02"));
   });
 
   it("computes totalAudience and acknowledgedCount correctly", async () => {
