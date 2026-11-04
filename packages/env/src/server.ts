@@ -41,6 +41,11 @@ export const env = createEnv({
     // token's expiry forward, but never past sessionStartedAt + this.
     JWT_SESSION_MAX_DAYS: z.coerce.number().int().positive().default(90),
     BCRYPT_SALT_ROUNDS: z.coerce.number().default(12),
+    // Base of links in auth emails (invitations, password reset, email
+    // verification): a universal link / app scheme the mobile app handles,
+    // e.g. "https://app.tapt.example" or "tapt://". Tokens go in ?token=.
+    APP_LINK_BASE_URL: z.string().trim().default("tapt://"),
+    INVITATION_EXPIRY_DAYS: z.coerce.number().int().positive().default(7),
   },
   runtimeEnv: process.env,
   emptyStringAsUndefined: true,

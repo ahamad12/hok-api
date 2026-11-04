@@ -5,6 +5,7 @@ import { forwardRef, Module } from "@nestjs/common";
 import { JwtModule } from "@nestjs/jwt";
 import { env } from "@tapt-api/env/server";
 import { AccessTokenVerifierService } from "../../common/auth/access-token-verifier.service";
+import { AuthMailerService } from "../../common/auth/auth-mailer.service";
 import { TenantShopsService } from "../../common/auth/tenant-shops.service";
 import { RedisModule } from "../../common/redis/redis.module";
 import { ShopModule } from "../shop/shop.module";
@@ -74,6 +75,7 @@ import { UpdateUserProfileUseCase } from "./use-cases/update-user-profile.use-ca
     UpdateUserProfileUseCase,
     AccessTokenVerifierService,
     TenantShopsService,
+    AuthMailerService,
   ],
   exports: [
     TokenService,
@@ -81,6 +83,8 @@ import { UpdateUserProfileUseCase } from "./use-cases/update-user-profile.use-ca
     TokenVersionService,
     AccessTokenVerifierService,
     TenantShopsService,
+    AuthMailerService,
+    PasswordHasherService,
   ],
 })
 export class AuthModule {}

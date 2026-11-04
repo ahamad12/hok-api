@@ -31,13 +31,18 @@ const userProfileSchema = userSummarySchema.extend({
   updatedAt: z.coerce.date(),
 });
 
+// Public sign-up creates an OWNER: the start of a new business. Managers
+// and staff join an existing business by invitation (invitation.contract).
+// role/shopId/isSupervisor are still accepted so older clients that send
+// them get a clear error instead of silently creating an owner account.
 const registerBodySchema = z
   .object({
     email: emailSchema,
     password: z.string().min(8).max(128),
     displayName: z.string().trim().min(2).max(100),
     username: z.string().trim().min(3).max(30).optional(),
-    role: userRoleSchema,
+    deviceName: z.string().trim().min(1).max(100).optional(),
+    role: userRoleSchema.optional(),
     shopId: z.string().uuid().optional(),
     isSupervisor: z.boolean().optional(),
   })
@@ -50,38 +55,27 @@ const registerBodySchema = z
       ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["password"], message });
     });
 
-    // Role/shop/supervisor invariants ARE duplicated on purpose — see
-    // checkUserRoleInvariants() in apps/server/src/common/domain/
-    // user-role-invariants.ts for the actual source of truth, enforced
-    // server-side before any write. This is early client-facing feedback
-    // only; never trust it alone.
-    const isSupervisor = data.isSupervisor ?? false;
-    if (isSupervisor && data.role !== "STAFF") {
+    // Sign-up is for owners only. Reject the old "create staff via
+    // register" calls loudly; those go through POST /invitations now.
+    if (data.role && data.role !== "OWNER") {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        path: ["isSupervisor"],
-        message: "Only STAFF can be supervisors",
+        path: ["role"],
+        message: "Managers and staff join a business by invitation",
       });
     }
-    if (isSupervisor && !data.shopId) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ["shopId"],
-        message: "Supervisors must be assigned to a shop",
-      });
-    }
-    if (data.role === "OWNER" && data.shopId) {
+    if (data.shopId) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ["shopId"],
         message: "Owners cannot be assigned to shops",
       });
     }
-    if (data.role === "MANAGER" && data.shopId) {
+    if (data.isSupervisor) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        path: ["shopId"],
-        message: "Managers cannot be assigned to shops (system-wide access)",
+        path: ["isSupervisor"],
+        message: "Only STAFF can be supervisors",
       });
     }
   });
@@ -131,11 +125,12 @@ const sessionSchema = z.object({
 
 export const authContract = c.router(
   {
+    // Creates an OWNER and signs them in (tokens are returned, like login).
     register: {
       method: "POST",
       path: "/auth/register",
       body: registerBodySchema,
-      responses: { 201: z.object({ user: userSummarySchema }) },
+      responses: { 201: authTokensSchema.extend({ user: userSummarySchema }) },
     },
     login: {
       method: "POST",

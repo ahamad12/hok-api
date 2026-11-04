@@ -51,9 +51,9 @@ export class AuthController {
   @Public()
   @Throttle({ auth: { limit: 20, ttl: 60000 } })
   @TsRestHandler(authContract.register)
-  register() {
+  register(@CurrentClient() client: ClientMeta) {
     return async ({ body }: { body: RegisterUserInput }) => {
-      const result = await this.registerUserUseCase.execute(body);
+      const result = await this.registerUserUseCase.execute(body, client);
       return { status: 201 as const, body: result };
     };
   }
