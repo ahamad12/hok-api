@@ -2,7 +2,7 @@ import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import type { OnModuleDestroy, OnModuleInit } from "@nestjs/common";
 import { Injectable } from "@nestjs/common";
-import * as Handlebars from "handlebars";
+import Handlebars from "handlebars";
 import puppeteer, { type Browser } from "puppeteer";
 
 @Injectable()
