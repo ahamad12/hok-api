@@ -21,6 +21,7 @@ export const SOCKET_EVENTS = {
   LICENSE_EXPIRING: "license:expiring",
 
   PROFIT_REPORT_GENERATED: "report:generated",
+  PROFIT_REPORT_VOIDED: "report:voided",
 
   FORM_SUBMITTED: "form:submitted",
 

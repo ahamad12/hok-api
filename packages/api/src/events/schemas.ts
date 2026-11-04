@@ -107,9 +107,20 @@ export const licenseExpiringPayloadSchema = z.object({
 
 export const profitReportGeneratedPayloadSchema = z.object({
   reportId: z.string().uuid(),
+  shopId: z.string().uuid(),
   periodStart: z.coerce.date(),
   periodEnd: z.coerce.date(),
   netProfit: z.number().int(),
+  profitMargin: z.number(),
+  generatedById: z.string().uuid(),
+});
+
+export const profitReportVoidedPayloadSchema = z.object({
+  reportId: z.string().uuid(),
+  shopId: z.string().uuid(),
+  periodStart: z.coerce.date(),
+  periodEnd: z.coerce.date(),
+  voidedById: z.string().uuid(),
 });
 
 export const formSubmittedPayloadSchema = z.object({
@@ -139,6 +150,7 @@ export const socketEventSchemas = {
   [SOCKET_EVENTS.DAILY_SUMMARY_VOIDED]: dailySummaryVoidedPayloadSchema,
   [SOCKET_EVENTS.LICENSE_EXPIRING]: licenseExpiringPayloadSchema,
   [SOCKET_EVENTS.PROFIT_REPORT_GENERATED]: profitReportGeneratedPayloadSchema,
+  [SOCKET_EVENTS.PROFIT_REPORT_VOIDED]: profitReportVoidedPayloadSchema,
   [SOCKET_EVENTS.FORM_SUBMITTED]: formSubmittedPayloadSchema,
   [SOCKET_EVENTS.SESSION_REVOKED]: sessionRevokedPayloadSchema,
 } as const satisfies Record<SocketEventName, z.ZodTypeAny>;

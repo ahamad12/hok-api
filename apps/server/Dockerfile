@@ -11,8 +11,12 @@ RUN npx tsdown build
 FROM node:24-alpine AS runner
 ENV NODE_ENV=production
 WORKDIR /app
+RUN apk add --no-cache chromium nss freetype harfbuzz ca-certificates ttf-freefont
+ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true \
+    PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 COPY --from=builder /app/apps/server/dist ./dist
+COPY --from=builder /app/apps/server/src/modules/profit-report/pdf/templates ./dist/modules/profit-report/pdf/templates
 COPY --from=builder /app/packages/db/prisma/generated ./packages/db/prisma/generated
 RUN npm ci --omit=dev --workspace=server
 RUN chown -R appuser:appgroup /app

@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: "Helvetica Neue", Arial, sans-serif; font-size: 11px; color: #1a1a1a; margin: 0; }
+  .header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #1a1a1a; padding-bottom: 12px; margin-bottom: 20px; }
+  .header .shop { display: flex; gap: 12px; align-items: center; }
+  .header img { height: 48px; width: 48px; object-fit: contain; border-radius: 4px; }
+  .header h1 { font-size: 16px; margin: 0; }
+  .header .shop-details { font-size: 10px; color: #555; line-height: 1.5; }
+  .header .meta { text-align: right; font-size: 10px; color: #555; line-height: 1.6; }
+  .header .meta .report-id { font-weight: 700; color: #1a1a1a; }
+  .title { font-size: 20px; font-weight: 700; margin: 0 0 4px; }
+  .period { color: #555; margin-bottom: 24px; }
+  table { width: 100%; border-collapse: collapse; margin-bottom: 18px; }
+  th { text-align: left; font-size: 9px; text-transform: uppercase; letter-spacing: 0.04em; color: #777; border-bottom: 1px solid #ddd; padding: 6px 4px; }
+  td { padding: 6px 4px; border-bottom: 1px solid #eee; }
+  td.amount, th.amount { text-align: right; font-variant-numeric: tabular-nums; }
+  tr.total td { font-weight: 700; border-top: 1.5px solid #1a1a1a; border-bottom: none; }
+  .summary { display: flex; justify-content: flex-end; margin-top: 8px; }
+  .summary table { width: 260px; }
+  .summary .net td { font-size: 14px; font-weight: 700; border-top: 2px solid #1a1a1a; }
+  .summary .margin td { color: #555; }
+  tr { page-break-inside: avoid; }
+</style>
+</head>
+<body>
+  <div class="header">
+    <div class="shop">
+      {{#if shop.logoDataUri}}<img src="{{shop.logoDataUri}}" />{{/if}}
+      <div>
+        <h1>{{shop.name}}</h1>
+        <div class="shop-details">{{shop.phone}}</div>
+      </div>
+    </div>
+    <div class="meta">
+      <div class="report-id">Report #{{reportId}}</div>
+      Generated {{date generatedAt}}<br/>
+      by {{generatedByName}}
+    </div>
+  </div>
+
+  <div class="title">Profit &amp; Loss Statement</div>
+  <div class="period">{{date periodStart}} &ndash; {{date periodEnd}}</div>
+
+  <table>
+    <thead><tr><th>Revenue</th><th class="amount">Amount</th></tr></thead>
+    <tbody>
+      {{#each revenue}}
+      <tr><td>{{this.label}}</td><td class="amount">{{cents this.amountCents}}</td></tr>
+      {{/each}}
+      <tr class="total"><td>Total Revenue</td><td class="amount">{{cents totalRevenue}}</td></tr>
+    </tbody>
+  </table>
+
+  <table>
+    <thead><tr><th>Expenses</th><th class="amount">Amount</th></tr></thead>
+    <tbody>
+      {{#each expenses}}
+      <tr><td>{{this.label}}</td><td class="amount">{{cents this.amountCents}}</td></tr>
+      {{/each}}
+      <tr class="total"><td>Total Expenses</td><td class="amount">{{cents totalExpense}}</td></tr>
+    </tbody>
+  </table>
+
+  <div class="summary">
+    <table>
+      <tr><td>Gross Profit</td><td class="amount">{{cents grossProfit}}</td></tr>
+      <tr class="net"><td>Net Profit</td><td class="amount">{{cents netProfit}}</td></tr>
+      <tr class="margin"><td>Profit Margin</td><td class="amount">{{pct profitMargin}}</td></tr>
+    </table>
+  </div>
+</body>
+</html>

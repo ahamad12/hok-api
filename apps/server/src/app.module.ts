@@ -31,6 +31,7 @@ import { ExpenseModule } from "./modules/expense/expense.module";
 import { ExpenseCategoryModule } from "./modules/expense-category/expense-category.module";
 import { FormModule } from "./modules/form/form.module";
 import { LicenseModule } from "./modules/license/license.module";
+import { ProfitReportModule } from "./modules/profit-report/profit-report.module";
 import { ScratchModule } from "./modules/scratch/scratch.module";
 import { ShopModule } from "./modules/shop/shop.module";
 import { SupplierModule } from "./modules/supplier/supplier.module";
@@ -65,6 +66,7 @@ import { TillEntryModule } from "./modules/till-entry/till-entry.module";
     ExpenseCategoryModule,
     ExpenseModule,
     DailySummaryModule,
+    ProfitReportModule,
     ThrottlerModule.forRootAsync({
       useFactory: () => ({
         throttlers: [
