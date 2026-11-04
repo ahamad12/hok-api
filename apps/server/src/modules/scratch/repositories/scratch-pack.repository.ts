@@ -122,4 +122,29 @@ export class ScratchPackRepository {
       throw error;
     }
   }
+
+  /**
+   * Point-in-time inventory valuation — sum of (ticketsRemaining * unitPriceCents)
+   * for the latest non-voided scan of each ACTIVE pack in the shop.
+   * No status filter beyond ACTIVE; no soft-delete column on ScratchPack.
+   * Packs with no scans yet contribute 0 (full-pack value would require a
+   * join to ScratchGame; out of scope for this valuation).
+   */
+  async getInventoryValue(shopId: string): Promise<number> {
+    const rows = await this.prisma.$queryRaw<{ inventory: bigint }[]>`
+      SELECT COALESCE(SUM(latest."tickets_remaining" * latest."unit_price_cents"), 0) AS inventory
+      FROM "scratch_packs" p
+      LEFT JOIN LATERAL (
+        SELECT "tickets_remaining", "unit_price_cents"
+        FROM "scratch_scan_events" s
+        WHERE s."pack_id" = p."id"
+          AND s."voided_at" IS NULL
+        ORDER BY s."sequence_number" DESC
+        LIMIT 1
+      ) latest ON true
+      WHERE p."shop_id" = ${shopId}
+        AND p."status" = 'ACTIVE'
+    `;
+    return Number(rows[0]?.inventory ?? 0);
+  }
 }

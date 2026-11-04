@@ -80,6 +80,23 @@ export class DailySummaryRepository {
     return this.prisma.dailySummary.findFirst({ where: { shopId, date, voidedAt: null } });
   }
 
+  // Unpaginated — for aggregation callers (ProfitReport), not history views.
+  async findFinalizedInRange(
+    shopId: string,
+    dateFrom: Date,
+    dateTo: Date,
+  ): Promise<DailySummary[]> {
+    return this.prisma.dailySummary.findMany({
+      where: {
+        shopId,
+        voidedAt: null,
+        status: "FINALIZED" as DailySummaryStatus,
+        date: { gte: dateFrom, lte: dateTo },
+      },
+      orderBy: { date: "asc" },
+    });
+  }
+
   // Guarded — only a DRAFT can transition to FINALIZED. Prevents a race
   // where two finalize calls both read DRAFT and both "succeed."
   async finalizeIfDraft(id: string, finalizedById: string): Promise<number> {

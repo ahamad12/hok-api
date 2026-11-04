@@ -35,5 +35,6 @@ import { VoidDailySummaryUseCase } from "./use-cases/void-daily-summary.use-case
     VoidDailySummaryUseCase,
     DailySummaryEventsListener,
   ],
+  exports: [DailySummaryRepository],
 })
 export class DailySummaryModule {}
