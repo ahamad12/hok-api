@@ -1,24 +1,13 @@
 import type { WinstonModuleOptions } from "nest-winston";
 import { utilities as nestWinstonModuleUtilities } from "nest-winston";
 import * as winston from "winston";
+import { redactLogEntry } from "../../common/logging/mask";
 
 const isProduction = process.env.NODE_ENV === "production";
 
-const redactFormat = winston.format((info) => {
-  if (info.headers) {
-    const sensitive = ["authorization", "cookie", "set-cookie", "x-api-key"];
-    const headers = info.headers as Record<string, string>;
-    const redacted: Record<string, string> = { ...headers };
-
-    for (const key of Object.keys(redacted)) {
-      if (sensitive.includes(key.toLowerCase())) {
-        redacted[key] = "[REDACTED]";
-      }
-    }
-    info.headers = redacted;
-  }
-  return info;
-});
+// Redacts credentials (passwords, tokens, auth headers, cookies) at any
+// depth and masks email addresses in every string field — see mask.ts.
+const redactFormat = winston.format((info) => redactLogEntry(info));
 
 export const winstonConfig: WinstonModuleOptions = {
   level: process.env.LOG_LEVEL || "info",
