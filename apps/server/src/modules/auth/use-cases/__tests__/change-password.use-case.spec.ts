@@ -1,5 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { AuthenticationError, BusinessRuleError, NotFoundError } from "../../../../common/errors";
+import {
+  BusinessRuleError,
+  ERROR_REASONS,
+  FieldValidationError,
+  NotFoundError,
+} from "../../../../common/errors";
 import { buildUser } from "../../../../test/fixtures/user.fixture";
 import { ChangePasswordUseCase } from "../change-password.use-case";
 
@@ -43,9 +48,15 @@ describe("ChangePasswordUseCase", () => {
     await expect(useCase.execute(input)).rejects.toThrow(NotFoundError);
   });
 
-  it("throws AuthenticationError when the current password is wrong", async () => {
+  it("rejects a wrong current password as a 400 field violation, not a 401", async () => {
     passwordHasher.compare.mockResolvedValueOnce(false);
-    await expect(useCase.execute(input)).rejects.toThrow(AuthenticationError);
+    const error = await useCase.execute(input).catch((e) => e);
+    expect(error).toBeInstanceOf(FieldValidationError);
+    expect(error.httpStatus).toBe(400);
+    expect(error.reason).toBe(ERROR_REASONS.AUTH_INVALID_CREDENTIALS);
+    expect(error.violations).toEqual([
+      expect.objectContaining({ field: "body.currentPassword", code: "incorrect" }),
+    ]);
   });
 
   it("throws BusinessRuleError when the new password matches the current one", async () => {

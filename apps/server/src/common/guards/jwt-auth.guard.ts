@@ -4,7 +4,7 @@ import { Reflector } from "@nestjs/core";
 import type { Request } from "express";
 import { AccessTokenVerifierService } from "../auth/access-token-verifier.service";
 import { IS_PUBLIC_KEY } from "../decorators/public.decorator";
-import { AuthenticationError } from "../errors";
+import { AuthenticationError, ERROR_REASONS } from "../errors";
 
 @Injectable()
 export class JwtAuthGuard implements CanActivate {
@@ -22,7 +22,9 @@ export class JwtAuthGuard implements CanActivate {
 
     const request = context.switchToHttp().getRequest<Request>();
     const token = this.extractBearerToken(request);
-    if (!token) throw new AuthenticationError("Missing bearer token");
+    if (!token) {
+      throw new AuthenticationError("Missing bearer token", ERROR_REASONS.AUTH_TOKEN_MISSING);
+    }
 
     request.user = await this.tokenVerifier.verify(token);
     return true;

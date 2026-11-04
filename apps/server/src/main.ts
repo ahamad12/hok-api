@@ -8,6 +8,7 @@ import helmet from "helmet";
 import { WINSTON_MODULE_PROVIDER, WinstonModule } from "nest-winston";
 import type { Logger } from "winston";
 import { AppModule } from "./app.module";
+import { requestIdMiddleware } from "./common/middleware/request-id.middleware";
 import { RedisIoAdapter } from "./infra/gateway/redis-io.adapter";
 import { winstonConfig } from "./infra/logger/winston.module";
 
@@ -25,6 +26,7 @@ async function bootstrap() {
 
   app.enableShutdownHooks();
   app.set("trust proxy", parseTrustProxy(env.TRUST_PROXY));
+  app.use(requestIdMiddleware);
 
   // API routing: versioning and the "/api" prefix live in the ts-rest contracts
   // (pathPrefix: "/api/v1" in packages/api/src/contracts/*). Do not re-add
@@ -66,6 +68,7 @@ async function bootstrap() {
   app.enableCors({
     origin: env.CORS_ORIGIN,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    exposedHeaders: ["x-request-id"],
   });
 
   app.useWebSocketAdapter(new RedisIoAdapter(app));

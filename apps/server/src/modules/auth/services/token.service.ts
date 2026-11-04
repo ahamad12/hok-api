@@ -4,7 +4,7 @@ import { createHash, randomBytes } from "node:crypto";
 import { Injectable } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
 import { env } from "@tapt-api/env/server";
-import { AuthenticationError } from "../../../common/errors";
+import { AuthenticationError, ERROR_REASONS } from "../../../common/errors";
 import type { AccessTokenPayload } from "../../../common/schemas/jwt-payload.schema";
 import { RefreshTokenRepository } from "../repositories/refresh-token.repository";
 
@@ -47,11 +47,13 @@ export class TokenService {
 
   async verifyRefreshToken(rawToken: string): Promise<string> {
     const record = await this.refreshTokenRepository.findByToken(hashToken(rawToken));
-    if (!record) throw new AuthenticationError("Invalid refresh token");
+    if (!record) {
+      throw new AuthenticationError("Invalid refresh token", ERROR_REASONS.AUTH_REFRESH_INVALID);
+    }
 
     if (record.expiresAt < new Date()) {
       await this.refreshTokenRepository.deleteById(record.id);
-      throw new AuthenticationError("Refresh token expired");
+      throw new AuthenticationError("Refresh token expired", ERROR_REASONS.AUTH_REFRESH_EXPIRED);
     }
 
     return record.userId;

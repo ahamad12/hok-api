@@ -1,7 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
 import { UserRepository } from "../../modules/auth/repositories/user.repository";
-import { AuthenticationError } from "../errors";
+import { AuthenticationError, ERROR_REASONS } from "../errors";
 import { RedisClient } from "../redis/redis.client";
 import { accessTokenPayloadSchema } from "../schemas/jwt-payload.schema";
 import type { RequestUser } from "../types/request-user.interface";
@@ -30,20 +30,26 @@ export class AccessTokenVerifierService {
     let decoded: unknown;
     try {
       decoded = await this.jwtService.verifyAsync(rawToken);
-    } catch {
-      throw new AuthenticationError("Invalid or expired token");
+    } catch (error) {
+      if (error instanceof Error && error.name === "TokenExpiredError") {
+        throw new AuthenticationError("Access token expired", ERROR_REASONS.AUTH_TOKEN_EXPIRED);
+      }
+      throw new AuthenticationError("Invalid access token", ERROR_REASONS.AUTH_TOKEN_INVALID);
     }
 
     const parsed = accessTokenPayloadSchema.safeParse(decoded);
     if (!parsed.success) {
-      throw new AuthenticationError("Malformed token payload");
+      throw new AuthenticationError("Malformed token payload", ERROR_REASONS.AUTH_TOKEN_INVALID);
     }
 
     const { userId, email, role, shopId, isSupervisor, tokenVersion } = parsed.data;
 
     const currentVersion = await this.getCurrentTokenVersion(userId);
     if (currentVersion === null || currentVersion !== tokenVersion) {
-      throw new AuthenticationError("Session invalidated. Please login again.");
+      throw new AuthenticationError(
+        "Session invalidated. Please login again.",
+        ERROR_REASONS.AUTH_SESSION_REVOKED,
+      );
     }
 
     return { userId, email, role, shopId, isSupervisor };

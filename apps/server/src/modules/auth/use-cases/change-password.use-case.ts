@@ -1,7 +1,12 @@
 // modules/auth/use-cases/change-password.use-case.ts — fixed: uses TokenVersionService
 import { Injectable } from "@nestjs/common";
 import { EventEmitter2 } from "@nestjs/event-emitter";
-import { AuthenticationError, BusinessRuleError, NotFoundError } from "../../../common/errors";
+import {
+  BusinessRuleError,
+  ERROR_REASONS,
+  FieldValidationError,
+  NotFoundError,
+} from "../../../common/errors";
 import { UserRepository } from "../repositories/user.repository";
 import { PasswordHasherService } from "../services/password-hasher.service";
 import { TokenService } from "../services/token.service";
@@ -36,7 +41,21 @@ export class ChangePasswordUseCase {
       input.currentPassword,
       user.passwordHash,
     );
-    if (!currentValid) throw new AuthenticationError("The current password is incorrect");
+    // 400 with a field violation, not 401: the caller IS authenticated, and
+    // a 401 here would make clients spend a refresh token and retry.
+    if (!currentValid) {
+      throw new FieldValidationError(
+        [
+          {
+            field: "body.currentPassword",
+            code: "incorrect",
+            message: "The current password is incorrect",
+          },
+        ],
+        undefined,
+        ERROR_REASONS.AUTH_INVALID_CREDENTIALS,
+      );
+    }
 
     // Both the ts-rest contract (changePasswordBodySchema superRefine) and
     // this use-case call the same checkPasswordStrength — contract gives

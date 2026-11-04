@@ -21,7 +21,9 @@ export class LoggingInterceptor implements NestInterceptor {
     const req = context.switchToHttp().getRequest();
     const { method, originalUrl, headers } = req;
 
-    const requestId = headers["x-request-id"] || crypto.randomUUID();
+    // Normally set by requestIdMiddleware; the fallback covers contexts
+    // (tests, non-HTTP adapters) where the middleware did not run.
+    const requestId = req.requestId ?? crypto.randomUUID();
     req.requestId = requestId;
 
     const startTime = performance.now();

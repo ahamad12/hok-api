@@ -1,6 +1,6 @@
 // modules/auth/use-cases/refresh-token.use-case.ts — unchanged
 import { Injectable } from "@nestjs/common";
-import { AuthenticationError } from "../../../common/errors";
+import { AuthenticationError, ERROR_REASONS } from "../../../common/errors";
 import { UserRepository } from "../repositories/user.repository";
 import { TokenService } from "../services/token.service";
 
@@ -22,8 +22,12 @@ export class RefreshTokenUseCase {
   async execute(input: RefreshTokenInput): Promise<RefreshTokenResult> {
     const userId = await this.tokenService.verifyRefreshToken(input.refreshToken);
     const user = await this.userRepository.findById(userId);
-    if (!user) throw new AuthenticationError("User not found");
-    if (!user.isActive) throw new AuthenticationError("Account is deactivated");
+    if (!user) {
+      throw new AuthenticationError("Invalid refresh token", ERROR_REASONS.AUTH_REFRESH_INVALID);
+    }
+    if (!user.isActive) {
+      throw new AuthenticationError("Account is deactivated", ERROR_REASONS.AUTH_ACCOUNT_DISABLED);
+    }
 
     await this.tokenService.revokeRefreshToken(input.refreshToken);
 
