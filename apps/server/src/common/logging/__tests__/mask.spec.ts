@@ -50,3 +50,10 @@ describe("mask", () => {
     expect(info[LEVEL]).toBe("info");
   });
 });
+
+describe("mask — hashes inside text", () => {
+  it("redacts bcrypt hashes embedded in strings (e.g. Prisma error messages)", () => {
+    const hash = `$2b$12$${"a".repeat(53)}`;
+    expect(redact(`passwordHash: "${hash}",`)).toBe('passwordHash: "[REDACTED]",');
+  });
+});

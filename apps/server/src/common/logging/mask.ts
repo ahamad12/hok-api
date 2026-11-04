@@ -28,6 +28,9 @@ const SENSITIVE_KEYS = new Set([
 ]);
 
 const EMAIL_PATTERN = /([A-Za-z0-9._%+-])[A-Za-z0-9._%+-]*@([A-Za-z0-9.-]+\.[A-Za-z]{2,})/g;
+// bcrypt hashes ($2a$/$2b$/$2y$) can appear inside other text, e.g. a
+// Prisma error message echoing the query it rejected.
+const BCRYPT_PATTERN = /\$2[aby]\$\d{2}\$[./A-Za-z0-9]{53}/g;
 
 export function isSensitiveKey(key: string): boolean {
   return SENSITIVE_KEYS.has(key.toLowerCase().replace(/[-_]/g, ""));
@@ -51,7 +54,7 @@ export function maskToken(token: string): string {
  * messages are masked by the caller.
  */
 export function redact(value: unknown, depth = 0, seen = new WeakSet<object>()): unknown {
-  if (typeof value === "string") return maskEmail(value);
+  if (typeof value === "string") return maskEmail(value).replace(BCRYPT_PATTERN, REDACTED);
   if (value === null || typeof value !== "object") return value;
   if (value instanceof Date || value instanceof Error) return value;
   if (seen.has(value)) return "[Circular]";
