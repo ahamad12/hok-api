@@ -4,9 +4,10 @@ import {
   checkPasswordStrength,
   type PasswordStrengthResult,
 } from "@tapt-api/api/validators/password-strength";
+import { env } from "@tapt-api/env/server";
 import * as bcrypt from "bcrypt";
 
-const SALT_ROUNDS = 12;
+const SALT_ROUNDS = env.BCRYPT_SALT_ROUNDS;
 
 export type { PasswordStrengthResult };
 

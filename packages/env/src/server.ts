@@ -28,8 +28,9 @@ export const env = createEnv({
     THROTTLE_LIMIT: z.coerce.number().int().positive().default(100),
     JWT_SECRET: z.string().trim().min(32),
     JWT_ACCESS_EXPIRY: z.coerce.number().int().positive().default(900),
-    JWT_REFRESH_SECRET: z.string().trim().min(32),
-    JWT_REFRESH_EXPIRY: z.string().default("7d"),
+    // Refresh tokens are opaque random values (SHA-256 at rest), not JWTs —
+    // there is intentionally no JWT_REFRESH_SECRET. TTL is in days so it
+    // stays in sync with TokenService.
     JWT_REFRESH_EXPIRY_DAYS: z.coerce.number().int().positive().default(7),
     BCRYPT_SALT_ROUNDS: z.coerce.number().default(12),
   },

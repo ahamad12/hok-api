@@ -3,11 +3,12 @@
 import { createHash, randomBytes } from "node:crypto";
 import { Injectable } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
+import { env } from "@tapt-api/env/server";
 import { AuthenticationError } from "../../../common/errors";
 import type { AccessTokenPayload } from "../../../common/schemas/jwt-payload.schema";
 import { RefreshTokenRepository } from "../repositories/refresh-token.repository";
 
-const REFRESH_TOKEN_TTL_DAYS = 7;
+const REFRESH_TOKEN_TTL_DAYS = env.JWT_REFRESH_EXPIRY_DAYS;
 
 function hashToken(rawToken: string): string {
   return createHash("sha256").update(rawToken).digest("hex");

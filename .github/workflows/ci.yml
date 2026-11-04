@@ -13,7 +13,6 @@ env:
   REDIS_PORT: "6379"
   CORS_ORIGIN: "http://localhost:3001"
   JWT_SECRET: "ci-test-secret-minimum-32-characters-long"
-  JWT_REFRESH_SECRET: "ci-refresh-secret-minimum-32-characters-long"
   CI: "true"
 
 jobs:
