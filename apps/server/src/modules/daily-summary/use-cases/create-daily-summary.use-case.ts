@@ -2,6 +2,7 @@ import { Injectable } from "@nestjs/common";
 import type { DailySummaryStatus } from "@tapt-api/db";
 import { UserRole } from "@tapt-api/db";
 import { computeVariance } from "../../../common/domain/daily-summary-reconciliation";
+import { canAccessShop } from "../../../common/domain/shop-access";
 import { AuthorizationError, BusinessRuleError } from "../../../common/errors";
 import type { RequestUser } from "../../../common/types/request-user.interface";
 import { DeliveryRepository } from "../../delivery/repositories/delivery.repository";
@@ -52,7 +53,7 @@ export class CreateDailySummaryUseCase {
     if (!isAuthorized) {
       throw new AuthorizationError("Only a supervisor, manager, or owner can close the day");
     }
-    if (requester.role === UserRole.STAFF && requester.shopId !== input.shopId) {
+    if (!canAccessShop(requester, input.shopId)) {
       throw new AuthorizationError("Cannot close a day outside your shop");
     }
 

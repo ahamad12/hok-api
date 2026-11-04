@@ -2,6 +2,7 @@ import { UserRole } from "@tapt-api/db";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { AuthorizationError } from "../../../../common/errors";
 import { buildLicense } from "../../../../test/fixtures/license.fixture";
+import { TEST_TENANT_SHOP_IDS } from "../../../../test/fixtures/request-user.fixture";
 import { GetExpiringLicensesUseCase } from "../get-expiring-licenses.use-case";
 
 describe("GetExpiringLicensesUseCase", () => {
@@ -18,6 +19,7 @@ describe("GetExpiringLicensesUseCase", () => {
       useCase.execute({
         requesterRole: UserRole.STAFF,
         requesterShopId: "other-shop",
+        requesterTenantShopIds: TEST_TENANT_SHOP_IDS,
         shopId: "shop-1",
       }),
     ).rejects.toThrow(AuthorizationError);
@@ -27,6 +29,7 @@ describe("GetExpiringLicensesUseCase", () => {
     await useCase.execute({
       requesterRole: UserRole.OWNER,
       requesterShopId: null,
+      requesterTenantShopIds: TEST_TENANT_SHOP_IDS,
       shopId: "shop-1",
     });
     const [, shopIdArg] = licenseRepository.findCandidatesForReminder.mock.calls[0]!;
@@ -49,6 +52,7 @@ describe("GetExpiringLicensesUseCase", () => {
     const result = await useCase.execute({
       requesterRole: UserRole.OWNER,
       requesterShopId: null,
+      requesterTenantShopIds: TEST_TENANT_SHOP_IDS,
       shopId: "shop-1",
     });
     expect(result.licenses.map((l) => l.id)).toEqual(["soon"]);

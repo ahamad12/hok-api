@@ -1,6 +1,7 @@
 // modules/supplier/use-cases/create-supplier.use-case.ts
 import { Injectable } from "@nestjs/common";
 import { UserRole } from "@tapt-api/db";
+import { canAccessShop, requesterScope } from "../../../common/domain/shop-access";
 import { AuthorizationError, BusinessRuleError, NotFoundError } from "../../../common/errors";
 import { CategoryRepository } from "../../category/repositories/category.repository";
 import { ShopRepository } from "../../shop/repositories/shop.repository";
@@ -10,6 +11,7 @@ import { SupplierRepository } from "../repositories/supplier.repository";
 export interface CreateSupplierInput {
   requesterRole: UserRole;
   requesterShopId: string | null;
+  requesterTenantShopIds?: readonly string[];
   shopId: string;
   categoryId: string;
   name: string;
@@ -26,7 +28,7 @@ export class CreateSupplierUseCase {
   ) {}
 
   async execute(input: CreateSupplierInput): Promise<SupplierResult> {
-    if (input.requesterRole === UserRole.STAFF && input.requesterShopId !== input.shopId) {
+    if (!canAccessShop(requesterScope(input), input.shopId)) {
       throw new AuthorizationError("You can only create suppliers for your own shop");
     }
 

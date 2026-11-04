@@ -1,4 +1,5 @@
 import type { User } from "@tapt-api/db";
+import { tenantIdOf } from "../../../common/domain/tenant";
 import type { AccessTokenPayload } from "../../../common/schemas/jwt-payload.schema";
 
 /** The one place a User becomes access-token claims. */
@@ -11,5 +12,6 @@ export function toAccessTokenPayload(user: User, sessionId: string): AccessToken
     isSupervisor: user.isSupervisor,
     tokenVersion: user.tokenVersion,
     sid: sessionId,
+    tid: tenantIdOf(user),
   };
 }

@@ -1,6 +1,7 @@
 // modules/delivery/use-cases/void-delivery.use-case.ts
 import { Injectable } from "@nestjs/common";
 import { UserRole } from "@tapt-api/db";
+import { canAccessShop, requesterScope } from "../../../common/domain/shop-access";
 import { AuthorizationError, BusinessRuleError, NotFoundError } from "../../../common/errors";
 import { type DeliveryResult, toDeliveryResult } from "../mappers/delivery.mapper";
 import { DeliveryRepository } from "../repositories/delivery.repository";
@@ -9,6 +10,7 @@ export interface VoidDeliveryInput {
   requesterId: string;
   requesterRole: UserRole;
   requesterShopId: string | null;
+  requesterTenantShopIds?: readonly string[];
   deliveryId: string;
   voidReason: string;
 }
@@ -21,7 +23,7 @@ export class VoidDeliveryUseCase {
     const delivery = await this.deliveryRepository.findById(input.deliveryId);
     if (!delivery) throw new NotFoundError("Delivery", input.deliveryId);
 
-    if (input.requesterRole === UserRole.STAFF && input.requesterShopId !== delivery.shopId) {
+    if (!canAccessShop(requesterScope(input), delivery.shopId)) {
       throw new AuthorizationError("Access denied for this delivery");
     }
     if (delivery.voidedAt) throw new BusinessRuleError("This delivery has already been voided");

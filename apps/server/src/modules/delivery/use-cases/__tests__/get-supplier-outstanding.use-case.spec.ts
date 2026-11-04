@@ -3,6 +3,7 @@
 import { UserRole } from "@tapt-api/db";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { AuthorizationError } from "../../../../common/errors";
+import { TEST_TENANT_SHOP_IDS } from "../../../../test/fixtures/request-user.fixture";
 import { GetSupplierOutstandingUseCase } from "../get-supplier-outstanding.use-case";
 
 describe("GetSupplierOutstandingUseCase", () => {
@@ -19,6 +20,7 @@ describe("GetSupplierOutstandingUseCase", () => {
       useCase.execute({
         requesterRole: UserRole.STAFF,
         requesterShopId: "other-shop",
+        requesterTenantShopIds: TEST_TENANT_SHOP_IDS,
         shopId: "shop-1",
       }),
     ).rejects.toThrow(AuthorizationError);
@@ -31,6 +33,7 @@ describe("GetSupplierOutstandingUseCase", () => {
     const result = await useCase.execute({
       requesterRole: UserRole.OWNER,
       requesterShopId: null,
+      requesterTenantShopIds: TEST_TENANT_SHOP_IDS,
       shopId: "shop-1",
     });
     expect(result.balances).toEqual([

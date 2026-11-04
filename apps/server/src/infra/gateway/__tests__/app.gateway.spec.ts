@@ -59,18 +59,28 @@ describe("AppGateway", () => {
 
       expect(client.join).toHaveBeenCalledWith(`user:${UUID}`);
       expect(client.join).toHaveBeenCalledWith(`shop:${SHOP_UUID}`);
-      expect(client.join).not.toHaveBeenCalledWith("admin");
+      expect(client.join).not.toHaveBeenCalledWith(expect.stringMatching(/^tenant-admins:/));
       expect(client.data.user).toEqual(staffUser);
     });
 
-    it("joins admin room for OWNER", async () => {
-      adapter.authenticate.mockResolvedValue(ownerUser);
+    it("joins only their own tenant's admin room for OWNER", async () => {
+      adapter.authenticate.mockResolvedValue({ ...ownerUser, tenantId: "tenant-1" });
 
       const client = makeFakeSocket();
       await gateway.handleConnection(client);
 
       expect(client.join).toHaveBeenCalledWith(`user:${UUID}`);
-      expect(client.join).toHaveBeenCalledWith("admin");
+      expect(client.join).toHaveBeenCalledWith("tenant-admins:tenant-1");
+      expect(client.join).not.toHaveBeenCalledWith("admin");
+    });
+
+    it("joins no admin room for an OWNER/MANAGER without a tenant", async () => {
+      adapter.authenticate.mockResolvedValue({ ...ownerUser, tenantId: null });
+
+      const client = makeFakeSocket();
+      await gateway.handleConnection(client);
+
+      expect(client.join).not.toHaveBeenCalledWith(expect.stringMatching(/^tenant-admins:/));
     });
 
     it("disconnects when authentication fails", async () => {
@@ -133,18 +143,19 @@ describe("AppGateway", () => {
     });
   });
 
-  describe("emitToAdmins", () => {
-    it("emits a validated envelope to the admin room", () => {
+  describe("emitToTenantAdmins", () => {
+    it("emits a validated envelope to that tenant's admin room only", () => {
       const server = (gateway as any).server;
-      gateway.emitToAdmins(SOCKET_EVENTS.LICENSE_EXPIRING, {
+      gateway.emitToTenantAdmins("tenant-1", SOCKET_EVENTS.LICENSE_EXPIRING, {
         licenseId: "123e4567-e89b-12d3-a456-426614174003",
         productName: "Test",
         expiryDate: new Date("2026-12-31"),
         daysRemaining: 5,
       });
 
-      expect(server.to).toHaveBeenCalledWith("admin");
-      const envelope: SocketEventEnvelope<unknown> = server.to("admin").emit.mock.calls[0][1];
+      expect(server.to).toHaveBeenCalledWith("tenant-admins:tenant-1");
+      const envelope: SocketEventEnvelope<unknown> =
+        server.to("tenant-admins:tenant-1").emit.mock.calls[0][1];
       expect(envelope.shopId).toBeNull();
     });
   });

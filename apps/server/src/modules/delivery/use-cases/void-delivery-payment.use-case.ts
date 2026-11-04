@@ -1,6 +1,7 @@
 // modules/delivery/use-cases/void-delivery-payment.use-case.ts
 import { Injectable } from "@nestjs/common";
 import { UserRole } from "@tapt-api/db";
+import { canAccessShop, requesterScope } from "../../../common/domain/shop-access";
 import { AuthorizationError, BusinessRuleError, NotFoundError } from "../../../common/errors";
 import { type DeliveryResult, toDeliveryResult } from "../mappers/delivery.mapper";
 import {
@@ -14,6 +15,7 @@ export interface VoidDeliveryPaymentInput {
   requesterId: string;
   requesterRole: UserRole;
   requesterShopId: string | null;
+  requesterTenantShopIds?: readonly string[];
   paymentId: string;
   voidReason: string;
 }
@@ -35,7 +37,7 @@ export class VoidDeliveryPaymentUseCase {
     const delivery = await this.deliveryRepository.findById(payment.deliveryId);
     if (!delivery) throw new NotFoundError("Delivery", payment.deliveryId);
 
-    if (input.requesterRole === UserRole.STAFF && input.requesterShopId !== delivery.shopId) {
+    if (!canAccessShop(requesterScope(input), delivery.shopId)) {
       throw new AuthorizationError("Access denied for this delivery");
     }
 

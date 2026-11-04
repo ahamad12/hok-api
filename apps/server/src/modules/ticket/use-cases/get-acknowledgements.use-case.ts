@@ -1,6 +1,7 @@
 // apps/server/src/modules/ticket/use-cases/get-acknowledgements.use-case.ts
 import { Injectable } from "@nestjs/common";
 import { UserRole } from "@tapt-api/db";
+import { canAccessShop } from "../../../common/domain/shop-access";
 import { AuthorizationError, BusinessRuleError } from "../../../common/errors";
 import type { RequestUser } from "../../../common/types/request-user.interface";
 import { UserRepository } from "../../auth/repositories/user.repository";
@@ -21,7 +22,9 @@ export class GetAcknowledgementsUseCase {
       throw new BusinessRuleError("ISSUE tickets do not have an audience roster");
     if (requester.role === UserRole.STAFF)
       throw new AuthorizationError("STAFF cannot view the acknowledgement roster");
-    // No shop check — MANAGER views any shop's roster.
+    if (!canAccessShop(requester, ticket.shopId)) {
+      throw new AuthorizationError("Cannot view tickets outside your business");
+    }
 
     const members = await this.userRepo.findActiveByShop(ticket.shopId, ticket.createdById);
     const acked = await this.ackRepo.findByTicketId(ticketId);

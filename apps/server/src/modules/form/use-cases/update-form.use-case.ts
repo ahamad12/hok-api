@@ -1,6 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import type { FormField } from "@tapt-api/api/contracts/form.contract";
 import { UserRole } from "@tapt-api/db";
+import { canAccessShop } from "../../../common/domain/shop-access";
 import { AuthorizationError, BusinessRuleError } from "../../../common/errors";
 import type { RequestUser } from "../../../common/types/request-user.interface";
 import { FormRepository } from "../repositories/form.repository";
@@ -21,7 +22,10 @@ export class UpdateFormUseCase {
       throw new AuthorizationError("Only OWNER/MANAGER can update forms");
     }
 
-    await this.formRepo.findByIdOrThrow(formId); // 404 before attempting the write
+    const form = await this.formRepo.findByIdOrThrow(formId); // 404 before attempting the write
+    if (!canAccessShop(requester, form.shopId)) {
+      throw new AuthorizationError("Cannot update forms outside your business");
+    }
 
     if (input.schema) {
       const names = new Set(input.schema.map((f) => f.name));

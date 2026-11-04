@@ -2,8 +2,8 @@ import { Injectable } from "@nestjs/common";
 import { EventEmitter2 } from "@nestjs/event-emitter";
 import type { FormField } from "@tapt-api/api/contracts/form.contract";
 import { SOCKET_EVENTS } from "@tapt-api/api/events";
-import { UserRole } from "@tapt-api/db";
 import { validateAnswersAgainstSchema } from "../../../common/domain/form-answer-validation";
+import { canAccessShop } from "../../../common/domain/shop-access";
 import { AuthorizationError, BusinessRuleError } from "../../../common/errors";
 import { FormValidationError } from "../../../common/errors/form-validation.error";
 import type { RequestUser } from "../../../common/types/request-user.interface";
@@ -27,7 +27,7 @@ export class SubmitFormUseCase {
 
     // STAFF shop-scoped; OWNER/MANAGER system-wide (e.g. testing a form
     // before publishing it to their staff).
-    if (requester.role === UserRole.STAFF && requester.shopId !== form.shopId) {
+    if (!canAccessShop(requester, form.shopId)) {
       throw new AuthorizationError("Cannot submit a form outside your shop");
     }
 

@@ -1,4 +1,4 @@
-// common/domain/user-role-invariants.ts — unchanged, this file was already solid
+// common/domain/user-role-invariants.ts — the one source of role/shop/tenant rules.
 import { UserRole } from "@tapt-api/db";
 import { BusinessRuleError } from "../errors";
 
@@ -6,10 +6,13 @@ export interface UserRoleAssignmentInput {
   role: UserRole;
   shopId: string | null;
   isSupervisor: boolean;
+  /** Tenant owner. Checked only when given (writes that set it: sign-up,
+   *  invitation acceptance); omit when validating an existing user's role. */
+  ownerId?: string | null;
 }
 
 export interface UserRoleInvariantViolation {
-  field: "role" | "shopId" | "isSupervisor";
+  field: "role" | "shopId" | "isSupervisor" | "ownerId";
   message: string;
 }
 
@@ -29,8 +32,19 @@ export function checkUserRoleInvariants(
   if (input.role === UserRole.MANAGER && input.shopId) {
     violations.push({
       field: "shopId",
-      message: "Managers have system-wide access and cannot be assigned to specific shops",
+      message: "Managers manage the whole business and cannot be assigned to specific shops",
     });
+  }
+  if (input.ownerId !== undefined) {
+    if (input.role === UserRole.OWNER && input.ownerId !== null) {
+      violations.push({ field: "ownerId", message: "Owners cannot belong to another business" });
+    }
+    if (input.role !== UserRole.OWNER && !input.ownerId) {
+      violations.push({
+        field: "ownerId",
+        message: "Managers and staff must belong to a business",
+      });
+    }
   }
   return violations;
 }

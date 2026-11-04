@@ -8,6 +8,7 @@ import {
   buildDeliveryWithRelations,
 } from "../../../../test/fixtures/delivery.fixture";
 import { buildDeliveryPayment } from "../../../../test/fixtures/delivery-payment.fixture";
+import { TEST_TENANT_SHOP_IDS } from "../../../../test/fixtures/request-user.fixture";
 import { VoidDeliveryPaymentUseCase } from "../void-delivery-payment.use-case";
 
 describe("VoidDeliveryPaymentUseCase", () => {
@@ -19,6 +20,7 @@ describe("VoidDeliveryPaymentUseCase", () => {
     requesterId: "owner-1",
     requesterRole: UserRole.OWNER,
     requesterShopId: null,
+    requesterTenantShopIds: TEST_TENANT_SHOP_IDS,
     paymentId: "payment-1",
     voidReason: "duplicate entry",
   };

@@ -3,6 +3,7 @@ import { UserRole } from "@tapt-api/db";
 import { describe, expect, it, vi } from "vitest";
 import { AuthorizationError, BusinessRuleError } from "../../../../common/errors";
 import { FormValidationError } from "../../../../common/errors/form-validation.error";
+import { TEST_TENANT_SHOP_IDS } from "../../../../test/fixtures/request-user.fixture";
 import { SubmitFormUseCase } from "../submit-form.use-case";
 
 const activeForm = {
@@ -23,7 +24,12 @@ function setup() {
 describe("SubmitFormUseCase", () => {
   const staffSameShop = { userId: "u1", role: UserRole.STAFF, shopId: "shop-1" };
   const staffOtherShop = { userId: "u2", role: UserRole.STAFF, shopId: "shop-2" };
-  const owner = { userId: "u3", role: UserRole.OWNER, shopId: "shop-999" };
+  const owner = {
+    userId: "u3",
+    role: UserRole.OWNER,
+    shopId: "shop-999",
+    tenantShopIds: TEST_TENANT_SHOP_IDS,
+  };
 
   it("throws BusinessRuleError when the form is inactive", async () => {
     const { useCase, formRepo } = setup();

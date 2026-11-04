@@ -2,6 +2,7 @@
 import { UserRole } from "@tapt-api/db";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { AuthorizationError, BusinessRuleError, NotFoundError } from "../../../../common/errors";
+import { TEST_TENANT_SHOP_IDS } from "../../../../test/fixtures/request-user.fixture";
 import { buildShop } from "../../../../test/fixtures/shop.fixture";
 import { buildTask } from "../../../../test/fixtures/task.fixture";
 import { buildUser } from "../../../../test/fixtures/user.fixture";
@@ -18,6 +19,7 @@ describe("CreateTaskUseCase", () => {
     requesterId: "owner-1",
     requesterRole: UserRole.OWNER,
     requesterShopId: null,
+    requesterTenantShopIds: TEST_TENANT_SHOP_IDS,
     shopId: "shop-1",
     title: "Stock check",
   };

@@ -7,6 +7,7 @@ import {
   ConflictError,
   NotFoundError,
 } from "../../../../common/errors";
+import { TEST_TENANT_SHOP_IDS } from "../../../../test/fixtures/request-user.fixture";
 import {
   buildScratchGame,
   buildScratchPack,
@@ -28,6 +29,7 @@ describe("RecordScratchScanUseCase", () => {
     requesterId: "staff-1",
     requesterRole: UserRole.STAFF,
     requesterShopId: "shop-1",
+    requesterTenantShopIds: TEST_TENANT_SHOP_IDS,
     packId: "pack-1",
     scanDate: new Date("2026-07-30T00:00:00.000Z"),
     shiftPeriod: "MORNING" as const,

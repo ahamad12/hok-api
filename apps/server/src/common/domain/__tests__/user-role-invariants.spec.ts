@@ -112,3 +112,52 @@ describe("assertValidUserRoleAssignment", () => {
     }
   });
 });
+
+describe("checkUserRoleInvariants — tenant ownership", () => {
+  it("accepts an OWNER with no owner and STAFF/MANAGER with one", () => {
+    expect(
+      checkUserRoleInvariants({
+        role: UserRole.OWNER,
+        shopId: null,
+        isSupervisor: false,
+        ownerId: null,
+      }),
+    ).toEqual([]);
+    expect(
+      checkUserRoleInvariants({
+        role: UserRole.MANAGER,
+        shopId: null,
+        isSupervisor: false,
+        ownerId: "o1",
+      }),
+    ).toEqual([]);
+  });
+
+  it("rejects an OWNER that belongs to another business", () => {
+    expect(
+      checkUserRoleInvariants({
+        role: UserRole.OWNER,
+        shopId: null,
+        isSupervisor: false,
+        ownerId: "o1",
+      }),
+    ).toEqual([expect.objectContaining({ field: "ownerId" })]);
+  });
+
+  it("rejects STAFF/MANAGER with no business", () => {
+    expect(
+      checkUserRoleInvariants({
+        role: UserRole.STAFF,
+        shopId: null,
+        isSupervisor: false,
+        ownerId: null,
+      }),
+    ).toEqual([expect.objectContaining({ field: "ownerId" })]);
+  });
+
+  it("skips the tenant rule when ownerId is not given", () => {
+    expect(
+      checkUserRoleInvariants({ role: UserRole.STAFF, shopId: null, isSupervisor: false }),
+    ).toEqual([]);
+  });
+});

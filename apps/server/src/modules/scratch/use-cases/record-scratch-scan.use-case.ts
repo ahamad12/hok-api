@@ -1,5 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import { UserRole } from "@tapt-api/db";
+import { canAccessShop, requesterScope } from "../../../common/domain/shop-access";
 import {
   AuthorizationError,
   BusinessRuleError,
@@ -18,6 +19,7 @@ export interface RecordScratchScanInput {
   requesterId: string;
   requesterRole: UserRole;
   requesterShopId: string | null;
+  requesterTenantShopIds?: readonly string[];
   packId: string;
   scanDate: Date;
   shiftPeriod: "MORNING" | "EVENING";
@@ -36,7 +38,7 @@ export class RecordScratchScanUseCase {
     const pack = await this.scratchPackRepository.findById(input.packId);
     if (!pack) throw new NotFoundError("ScratchPack", input.packId);
 
-    if (input.requesterRole === UserRole.STAFF && input.requesterShopId !== pack.shopId) {
+    if (!canAccessShop(requesterScope(input), pack.shopId)) {
       throw new AuthorizationError("Access denied for this pack");
     }
 

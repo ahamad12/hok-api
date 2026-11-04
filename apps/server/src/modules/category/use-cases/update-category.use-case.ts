@@ -1,6 +1,7 @@
 // modules/category/use-cases/update-category.use-case.ts
 import { Injectable } from "@nestjs/common";
 import { UserRole } from "@tapt-api/db";
+import { canAccessShop, requesterScope } from "../../../common/domain/shop-access";
 import { AuthorizationError, NotFoundError } from "../../../common/errors";
 import { type CategoryResult, toCategoryResult } from "../mappers/category.mapper";
 import { CategoryRepository } from "../repositories/category.repository";
@@ -8,6 +9,7 @@ import { CategoryRepository } from "../repositories/category.repository";
 export interface UpdateCategoryInput {
   requesterRole: UserRole;
   requesterShopId: string | null;
+  requesterTenantShopIds?: readonly string[];
   categoryId: string;
   name?: string;
   description?: string | null;
@@ -22,7 +24,7 @@ export class UpdateCategoryUseCase {
     const category = await this.categoryRepository.findById(input.categoryId);
     if (!category) throw new NotFoundError("Category", input.categoryId);
 
-    if (input.requesterRole === UserRole.STAFF && input.requesterShopId !== category.shopId) {
+    if (!canAccessShop(requesterScope(input), category.shopId)) {
       throw new AuthorizationError("Access denied for this category");
     }
 

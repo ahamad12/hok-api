@@ -3,6 +3,7 @@
 import { UserRole } from "@tapt-api/db";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { AuthorizationError, ConflictError, NotFoundError } from "../../../../common/errors";
+import { TEST_TENANT_SHOP_IDS } from "../../../../test/fixtures/request-user.fixture";
 import { buildScratchGame, buildScratchPack } from "../../../../test/fixtures/scratch.fixture";
 import { buildShop } from "../../../../test/fixtures/shop.fixture";
 import { ReceiveScratchPackUseCase } from "../receive-scratch-pack.use-case";
@@ -17,6 +18,7 @@ describe("ReceiveScratchPackUseCase", () => {
     requesterId: "staff-1",
     requesterRole: UserRole.STAFF,
     requesterShopId: "shop-1",
+    requesterTenantShopIds: TEST_TENANT_SHOP_IDS,
     shopId: "shop-1",
     gameId: "game-1",
     serialStart: "000",
@@ -42,7 +44,12 @@ describe("ReceiveScratchPackUseCase", () => {
 
   it("allows OWNER/MANAGER to receive for any shop", async () => {
     await expect(
-      useCase.execute({ ...input, requesterRole: UserRole.OWNER, requesterShopId: null }),
+      useCase.execute({
+        ...input,
+        requesterRole: UserRole.OWNER,
+        requesterShopId: null,
+        requesterTenantShopIds: TEST_TENANT_SHOP_IDS,
+      }),
     ).resolves.toBeDefined();
   });
 

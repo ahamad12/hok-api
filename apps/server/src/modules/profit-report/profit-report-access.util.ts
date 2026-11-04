@@ -1,4 +1,5 @@
 import { UserRole } from "@tapt-api/db";
+import { canAccessShop } from "../../common/domain/shop-access";
 import { AuthorizationError } from "../../common/errors";
 import type { RequestUser } from "../../common/types/request-user.interface";
 
@@ -14,7 +15,7 @@ export function assertProfitReportAccess(requester: RequestUser, shopId: string)
   if (!isAuthorized) {
     throw new AuthorizationError("Only a supervisor, manager, or owner can access P&L reports");
   }
-  if (requester.role === UserRole.STAFF && requester.shopId !== shopId) {
+  if (!canAccessShop(requester, shopId)) {
     throw new AuthorizationError("Cannot access a report outside your shop");
   }
 }

@@ -1,6 +1,7 @@
 // modules/supplier/use-cases/update-supplier.use-case.ts
 import { Injectable } from "@nestjs/common";
 import { UserRole } from "@tapt-api/db";
+import { canAccessShop, requesterScope } from "../../../common/domain/shop-access";
 import { AuthorizationError, BusinessRuleError, NotFoundError } from "../../../common/errors";
 import { CategoryRepository } from "../../category/repositories/category.repository";
 import { type SupplierResult, toSupplierResult } from "../mappers/supplier.mapper";
@@ -9,6 +10,7 @@ import { SupplierRepository } from "../repositories/supplier.repository";
 export interface UpdateSupplierInput {
   requesterRole: UserRole;
   requesterShopId: string | null;
+  requesterTenantShopIds?: readonly string[];
   supplierId: string;
   categoryId?: string;
   name?: string;
@@ -28,7 +30,7 @@ export class UpdateSupplierUseCase {
     const supplier = await this.supplierRepository.findById(input.supplierId);
     if (!supplier) throw new NotFoundError("Supplier", input.supplierId);
 
-    if (input.requesterRole === UserRole.STAFF && input.requesterShopId !== supplier.shopId) {
+    if (!canAccessShop(requesterScope(input), supplier.shopId)) {
       throw new AuthorizationError("Access denied for this supplier");
     }
 

@@ -1,5 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import { UserRole } from "@tapt-api/db";
+import { canAccessShop, requesterScope } from "../../../common/domain/shop-access";
 import { AuthorizationError, NotFoundError } from "../../../common/errors";
 import { ShopRepository } from "../../shop/repositories/shop.repository";
 import { type ScratchPackResult, toScratchPackResult } from "../mappers/scratch-pack.mapper";
@@ -10,6 +11,7 @@ export interface ReceiveScratchPackInput {
   requesterId: string;
   requesterRole: UserRole;
   requesterShopId: string | null;
+  requesterTenantShopIds?: readonly string[];
   shopId: string;
   gameId: string;
   serialStart: string;
@@ -25,7 +27,7 @@ export class ReceiveScratchPackUseCase {
   ) {}
 
   async execute(input: ReceiveScratchPackInput): Promise<ScratchPackResult> {
-    if (input.requesterRole === UserRole.STAFF && input.requesterShopId !== input.shopId) {
+    if (!canAccessShop(requesterScope(input), input.shopId)) {
       throw new AuthorizationError("You can only receive packs for your own shop");
     }
 

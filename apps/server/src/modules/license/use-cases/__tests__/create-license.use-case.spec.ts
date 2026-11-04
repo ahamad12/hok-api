@@ -7,6 +7,7 @@ import {
   NotFoundError,
 } from "../../../../common/errors";
 import { buildLicense } from "../../../../test/fixtures/license.fixture";
+import { TEST_TENANT_SHOP_IDS } from "../../../../test/fixtures/request-user.fixture";
 import { buildShop } from "../../../../test/fixtures/shop.fixture";
 import { CreateLicenseUseCase } from "../create-license.use-case";
 
@@ -19,6 +20,7 @@ describe("CreateLicenseUseCase", () => {
     requesterId: "owner-1",
     requesterRole: UserRole.OWNER,
     requesterShopId: null,
+    requesterTenantShopIds: TEST_TENANT_SHOP_IDS,
     shopId: "shop-1",
     productName: "Tobacco Retail License",
     licenseNumber: "TB-2026-001",

@@ -46,6 +46,7 @@ export class DeliveryController {
         requesterId: user.userId,
         requesterRole: user.role,
         requesterShopId: user.shopId,
+        requesterTenantShopIds: user.tenantShopIds,
         ...body,
       });
       return { status: 201 as const, body: result };
@@ -63,6 +64,7 @@ export class DeliveryController {
       const result = await this.getDeliveriesUseCase.execute({
         requesterRole: user.role,
         requesterShopId: user.shopId,
+        requesterTenantShopIds: user.tenantShopIds,
         ...query,
       });
       return { status: 200 as const, body: result };
@@ -76,6 +78,7 @@ export class DeliveryController {
       const result = await this.getSupplierOutstandingUseCase.execute({
         requesterRole: user.role,
         requesterShopId: user.shopId,
+        requesterTenantShopIds: user.tenantShopIds,
         shopId: query.shopId,
       });
       return { status: 200 as const, body: result };
@@ -89,6 +92,7 @@ export class DeliveryController {
       const result = await this.getDeliveryByIdUseCase.execute({
         requesterRole: user.role,
         requesterShopId: user.shopId,
+        requesterTenantShopIds: user.tenantShopIds,
         deliveryId: params.id,
       });
       return { status: 200 as const, body: result };
@@ -112,6 +116,7 @@ export class DeliveryController {
         requesterId: user.userId,
         requesterRole: user.role,
         requesterShopId: user.shopId,
+        requesterTenantShopIds: user.tenantShopIds,
         deliveryId: params.id,
         ...body,
       });
@@ -133,6 +138,7 @@ export class DeliveryController {
         requesterId: user.userId,
         requesterRole: user.role,
         requesterShopId: user.shopId,
+        requesterTenantShopIds: user.tenantShopIds,
         paymentId: params.paymentId,
         ...body,
       });
@@ -154,6 +160,7 @@ export class DeliveryController {
         requesterId: user.userId,
         requesterRole: user.role,
         requesterShopId: user.shopId,
+        requesterTenantShopIds: user.tenantShopIds,
         deliveryId: params.id,
         ...body,
       });

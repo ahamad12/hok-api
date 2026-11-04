@@ -2,6 +2,7 @@ import { Injectable } from "@nestjs/common";
 import { EventEmitter2 } from "@nestjs/event-emitter";
 import { SOCKET_EVENTS } from "@tapt-api/api/events";
 import { UserRole } from "@tapt-api/db";
+import { canAccessShop } from "../../../common/domain/shop-access";
 import { AuthorizationError, BusinessRuleError } from "../../../common/errors";
 import type { RequestUser } from "../../../common/types/request-user.interface";
 import { ProfitReportRepository } from "../repositories/profit-report.repository";
@@ -20,6 +21,9 @@ export class VoidProfitReportUseCase {
     }
 
     const report = await this.reportRepo.findByIdOrThrow(id);
+    if (!canAccessShop(requester, report.shopId)) {
+      throw new AuthorizationError("Cannot void a report outside your business");
+    }
     if (report.voidedAt) throw new BusinessRuleError("Report is already voided");
 
     const affected = await this.reportRepo.voidIfNotVoided(id, {

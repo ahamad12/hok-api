@@ -4,6 +4,7 @@ import { UserRole } from "@tapt-api/db";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { AuthorizationError, BusinessRuleError, NotFoundError } from "../../../../common/errors";
 import { buildCategory } from "../../../../test/fixtures/category.fixture";
+import { TEST_TENANT_SHOP_IDS } from "../../../../test/fixtures/request-user.fixture";
 import { buildShop } from "../../../../test/fixtures/shop.fixture";
 import { buildSupplier } from "../../../../test/fixtures/supplier.fixture";
 import { CreateSupplierUseCase } from "../create-supplier.use-case";
@@ -17,6 +18,7 @@ describe("CreateSupplierUseCase", () => {
   const input = {
     requesterRole: UserRole.STAFF,
     requesterShopId: "shop-1",
+    requesterTenantShopIds: TEST_TENANT_SHOP_IDS,
     shopId: "shop-1",
     categoryId: "category-1",
     name: "Acme Wholesale",

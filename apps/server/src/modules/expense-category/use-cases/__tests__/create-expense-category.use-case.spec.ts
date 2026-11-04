@@ -2,7 +2,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { AuthorizationError, BusinessRuleError, ConflictError } from "../../../../common/errors";
 import { buildExpenseCategory } from "../../../../test/fixtures/expense-category.fixture";
-import { buildRequestUser } from "../../../../test/fixtures/request-user.fixture";
+import { buildRequestUser, FOREIGN_SHOP_ID } from "../../../../test/fixtures/request-user.fixture";
 import { buildShop } from "../../../../test/fixtures/shop.fixture";
 import { CreateExpenseCategoryUseCase } from "../create-expense-category.use-case";
 
@@ -38,10 +38,19 @@ describe("CreateExpenseCategoryUseCase", () => {
     ).resolves.toBeDefined();
   });
 
-  it("allows creating a global category (shopId: null) without a shop lookup", async () => {
+  it("refuses shop-less (shared) categories: those span every tenant and are system-managed", async () => {
     const requester = buildRequestUser({ role: "OWNER", shopId: null });
-    await useCase.execute(requester, { shopId: null, name: "Global Category" });
+    await expect(
+      useCase.execute(requester, { shopId: null, name: "Global Category" }),
+    ).rejects.toThrow(BusinessRuleError);
     expect(shopRepo.findById).not.toHaveBeenCalled();
+  });
+
+  it("refuses a shop from another tenant", async () => {
+    const requester = buildRequestUser({ role: "OWNER", shopId: null });
+    await expect(
+      useCase.execute(requester, { shopId: FOREIGN_SHOP_ID, name: "X" }),
+    ).rejects.toThrow(AuthorizationError);
   });
 
   it("throws BusinessRuleError when the target shop doesn't exist", async () => {

@@ -1,6 +1,12 @@
 import { Injectable } from "@nestjs/common";
 import type { UserRole } from "@tapt-api/db";
-import { BusinessRuleError, ConflictError, NotFoundError } from "../../../common/errors";
+import { canAccessShop, requesterScope } from "../../../common/domain/shop-access";
+import {
+  AuthorizationError,
+  BusinessRuleError,
+  ConflictError,
+  NotFoundError,
+} from "../../../common/errors";
 import {
   type ScratchScanEventResult,
   toScratchScanEventResult,
@@ -10,6 +16,8 @@ import { ScratchScanEventRepository } from "../repositories/scratch-scan-event.r
 export interface VoidScratchScanInput {
   requesterId: string;
   requesterRole: UserRole; // route restricts this to OWNER/MANAGER via @Roles — mirrors till's reverse endpoint
+  requesterShopId: string | null;
+  requesterTenantShopIds?: readonly string[];
   scanId: string;
   voidReason: string;
 }
@@ -21,6 +29,9 @@ export class VoidScratchScanUseCase {
   async execute(input: VoidScratchScanInput): Promise<ScratchScanEventResult> {
     const scan = await this.scratchScanEventRepository.findById(input.scanId);
     if (!scan) throw new NotFoundError("ScratchScanEvent", input.scanId);
+    if (!canAccessShop(requesterScope(input), scan.shopId)) {
+      throw new AuthorizationError("Cannot void scans outside your business");
+    }
 
     if (scan.voidedAt) {
       throw new ConflictError("This scan has already been voided");

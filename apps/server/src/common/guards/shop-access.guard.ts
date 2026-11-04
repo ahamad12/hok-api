@@ -6,9 +6,9 @@ import {
   Injectable,
 } from "@nestjs/common";
 import { Reflector } from "@nestjs/core";
-import { UserRole } from "@tapt-api/db";
 import type { Request } from "express";
 import { SHOP_ACCESS_PARAM_KEY } from "../decorators";
+import { canAccessShop } from "../domain/shop-access";
 import type { RequestUser } from "../types/request-user.interface";
 
 @Injectable()
@@ -32,17 +32,14 @@ export class ShopAccessGuard implements CanActivate {
       throw new ForbiddenException("No authenticated user found");
     }
 
-    if (user.role === UserRole.OWNER || user.role === UserRole.MANAGER) {
-      return true;
-    }
-
     const targetShopId = request.params[paramKey];
 
-    if (!targetShopId) {
+    if (typeof targetShopId !== "string" || targetShopId.length === 0) {
       throw new BadRequestException("Missing shop ID parameter");
     }
 
-    if (user.shopId !== targetShopId) {
+    // STAFF: own shop only. OWNER/MANAGER: shops of their tenant only.
+    if (!canAccessShop(user, targetShopId)) {
       throw new ForbiddenException("Access denied for this shop");
     }
 

@@ -2,6 +2,7 @@ import type { FormField } from "@tapt-api/api/contracts/form.contract";
 import { UserRole } from "@tapt-api/db";
 import { describe, expect, it, vi } from "vitest";
 import { AuthorizationError, BusinessRuleError } from "../../../../common/errors";
+import { TEST_TENANT_SHOP_IDS } from "../../../../test/fixtures/request-user.fixture";
 import { CreateFormUseCase } from "../create-form.use-case";
 
 const staffField: FormField = { type: "text", name: "note", label: "Note", required: true };
@@ -14,7 +15,12 @@ function setup() {
 }
 
 describe("CreateFormUseCase", () => {
-  const requesterOwner = { userId: "u1", role: UserRole.OWNER, shopId: "shop-1" };
+  const requesterOwner = {
+    userId: "u1",
+    role: UserRole.OWNER,
+    shopId: "shop-1",
+    tenantShopIds: TEST_TENANT_SHOP_IDS,
+  };
   const requesterStaff = { userId: "u2", role: UserRole.STAFF, shopId: "shop-1" };
 
   it("throws AuthorizationError for STAFF", async () => {
@@ -90,11 +96,19 @@ describe("CreateFormUseCase", () => {
     shopRepo.findById.mockResolvedValue({ id: "shop-1", isActive: true });
     formRepo.create.mockResolvedValue({ id: "form-2" });
     await expect(
-      useCase.execute({ userId: "u3", role: UserRole.MANAGER, shopId: "shop-1" } as any, {
-        shopId: "shop-1",
-        title: "T",
-        schema: [staffField],
-      }),
+      useCase.execute(
+        {
+          userId: "u3",
+          role: UserRole.MANAGER,
+          shopId: "shop-1",
+          tenantShopIds: TEST_TENANT_SHOP_IDS,
+        } as any,
+        {
+          shopId: "shop-1",
+          title: "T",
+          schema: [staffField],
+        },
+      ),
     ).resolves.toBeDefined();
     expect(formRepo.create).toHaveBeenCalled();
   });

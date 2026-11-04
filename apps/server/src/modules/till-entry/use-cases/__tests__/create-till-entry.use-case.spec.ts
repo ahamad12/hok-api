@@ -3,6 +3,7 @@
 import { UserRole } from "@tapt-api/db";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { AuthorizationError, NotFoundError } from "../../../../common/errors";
+import { TEST_TENANT_SHOP_IDS } from "../../../../test/fixtures/request-user.fixture";
 import { buildShop } from "../../../../test/fixtures/shop.fixture";
 import { buildTillEntry } from "../../../../test/fixtures/till-entry.fixture";
 import { CreateTillEntryUseCase } from "../create-till-entry.use-case";
@@ -16,6 +17,7 @@ describe("CreateTillEntryUseCase", () => {
     requesterId: "staff-1",
     requesterRole: UserRole.STAFF,
     requesterShopId: "shop-1",
+    requesterTenantShopIds: TEST_TENANT_SHOP_IDS,
     shopId: "shop-1",
     category: "SALES" as const,
     amount: 5000,
@@ -37,7 +39,12 @@ describe("CreateTillEntryUseCase", () => {
 
   it("allows OWNER/MANAGER to record for any shop", async () => {
     await expect(
-      useCase.execute({ ...input, requesterRole: UserRole.OWNER, requesterShopId: null }),
+      useCase.execute({
+        ...input,
+        requesterRole: UserRole.OWNER,
+        requesterShopId: null,
+        requesterTenantShopIds: TEST_TENANT_SHOP_IDS,
+      }),
     ).resolves.toBeDefined();
   });
 

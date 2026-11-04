@@ -1,6 +1,7 @@
 // modules/till-entry/use-cases/create-till-entry.use-case.ts
 import { Injectable } from "@nestjs/common";
 import { type TillEntryCategory, UserRole } from "@tapt-api/db";
+import { canAccessShop, requesterScope } from "../../../common/domain/shop-access";
 import { AuthorizationError, NotFoundError } from "../../../common/errors";
 import { ShopRepository } from "../../shop/repositories/shop.repository";
 import { type TillEntryResult, toTillEntryResult } from "../mappers/till-entry.mapper";
@@ -10,6 +11,7 @@ export interface CreateTillEntryInput {
   requesterId: string;
   requesterRole: UserRole;
   requesterShopId: string | null;
+  requesterTenantShopIds?: readonly string[];
   shopId: string;
   category: TillEntryCategory;
   amount: number;
@@ -30,7 +32,7 @@ export class CreateTillEntryUseCase {
   ) {}
 
   async execute(input: CreateTillEntryInput): Promise<TillEntryResult> {
-    if (input.requesterRole === UserRole.STAFF && input.requesterShopId !== input.shopId) {
+    if (!canAccessShop(requesterScope(input), input.shopId)) {
       throw new AuthorizationError("You can only record till entries for your own shop");
     }
 

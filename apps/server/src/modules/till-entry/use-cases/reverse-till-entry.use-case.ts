@@ -1,6 +1,7 @@
 // modules/till-entry/use-cases/reverse-till-entry.use-case.ts
 import { Injectable } from "@nestjs/common";
 import { UserRole } from "@tapt-api/db";
+import { canAccessShop, requesterScope } from "../../../common/domain/shop-access";
 import { AuthorizationError, BusinessRuleError, NotFoundError } from "../../../common/errors";
 import { type TillEntryResult, toTillEntryResult } from "../mappers/till-entry.mapper";
 import { TillEntryRepository } from "../repositories/till-entry.repository";
@@ -9,6 +10,7 @@ export interface ReverseTillEntryInput {
   requesterId: string;
   requesterRole: UserRole;
   requesterShopId: string | null;
+  requesterTenantShopIds?: readonly string[];
   entryId: string;
   correctionReason: string;
   description?: string;
@@ -22,7 +24,7 @@ export class ReverseTillEntryUseCase {
     const original = await this.tillEntryRepository.findById(input.entryId);
     if (!original) throw new NotFoundError("TillEntry", input.entryId);
 
-    if (input.requesterRole === UserRole.STAFF && input.requesterShopId !== original.shopId) {
+    if (!canAccessShop(requesterScope(input), original.shopId)) {
       throw new AuthorizationError("Access denied for this entry");
     }
 

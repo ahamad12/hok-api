@@ -8,7 +8,7 @@ import type { ServerOptions } from "socket.io";
 /**
  * Without this, Socket.IO's default adapter keeps room membership
  * process-local: io.to(room).emit() only reaches sockets the CURRENT
- * instance accepted. emitToUser/emitToShop/emitToAdmins become silent
+ * instance accepted. emitToUser/emitToShop/emitToTenantAdmins become silent
  * no-ops for any user whose socket landed on a different pod. This adapter
  * makes every emit publish over Redis pub/sub so all instances fan out to
  * their own local sockets — this is what makes the multi-instance case

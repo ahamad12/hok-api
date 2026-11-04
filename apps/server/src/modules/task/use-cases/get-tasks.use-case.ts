@@ -1,6 +1,7 @@
 // apps/server/src/modules/task/use-cases/get-tasks.use-case.ts
 import { Injectable } from "@nestjs/common";
 import { type TaskStatus, UserRole } from "@tapt-api/db";
+import { canAccessShop, requesterScope } from "../../../common/domain/shop-access";
 import { AuthorizationError } from "../../../common/errors";
 import { type TaskResult, toTaskResults } from "../mappers/task.mapper";
 import { TaskRepository } from "../repositories/task.repository";
@@ -8,6 +9,7 @@ import { TaskRepository } from "../repositories/task.repository";
 export interface GetTasksInput {
   requesterRole: UserRole;
   requesterShopId: string | null;
+  requesterTenantShopIds?: readonly string[];
   shopId: string;
   status?: TaskStatus;
   assigneeId?: string;
@@ -22,7 +24,7 @@ export class GetTasksUseCase {
   constructor(private readonly taskRepository: TaskRepository) {}
 
   async execute(input: GetTasksInput): Promise<{ tasks: TaskResult[]; total: number }> {
-    if (input.requesterRole === UserRole.STAFF && input.requesterShopId !== input.shopId) {
+    if (!canAccessShop(requesterScope(input), input.shopId)) {
       throw new AuthorizationError("You can only view tasks for your own shop");
     }
     if (

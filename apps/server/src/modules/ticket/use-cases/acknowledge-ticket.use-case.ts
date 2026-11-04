@@ -2,7 +2,7 @@
 import { Injectable } from "@nestjs/common";
 import { EventEmitter2 } from "@nestjs/event-emitter";
 import { SOCKET_EVENTS } from "@tapt-api/api/events";
-import { UserRole } from "@tapt-api/db";
+import { canAccessShop } from "../../../common/domain/shop-access";
 import { AuthorizationError, BusinessRuleError } from "../../../common/errors";
 import type { RequestUser } from "../../../common/types/request-user.interface";
 import { TicketRepository } from "../repositories/ticket.repository";
@@ -23,7 +23,7 @@ export class AcknowledgeTicketUseCase {
       throw new BusinessRuleError("ISSUE tickets do not use acknowledgements");
     if (!ticket.requiresAck)
       throw new BusinessRuleError("This ticket does not require acknowledgement");
-    if (requester.role === UserRole.STAFF && requester.shopId !== ticket.shopId) {
+    if (!canAccessShop(requester, ticket.shopId)) {
       throw new AuthorizationError("Not targeted by this ticket");
     }
 

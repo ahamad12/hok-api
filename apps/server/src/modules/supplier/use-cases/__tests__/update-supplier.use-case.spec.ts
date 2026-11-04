@@ -4,6 +4,7 @@ import { UserRole } from "@tapt-api/db";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { AuthorizationError, BusinessRuleError, NotFoundError } from "../../../../common/errors";
 import { buildCategory } from "../../../../test/fixtures/category.fixture";
+import { TEST_TENANT_SHOP_IDS } from "../../../../test/fixtures/request-user.fixture";
 import { buildSupplier } from "../../../../test/fixtures/supplier.fixture";
 import { UpdateSupplierUseCase } from "../update-supplier.use-case";
 
@@ -29,6 +30,7 @@ describe("UpdateSupplierUseCase", () => {
       useCase.execute({
         requesterRole: UserRole.OWNER,
         requesterShopId: null,
+        requesterTenantShopIds: TEST_TENANT_SHOP_IDS,
         supplierId: "missing",
       }),
     ).rejects.toThrow(NotFoundError);
@@ -39,6 +41,7 @@ describe("UpdateSupplierUseCase", () => {
       useCase.execute({
         requesterRole: UserRole.STAFF,
         requesterShopId: "other-shop",
+        requesterTenantShopIds: TEST_TENANT_SHOP_IDS,
         supplierId: "supplier-1",
       }),
     ).rejects.toThrow(AuthorizationError);
@@ -50,6 +53,7 @@ describe("UpdateSupplierUseCase", () => {
       useCase.execute({
         requesterRole: UserRole.OWNER,
         requesterShopId: null,
+        requesterTenantShopIds: TEST_TENANT_SHOP_IDS,
         supplierId: "supplier-1",
         categoryId: "missing",
       }),
@@ -64,6 +68,7 @@ describe("UpdateSupplierUseCase", () => {
       useCase.execute({
         requesterRole: UserRole.OWNER,
         requesterShopId: null,
+        requesterTenantShopIds: TEST_TENANT_SHOP_IDS,
         supplierId: "supplier-1",
         categoryId: "category-9",
       }),
@@ -74,6 +79,7 @@ describe("UpdateSupplierUseCase", () => {
     await useCase.execute({
       requesterRole: UserRole.OWNER,
       requesterShopId: null,
+      requesterTenantShopIds: TEST_TENANT_SHOP_IDS,
       supplierId: "supplier-1",
       name: "Acme Updated",
     });
@@ -84,6 +90,7 @@ describe("UpdateSupplierUseCase", () => {
     await useCase.execute({
       requesterRole: UserRole.OWNER,
       requesterShopId: null,
+      requesterTenantShopIds: TEST_TENANT_SHOP_IDS,
       supplierId: "supplier-1",
       isActive: false,
     });
@@ -100,6 +107,7 @@ describe("UpdateSupplierUseCase", () => {
     const result = await useCase.execute({
       requesterRole: UserRole.OWNER,
       requesterShopId: null,
+      requesterTenantShopIds: TEST_TENANT_SHOP_IDS,
       supplierId: "supplier-1",
       name: "Acme Updated",
     });

@@ -2,6 +2,7 @@
 import { Injectable } from "@nestjs/common";
 import { EventEmitter2 } from "@nestjs/event-emitter";
 import { UserRole } from "@tapt-api/db";
+import { canAccessShop, requesterScope } from "../../../common/domain/shop-access";
 import { AuthorizationError, BusinessRuleError, NotFoundError } from "../../../common/errors";
 import { UserRepository } from "../../auth/repositories/user.repository";
 import { ShopRepository } from "../../shop/repositories/shop.repository";
@@ -12,6 +13,7 @@ export interface CreateTaskInput {
   requesterId: string;
   requesterRole: UserRole;
   requesterShopId: string | null;
+  requesterTenantShopIds?: readonly string[];
   shopId: string;
   title: string;
   description?: string;
@@ -32,7 +34,9 @@ export class CreateTaskUseCase {
   ) {}
 
   async execute(input: CreateTaskInput): Promise<TaskResult> {
-    this.assertShopScope(input.requesterRole, input.requesterShopId, input.shopId);
+    if (!canAccessShop(requesterScope(input), input.shopId)) {
+      throw new AuthorizationError("You can only create tasks for your own shop");
+    }
 
     const shop = await this.shopRepository.findById(input.shopId);
     if (!shop || !shop.isActive) throw new NotFoundError("Shop", input.shopId);
@@ -66,21 +70,6 @@ export class CreateTaskUseCase {
     }
 
     return toTaskResult(task);
-  }
-
-  private assertShopScope(
-    role: UserRole,
-    requesterShopId: string | null,
-    targetShopId: string,
-  ): void {
-    if (role === UserRole.STAFF && requesterShopId !== targetShopId) {
-      throw new AuthorizationError("You can only create tasks for your own shop");
-    }
-    // B-guard: no-op today (MANAGER.shopId is always null per current
-    // invariant), activates automatically if MANAGER is later allowed a shopId.
-    if (role === UserRole.MANAGER && requesterShopId && requesterShopId !== targetShopId) {
-      throw new AuthorizationError("You can only create tasks for your assigned shop");
-    }
   }
 
   private async assertValidAssignee(assigneeId: string, shopId: string): Promise<void> {

@@ -1,6 +1,7 @@
 // modules/delivery/use-cases/get-delivery-by-id.use-case.ts
 import { Injectable } from "@nestjs/common";
 import { UserRole } from "@tapt-api/db";
+import { canAccessShop, requesterScope } from "../../../common/domain/shop-access";
 import { AuthorizationError, NotFoundError } from "../../../common/errors";
 import { type DeliveryResult, toDeliveryResult } from "../mappers/delivery.mapper";
 import {
@@ -16,6 +17,7 @@ import { DeliveryRepository } from "../repositories/delivery.repository";
 export interface GetDeliveryByIdInput {
   requesterRole: UserRole;
   requesterShopId: string | null;
+  requesterTenantShopIds?: readonly string[];
   deliveryId: string;
 }
 
@@ -31,7 +33,7 @@ export class GetDeliveryByIdUseCase {
     const delivery = await this.deliveryRepository.findById(input.deliveryId);
     if (!delivery) throw new NotFoundError("Delivery", input.deliveryId);
 
-    if (input.requesterRole === UserRole.STAFF && input.requesterShopId !== delivery.shopId) {
+    if (!canAccessShop(requesterScope(input), delivery.shopId)) {
       throw new AuthorizationError("Access denied for this delivery");
     }
 

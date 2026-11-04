@@ -1,5 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import { UserRole } from "@tapt-api/db";
+import { canAccessShop, requesterScope } from "../../../common/domain/shop-access";
 import { AuthorizationError, NotFoundError } from "../../../common/errors";
 import { ShopRepository } from "../../shop/repositories/shop.repository";
 import { type ScratchGameResult, toScratchGameResult } from "../mappers/scratch-game.mapper";
@@ -8,6 +9,7 @@ import { ScratchGameRepository } from "../repositories/scratch-game.repository";
 export interface CreateScratchGameInput {
   requesterRole: UserRole;
   requesterShopId: string | null;
+  requesterTenantShopIds?: readonly string[];
   shopId: string;
   gameNumber?: string;
   name: string;
@@ -25,7 +27,7 @@ export class CreateScratchGameUseCase {
   async execute(input: CreateScratchGameInput): Promise<ScratchGameResult> {
     // Route restricts this to OWNER/MANAGER (@Roles) — STAFF is still
     // shop-scoped here as defense in depth.
-    if (input.requesterRole === UserRole.STAFF && input.requesterShopId !== input.shopId) {
+    if (!canAccessShop(requesterScope(input), input.shopId)) {
       throw new AuthorizationError("You can only create games for your own shop");
     }
 

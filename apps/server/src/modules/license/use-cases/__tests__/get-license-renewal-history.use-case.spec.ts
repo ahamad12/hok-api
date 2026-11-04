@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { AuthorizationError, NotFoundError } from "../../../../common/errors";
 import { buildLicense } from "../../../../test/fixtures/license.fixture";
 import { buildLicenseRenewal } from "../../../../test/fixtures/license-renewal.fixture";
+import { TEST_TENANT_SHOP_IDS } from "../../../../test/fixtures/request-user.fixture";
 import { GetLicenseRenewalHistoryUseCase } from "../get-license-renewal-history.use-case";
 
 describe("GetLicenseRenewalHistoryUseCase", () => {
@@ -26,6 +27,7 @@ describe("GetLicenseRenewalHistoryUseCase", () => {
       useCase.execute({
         requesterRole: UserRole.OWNER,
         requesterShopId: null,
+        requesterTenantShopIds: TEST_TENANT_SHOP_IDS,
         licenseId: "missing",
       }),
     ).rejects.toThrow(NotFoundError);
@@ -36,6 +38,7 @@ describe("GetLicenseRenewalHistoryUseCase", () => {
       useCase.execute({
         requesterRole: UserRole.STAFF,
         requesterShopId: "other-shop",
+        requesterTenantShopIds: TEST_TENANT_SHOP_IDS,
         licenseId: "license-1",
       }),
     ).rejects.toThrow(AuthorizationError);
@@ -49,6 +52,7 @@ describe("GetLicenseRenewalHistoryUseCase", () => {
     const result = await useCase.execute({
       requesterRole: UserRole.OWNER,
       requesterShopId: null,
+      requesterTenantShopIds: TEST_TENANT_SHOP_IDS,
       licenseId: "license-1",
     });
     expect(result.renewals.map((r) => r.id)).toEqual(["r2", "r1"]);

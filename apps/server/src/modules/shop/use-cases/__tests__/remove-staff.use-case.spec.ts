@@ -13,7 +13,9 @@ describe("RemoveStaffUseCase", () => {
   const input = { requesterId: "owner-1", shopId: "shop-1", userId: "staff-1" };
 
   beforeEach(() => {
-    shopRepository = { findById: vi.fn().mockResolvedValue({ id: "shop-1", isActive: true }) };
+    shopRepository = {
+      findById: vi.fn().mockResolvedValue({ id: "shop-1", isActive: true, ownerId: "owner-1" }),
+    };
     userRepository = { findById: vi.fn(), update: vi.fn() };
     tokenVersionService = { invalidateSessions: vi.fn().mockResolvedValue(1) };
     useCase = new RemoveStaffUseCase(
@@ -57,10 +59,15 @@ describe("RemoveStaffUseCase", () => {
     await expect(useCase.execute(input)).resolves.toBeDefined();
   });
 
-  it("throws AuthorizationError when a MANAGER tries to remove staff from a shop they do not belong to", async () => {
+  it("throws AuthorizationError when a MANAGER from another business tries to remove staff", async () => {
     userRepository.findById.mockImplementation(async (id: string) => {
       if (id === "owner-1")
-        return buildUser({ id: "owner-1", role: UserRole.MANAGER, shopId: "other-shop" });
+        return buildUser({
+          id: "owner-1",
+          role: UserRole.MANAGER,
+          shopId: null,
+          ownerId: "another-owner",
+        });
       if (id === "staff-1")
         return buildUser({ id: "staff-1", role: UserRole.STAFF, shopId: "shop-1" });
       return null;

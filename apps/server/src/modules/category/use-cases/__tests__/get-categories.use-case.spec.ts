@@ -4,6 +4,7 @@ import { UserRole } from "@tapt-api/db";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { AuthorizationError } from "../../../../common/errors";
 import { buildCategory } from "../../../../test/fixtures/category.fixture";
+import { TEST_TENANT_SHOP_IDS } from "../../../../test/fixtures/request-user.fixture";
 import { GetCategoriesUseCase } from "../get-categories.use-case";
 
 describe("GetCategoriesUseCase", () => {
@@ -20,6 +21,7 @@ describe("GetCategoriesUseCase", () => {
       useCase.execute({
         requesterRole: UserRole.STAFF,
         requesterShopId: "other-shop",
+        requesterTenantShopIds: TEST_TENANT_SHOP_IDS,
         shopId: "shop-1",
       }),
     ).rejects.toThrow(AuthorizationError);
@@ -29,6 +31,7 @@ describe("GetCategoriesUseCase", () => {
     await useCase.execute({
       requesterRole: UserRole.OWNER,
       requesterShopId: null,
+      requesterTenantShopIds: TEST_TENANT_SHOP_IDS,
       shopId: "shop-1",
       isActive: true,
     });
@@ -40,6 +43,7 @@ describe("GetCategoriesUseCase", () => {
     const result = await useCase.execute({
       requesterRole: UserRole.OWNER,
       requesterShopId: null,
+      requesterTenantShopIds: TEST_TENANT_SHOP_IDS,
       shopId: "shop-1",
     });
     expect(result.categories).toHaveLength(1);

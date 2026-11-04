@@ -36,6 +36,7 @@ export class SupplierController {
       const result = await this.createSupplierUseCase.execute({
         requesterRole: user.role,
         requesterShopId: user.shopId,
+        requesterTenantShopIds: user.tenantShopIds,
         ...body,
       });
       return { status: 201 as const, body: result };
@@ -53,6 +54,7 @@ export class SupplierController {
       const result = await this.getSuppliersUseCase.execute({
         requesterRole: user.role,
         requesterShopId: user.shopId,
+        requesterTenantShopIds: user.tenantShopIds,
         ...query,
       });
       return { status: 200 as const, body: result };
@@ -66,6 +68,7 @@ export class SupplierController {
       const result = await this.getSupplierByIdUseCase.execute({
         requesterRole: user.role,
         requesterShopId: user.shopId,
+        requesterTenantShopIds: user.tenantShopIds,
         supplierId: params.id,
       });
       return { status: 200 as const, body: result };
@@ -85,6 +88,7 @@ export class SupplierController {
       const result = await this.updateSupplierUseCase.execute({
         requesterRole: user.role,
         requesterShopId: user.shopId,
+        requesterTenantShopIds: user.tenantShopIds,
         supplierId: params.id,
         ...body,
       });

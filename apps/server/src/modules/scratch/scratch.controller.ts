@@ -58,6 +58,7 @@ export class ScratchGameController {
       const result = await this.createScratchGameUseCase.execute({
         requesterRole: user.role,
         requesterShopId: user.shopId,
+        requesterTenantShopIds: user.tenantShopIds,
         ...body,
       });
       return { status: 201 as const, body: result };
@@ -75,6 +76,7 @@ export class ScratchGameController {
       const games = await this.getScratchGamesUseCase.execute({
         requesterRole: user.role,
         requesterShopId: user.shopId,
+        requesterTenantShopIds: user.tenantShopIds,
         ...query,
       });
       return { status: 200 as const, body: { games } };
@@ -88,6 +90,7 @@ export class ScratchGameController {
       const result = await this.getScratchGameByIdUseCase.execute({
         requesterRole: user.role,
         requesterShopId: user.shopId,
+        requesterTenantShopIds: user.tenantShopIds,
         gameId: params.id,
       });
       return { status: 200 as const, body: result };
@@ -118,6 +121,7 @@ export class ScratchPackController {
         requesterId: user.userId,
         requesterRole: user.role,
         requesterShopId: user.shopId,
+        requesterTenantShopIds: user.tenantShopIds,
         ...body,
       });
       return { status: 201 as const, body: result };
@@ -135,6 +139,7 @@ export class ScratchPackController {
       const result = await this.getScratchPacksUseCase.execute({
         requesterRole: user.role,
         requesterShopId: user.shopId,
+        requesterTenantShopIds: user.tenantShopIds,
         ...query,
       });
       return { status: 200 as const, body: result };
@@ -148,6 +153,7 @@ export class ScratchPackController {
       const result = await this.getScratchPackByIdUseCase.execute({
         requesterRole: user.role,
         requesterShopId: user.shopId,
+        requesterTenantShopIds: user.tenantShopIds,
         packId: params.id,
       });
       return { status: 200 as const, body: result };
@@ -167,6 +173,7 @@ export class ScratchPackController {
       const result = await this.moveScratchPackUseCase.execute({
         requesterRole: user.role,
         requesterShopId: user.shopId,
+        requesterTenantShopIds: user.tenantShopIds,
         packId: params.id,
         location: body.location,
       });
@@ -181,6 +188,7 @@ export class ScratchPackController {
       const result = await this.returnScratchPackUseCase.execute({
         requesterRole: user.role,
         requesterShopId: user.shopId,
+        requesterTenantShopIds: user.tenantShopIds,
         packId: params.id,
       });
       return { status: 200 as const, body: result };
@@ -204,6 +212,7 @@ export class ScratchPackController {
         requesterId: user.userId,
         requesterRole: user.role,
         requesterShopId: user.shopId,
+        requesterTenantShopIds: user.tenantShopIds,
         packId: params.id,
         ...body,
       });
@@ -227,6 +236,7 @@ export class ScratchSummaryController {
       const result = await this.getScratchSalesSummaryUseCase.execute({
         requesterRole: user.role,
         requesterShopId: user.shopId,
+        requesterTenantShopIds: user.tenantShopIds,
         ...query,
       });
       return { status: 200 as const, body: result };
@@ -245,6 +255,8 @@ export class ScratchScanController {
       const result = await this.voidScratchScanUseCase.execute({
         requesterId: user.userId,
         requesterRole: user.role,
+        requesterShopId: user.shopId,
+        requesterTenantShopIds: user.tenantShopIds,
         scanId: params.id,
         voidReason: body.voidReason,
       });

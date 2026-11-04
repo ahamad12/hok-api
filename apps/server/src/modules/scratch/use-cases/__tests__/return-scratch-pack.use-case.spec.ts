@@ -3,6 +3,7 @@
 import { UserRole } from "@tapt-api/db";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { AuthorizationError, BusinessRuleError, NotFoundError } from "../../../../common/errors";
+import { TEST_TENANT_SHOP_IDS } from "../../../../test/fixtures/request-user.fixture";
 import { buildScratchPack } from "../../../../test/fixtures/scratch.fixture";
 import { ReturnScratchPackUseCase } from "../return-scratch-pack.use-case";
 
@@ -12,7 +13,12 @@ describe("ReturnScratchPackUseCase", () => {
     updateStatusIfActive: ReturnType<typeof vi.fn>;
   };
   let useCase: ReturnScratchPackUseCase;
-  const input = { requesterRole: UserRole.MANAGER, requesterShopId: null, packId: "pack-1" };
+  const input = {
+    requesterRole: UserRole.MANAGER,
+    requesterShopId: null,
+    requesterTenantShopIds: TEST_TENANT_SHOP_IDS,
+    packId: "pack-1",
+  };
 
   beforeEach(() => {
     packRepo = { findById: vi.fn(), updateStatusIfActive: vi.fn() };

@@ -3,6 +3,7 @@ import { Injectable } from "@nestjs/common";
 import { EventEmitter2 } from "@nestjs/event-emitter";
 import { SOCKET_EVENTS } from "@tapt-api/api/events";
 import { type TicketStatus, UserRole } from "@tapt-api/db";
+import { canAccessShop } from "../../../common/domain/shop-access";
 import { allowedNextStates, isValidTransition } from "../../../common/domain/ticket-transitions";
 import { AuthorizationError, ConflictError } from "../../../common/errors";
 import type { RequestUser } from "../../../common/types/request-user.interface";
@@ -18,7 +19,7 @@ export class TransitionTicketUseCase {
   async execute(requester: RequestUser, ticketId: string, to: TicketStatus) {
     const ticket = await this.ticketRepo.findByIdOrThrow(ticketId);
 
-    if (requester.role === UserRole.STAFF && requester.shopId !== ticket.shopId) {
+    if (!canAccessShop(requester, ticket.shopId)) {
       throw new AuthorizationError("Cannot act on a ticket outside your shop");
     }
 

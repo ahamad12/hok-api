@@ -11,7 +11,7 @@ import { env } from "@tapt-api/env/server";
 import { WINSTON_MODULE_PROVIDER } from "nest-winston";
 import type { Server, Socket } from "socket.io";
 import type { Logger } from "winston";
-import { ADMIN_ROOM, shopRoom, userRoom } from "../../common/constants/rooms";
+import { shopRoom, tenantAdminRoom, userRoom } from "../../common/constants/rooms";
 import type { SocketEventEnvelope } from "../../common/types/socket-event";
 import { GatewayAdapter } from "./gateway.adapter";
 
@@ -39,8 +39,8 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
       if (user.shopId) {
         await socket.join(shopRoom(user.shopId));
       }
-      if (user.role === UserRole.OWNER || user.role === UserRole.MANAGER) {
-        await socket.join(ADMIN_ROOM);
+      if ((user.role === UserRole.OWNER || user.role === UserRole.MANAGER) && user.tenantId) {
+        await socket.join(tenantAdminRoom(user.tenantId));
       }
 
       this.logger.info("WebSocket connected", { userId: user.userId, socketId: socket.id });
@@ -68,8 +68,8 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
     this.validatedEmit(shopRoom(shopId), event, data, shopId);
   }
 
-  emitToAdmins<E extends SocketEventName>(event: E, data: unknown): void {
-    this.validatedEmit(ADMIN_ROOM, event, data, null);
+  emitToTenantAdmins<E extends SocketEventName>(tenantId: string, event: E, data: unknown): void {
+    this.validatedEmit(tenantAdminRoom(tenantId), event, data, null);
   }
 
   private validatedEmit<E extends SocketEventName>(

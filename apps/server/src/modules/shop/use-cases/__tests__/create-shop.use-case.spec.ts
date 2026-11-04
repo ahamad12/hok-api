@@ -10,6 +10,7 @@ describe("CreateShopUseCase", () => {
     create: ReturnType<typeof vi.fn>;
   };
   let userRepository: { findById: ReturnType<typeof vi.fn> };
+  let tenantShops: { invalidate: ReturnType<typeof vi.fn> };
   let useCase: CreateShopUseCase;
 
   const input = {
@@ -22,7 +23,12 @@ describe("CreateShopUseCase", () => {
   beforeEach(() => {
     shopRepository = { create: vi.fn() };
     userRepository = { findById: vi.fn() };
-    useCase = new CreateShopUseCase(shopRepository as any, userRepository as any);
+    tenantShops = { invalidate: vi.fn().mockResolvedValue(undefined) };
+    useCase = new CreateShopUseCase(
+      shopRepository as any,
+      userRepository as any,
+      tenantShops as any,
+    );
 
     userRepository.findById.mockResolvedValue(buildUser({ id: "owner-1", role: UserRole.OWNER }));
     shopRepository.create.mockResolvedValue(buildShop({ ownerId: "owner-1" }));
@@ -78,5 +84,15 @@ describe("CreateShopUseCase", () => {
     const result = await useCase.execute(input);
     expect(result.shop.name).toBe("Main Branch");
     expect(result.shop.ownerId).toBe("owner-1");
+  });
+
+  it("refreshes the owner's cached tenant shop list so the new shop is reachable at once", async () => {
+    await useCase.execute({
+      requesterId: "owner-1",
+      name: "New Shop",
+      address: { street: "1 Main", city: "X", state: "Y", zip: "1", country: "Z" } as any,
+      phone: "123",
+    });
+    expect(tenantShops.invalidate).toHaveBeenCalledWith("owner-1");
   });
 });

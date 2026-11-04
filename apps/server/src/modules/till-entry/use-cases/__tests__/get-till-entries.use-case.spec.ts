@@ -3,6 +3,7 @@
 import { UserRole } from "@tapt-api/db";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { AuthorizationError } from "../../../../common/errors";
+import { TEST_TENANT_SHOP_IDS } from "../../../../test/fixtures/request-user.fixture";
 import { buildTillEntry } from "../../../../test/fixtures/till-entry.fixture";
 import { GetTillEntriesUseCase } from "../get-till-entries.use-case";
 
@@ -12,6 +13,7 @@ describe("GetTillEntriesUseCase", () => {
   const base = {
     requesterRole: UserRole.MANAGER,
     requesterShopId: null,
+    requesterTenantShopIds: TEST_TENANT_SHOP_IDS,
     shopId: "shop-1",
     limit: 50,
     offset: 0,

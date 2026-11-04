@@ -2,6 +2,7 @@ import { UserRole } from "@tapt-api/db";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { AuthorizationError, NotFoundError } from "../../../../common/errors";
 import { buildLicense } from "../../../../test/fixtures/license.fixture";
+import { TEST_TENANT_SHOP_IDS } from "../../../../test/fixtures/request-user.fixture";
 import { GetLicenseByIdUseCase } from "../get-license-by-id.use-case";
 
 describe("GetLicenseByIdUseCase", () => {
@@ -19,6 +20,7 @@ describe("GetLicenseByIdUseCase", () => {
       useCase.execute({
         requesterRole: UserRole.OWNER,
         requesterShopId: null,
+        requesterTenantShopIds: TEST_TENANT_SHOP_IDS,
         licenseId: "missing",
       }),
     ).rejects.toThrow(NotFoundError);
@@ -30,6 +32,7 @@ describe("GetLicenseByIdUseCase", () => {
       useCase.execute({
         requesterRole: UserRole.STAFF,
         requesterShopId: "shop-2",
+        requesterTenantShopIds: TEST_TENANT_SHOP_IDS,
         licenseId: "license-1",
       }),
     ).rejects.toThrow(AuthorizationError);
@@ -41,6 +44,7 @@ describe("GetLicenseByIdUseCase", () => {
       useCase.execute({
         requesterRole: UserRole.STAFF,
         requesterShopId: "shop-1",
+        requesterTenantShopIds: TEST_TENANT_SHOP_IDS,
         licenseId: "license-1",
       }),
     ).resolves.toBeDefined();
@@ -52,6 +56,7 @@ describe("GetLicenseByIdUseCase", () => {
       useCase.execute({
         requesterRole: UserRole.MANAGER,
         requesterShopId: null,
+        requesterTenantShopIds: TEST_TENANT_SHOP_IDS,
         licenseId: "license-1",
       }),
     ).resolves.toBeDefined();

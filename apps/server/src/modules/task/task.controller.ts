@@ -40,6 +40,7 @@ export class TaskController {
         requesterId: user.userId,
         requesterRole: user.role,
         requesterShopId: user.shopId,
+        requesterTenantShopIds: user.tenantShopIds,
         ...body,
       });
       return { status: 201 as const, body: result };
@@ -57,6 +58,7 @@ export class TaskController {
       const result = await this.getTasksUseCase.execute({
         requesterRole: user.role,
         requesterShopId: user.shopId,
+        requesterTenantShopIds: user.tenantShopIds,
         ...query,
       });
       return { status: 200 as const, body: result };
@@ -70,6 +72,7 @@ export class TaskController {
       const result = await this.getTaskByIdUseCase.execute({
         requesterRole: user.role,
         requesterShopId: user.shopId,
+        requesterTenantShopIds: user.tenantShopIds,
         taskId: params.id,
       });
       return { status: 200 as const, body: result };
@@ -90,6 +93,7 @@ export class TaskController {
         requesterId: user.userId,
         requesterRole: user.role,
         requesterShopId: user.shopId,
+        requesterTenantShopIds: user.tenantShopIds,
         taskId: params.id,
         ...body,
       });
@@ -111,6 +115,7 @@ export class TaskController {
         requesterId: user.userId,
         requesterRole: user.role,
         requesterShopId: user.shopId,
+        requesterTenantShopIds: user.tenantShopIds,
         taskId: params.id,
         ...body,
       });
@@ -132,6 +137,7 @@ export class TaskController {
         requesterId: user.userId,
         requesterRole: user.role,
         requesterShopId: user.shopId,
+        requesterTenantShopIds: user.tenantShopIds,
         taskId: params.id,
         ...body,
       });
@@ -153,6 +159,7 @@ export class TaskController {
         requesterId: user.userId,
         requesterRole: user.role,
         requesterShopId: user.shopId,
+        requesterTenantShopIds: user.tenantShopIds,
         taskId: params.id,
         ...body,
       });

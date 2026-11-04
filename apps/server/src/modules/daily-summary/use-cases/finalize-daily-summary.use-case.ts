@@ -2,6 +2,7 @@ import { Injectable } from "@nestjs/common";
 import { EventEmitter2 } from "@nestjs/event-emitter";
 import { SOCKET_EVENTS } from "@tapt-api/api/events";
 import { UserRole } from "@tapt-api/db";
+import { canAccessShop } from "../../../common/domain/shop-access";
 import { AuthorizationError, BusinessRuleError } from "../../../common/errors";
 import type { RequestUser } from "../../../common/types/request-user.interface";
 import { DailySummaryRepository } from "../repositories/daily-summary.repository";
@@ -19,6 +20,9 @@ export class FinalizeDailySummaryUseCase {
     }
 
     const summary = await this.summaryRepo.findByIdOrThrow(summaryId);
+    if (!canAccessShop(requester, summary.shopId)) {
+      throw new AuthorizationError("Cannot finalize a daily close outside your business");
+    }
     if (summary.voidedAt) throw new BusinessRuleError("Cannot finalize a voided summary");
     if (summary.status === "FINALIZED") throw new BusinessRuleError("Summary is already finalized");
 

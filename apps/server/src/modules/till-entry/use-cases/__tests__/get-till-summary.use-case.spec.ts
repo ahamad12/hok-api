@@ -3,6 +3,7 @@
 import { UserRole } from "@tapt-api/db";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { AuthorizationError } from "../../../../common/errors";
+import { TEST_TENANT_SHOP_IDS } from "../../../../test/fixtures/request-user.fixture";
 import { GetTillSummaryUseCase } from "../get-till-summary.use-case";
 
 describe("GetTillSummaryUseCase", () => {
@@ -14,6 +15,7 @@ describe("GetTillSummaryUseCase", () => {
   const base = {
     requesterRole: UserRole.OWNER,
     requesterShopId: null,
+    requesterTenantShopIds: TEST_TENANT_SHOP_IDS,
     shopId: "shop-1",
     date: new Date("2026-07-30T15:00:00.000Z"),
   };

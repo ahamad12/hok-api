@@ -2,6 +2,7 @@ import type { FormField } from "@tapt-api/api/contracts/form.contract";
 import { UserRole } from "@tapt-api/db";
 import { describe, expect, it, vi } from "vitest";
 import { AuthorizationError, BusinessRuleError } from "../../../../common/errors";
+import { TEST_TENANT_SHOP_IDS } from "../../../../test/fixtures/request-user.fixture";
 import { UpdateFormUseCase } from "../update-form.use-case";
 
 function setup() {
@@ -10,7 +11,12 @@ function setup() {
   return { useCase, formRepo };
 }
 
-const requesterOwner = { userId: "u1", role: UserRole.OWNER, shopId: "shop-1" };
+const requesterOwner = {
+  userId: "u1",
+  role: UserRole.OWNER,
+  shopId: "shop-1",
+  tenantShopIds: TEST_TENANT_SHOP_IDS,
+};
 const requesterStaff = { userId: "u2", role: UserRole.STAFF, shopId: "shop-1" };
 
 describe("UpdateFormUseCase", () => {
@@ -30,7 +36,7 @@ describe("UpdateFormUseCase", () => {
 
   it("throws BusinessRuleError on duplicate names in a schema update", async () => {
     const { useCase, formRepo } = setup();
-    formRepo.findByIdOrThrow.mockResolvedValue({ id: "form-1" });
+    formRepo.findByIdOrThrow.mockResolvedValue({ id: "form-1", shopId: "shop-1" });
     const dup: FormField = { type: "text", name: "a", label: "A", required: false };
     await expect(
       useCase.execute(requesterOwner as any, "form-1", { schema: [dup, dup] }),
@@ -39,7 +45,7 @@ describe("UpdateFormUseCase", () => {
 
   it("updates with provided fields, passing undefined through for omitted ones", async () => {
     const { useCase, formRepo } = setup();
-    formRepo.findByIdOrThrow.mockResolvedValue({ id: "form-1" });
+    formRepo.findByIdOrThrow.mockResolvedValue({ id: "form-1", shopId: "shop-1" });
     formRepo.update.mockResolvedValue({ id: "form-1", title: "New title" });
 
     const result = await useCase.execute(requesterOwner as any, "form-1", {
@@ -57,7 +63,7 @@ describe("UpdateFormUseCase", () => {
 
   it("allows isActive:false to deactivate without touching schema", async () => {
     const { useCase, formRepo } = setup();
-    formRepo.findByIdOrThrow.mockResolvedValue({ id: "form-1" });
+    formRepo.findByIdOrThrow.mockResolvedValue({ id: "form-1", shopId: "shop-1" });
     formRepo.update.mockResolvedValue({ id: "form-1", isActive: false });
     await useCase.execute(requesterOwner as any, "form-1", { isActive: false });
     expect(formRepo.update).toHaveBeenCalledWith(

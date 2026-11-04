@@ -2,6 +2,7 @@ import { UserRole } from "@tapt-api/db";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AuthorizationError } from "../../../../common/errors";
 import { buildLicense } from "../../../../test/fixtures/license.fixture";
+import { TEST_TENANT_SHOP_IDS } from "../../../../test/fixtures/request-user.fixture";
 import { GetLicensesUseCase } from "../get-licenses.use-case";
 
 describe("GetLicensesUseCase", () => {
@@ -11,6 +12,7 @@ describe("GetLicensesUseCase", () => {
   const base = {
     requesterRole: UserRole.MANAGER,
     requesterShopId: null,
+    requesterTenantShopIds: TEST_TENANT_SHOP_IDS,
     shopId: "shop-1",
     limit: 50,
     offset: 0,

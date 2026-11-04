@@ -1,6 +1,7 @@
 import { UserRole } from "@tapt-api/db";
 import { describe, expect, it, vi } from "vitest";
 import { AuthorizationError } from "../../../../common/errors";
+import { TEST_TENANT_SHOP_IDS } from "../../../../test/fixtures/request-user.fixture";
 import { GetFormsUseCase } from "../get-forms.use-case";
 
 function setup() {
@@ -29,14 +30,24 @@ describe("GetFormsUseCase", () => {
   it("allows OWNER/MANAGER to query any shop", async () => {
     const { useCase, formRepo } = setup();
     formRepo.findAll.mockResolvedValue([]);
-    const owner = { userId: "u1", role: UserRole.OWNER, shopId: "shop-1" };
+    const owner = {
+      userId: "u1",
+      role: UserRole.OWNER,
+      shopId: "shop-1",
+      tenantShopIds: TEST_TENANT_SHOP_IDS,
+    };
     await expect(useCase.execute(owner as any, { shopId: "shop-999" })).resolves.toEqual([]);
   });
 
   it("passes isActive filter through unchanged", async () => {
     const { useCase, formRepo } = setup();
     formRepo.findAll.mockResolvedValue([]);
-    const owner = { userId: "u1", role: UserRole.OWNER, shopId: "shop-1" };
+    const owner = {
+      userId: "u1",
+      role: UserRole.OWNER,
+      shopId: "shop-1",
+      tenantShopIds: TEST_TENANT_SHOP_IDS,
+    };
     await useCase.execute(owner as any, { shopId: "shop-1", isActive: true });
     expect(formRepo.findAll).toHaveBeenCalledWith({ shopId: "shop-1", isActive: true });
   });

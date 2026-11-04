@@ -6,6 +6,7 @@ import { AuthorizationError, NotFoundError } from "../../../../common/errors";
 import { buildDeliveryWithRelations } from "../../../../test/fixtures/delivery.fixture";
 import { buildDeliveryLineItem } from "../../../../test/fixtures/delivery-line-item.fixture";
 import { buildDeliveryPayment } from "../../../../test/fixtures/delivery-payment.fixture";
+import { TEST_TENANT_SHOP_IDS } from "../../../../test/fixtures/request-user.fixture";
 import { GetDeliveryByIdUseCase } from "../get-delivery-by-id.use-case";
 
 describe("GetDeliveryByIdUseCase", () => {
@@ -23,6 +24,7 @@ describe("GetDeliveryByIdUseCase", () => {
       useCase.execute({
         requesterRole: UserRole.OWNER,
         requesterShopId: null,
+        requesterTenantShopIds: TEST_TENANT_SHOP_IDS,
         deliveryId: "missing",
       }),
     ).rejects.toThrow(NotFoundError);
@@ -34,6 +36,7 @@ describe("GetDeliveryByIdUseCase", () => {
       useCase.execute({
         requesterRole: UserRole.STAFF,
         requesterShopId: "shop-2",
+        requesterTenantShopIds: TEST_TENANT_SHOP_IDS,
         deliveryId: "delivery-1",
       }),
     ).rejects.toThrow(AuthorizationError);
@@ -50,6 +53,7 @@ describe("GetDeliveryByIdUseCase", () => {
     const result = await useCase.execute({
       requesterRole: UserRole.OWNER,
       requesterShopId: null,
+      requesterTenantShopIds: TEST_TENANT_SHOP_IDS,
       deliveryId: "delivery-1",
     });
     expect(result.lineItems).toHaveLength(1);

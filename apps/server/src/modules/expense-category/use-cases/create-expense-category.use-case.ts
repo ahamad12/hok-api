@@ -2,6 +2,7 @@
 
 import { Injectable } from "@nestjs/common";
 import { UserRole } from "@tapt-api/db";
+import { canAccessShop } from "../../../common/domain/shop-access";
 import { AuthorizationError, BusinessRuleError } from "../../../common/errors";
 import type { RequestUser } from "../../../common/types/request-user.interface";
 import { ShopRepository } from "../../shop/repositories/shop.repository";
@@ -26,14 +27,17 @@ export class CreateExpenseCategoryUseCase {
       throw new AuthorizationError("Only OWNER/MANAGER can manage expense categories");
     }
 
-    // Directionality — only OWNER/MANAGER can broadcast
-    // No shop check for MANAGER (system-wide per shop-access.guard.ts:35)
-    // STAFF is already blocked above
-
-    if (input.shopId) {
-      const shop = await this.shopRepo.findById(input.shopId);
-      if (!shop || !shop.isActive) throw new BusinessRuleError("Shop is not active");
+    // Categories without a shop are shared by every tenant, so only the
+    // system (seed data) may create them. A tenant's category belongs to
+    // one of its shops.
+    if (!input.shopId) {
+      throw new BusinessRuleError("Choose a shop for this category");
     }
+    if (!canAccessShop(requester, input.shopId)) {
+      throw new AuthorizationError("Cannot manage expense categories outside your business");
+    }
+    const shop = await this.shopRepo.findById(input.shopId);
+    if (!shop || !shop.isActive) throw new BusinessRuleError("Shop is not active");
 
     const category = await this.categoryRepo.create({
       shopId: input.shopId,

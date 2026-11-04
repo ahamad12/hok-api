@@ -1,6 +1,7 @@
 // modules/scratch/use-cases/__tests__/void-scratch-scan.use-case.spec.ts
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { BusinessRuleError, ConflictError, NotFoundError } from "../../../../common/errors";
+import { TEST_TENANT_SHOP_IDS } from "../../../../test/fixtures/request-user.fixture";
 import { buildScratchScanEvent } from "../../../../test/fixtures/scratch.fixture";
 import { VoidScratchScanUseCase } from "../void-scratch-scan.use-case";
 
@@ -15,6 +16,8 @@ describe("VoidScratchScanUseCase", () => {
   const input = {
     requesterId: "mgr-1",
     requesterRole: "MANAGER" as any,
+    requesterShopId: null,
+    requesterTenantShopIds: TEST_TENANT_SHOP_IDS,
     scanId: "scan-2",
     voidReason: "Mistyped serial",
   };

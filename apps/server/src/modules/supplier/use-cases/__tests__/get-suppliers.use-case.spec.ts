@@ -3,6 +3,7 @@
 import { UserRole } from "@tapt-api/db";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { AuthorizationError, NotFoundError } from "../../../../common/errors";
+import { TEST_TENANT_SHOP_IDS } from "../../../../test/fixtures/request-user.fixture";
 import { buildShop } from "../../../../test/fixtures/shop.fixture";
 import { buildSupplier } from "../../../../test/fixtures/supplier.fixture";
 import { GetSuppliersUseCase } from "../get-suppliers.use-case";
@@ -24,6 +25,7 @@ describe("GetSuppliersUseCase", () => {
       useCase.execute({
         requesterRole: UserRole.STAFF,
         requesterShopId: "other-shop",
+        requesterTenantShopIds: TEST_TENANT_SHOP_IDS,
         shopId: "shop-1",
       }),
     ).rejects.toThrow(AuthorizationError);
@@ -35,7 +37,8 @@ describe("GetSuppliersUseCase", () => {
       useCase.execute({
         requesterRole: UserRole.OWNER,
         requesterShopId: null,
-        shopId: "missing",
+        requesterTenantShopIds: TEST_TENANT_SHOP_IDS,
+        shopId: "shop-999",
       }),
     ).rejects.toThrow(NotFoundError);
   });
@@ -46,6 +49,7 @@ describe("GetSuppliersUseCase", () => {
       useCase.execute({
         requesterRole: UserRole.OWNER,
         requesterShopId: null,
+        requesterTenantShopIds: TEST_TENANT_SHOP_IDS,
         shopId: "shop-1",
       }),
     ).rejects.toThrow(NotFoundError);
@@ -55,6 +59,7 @@ describe("GetSuppliersUseCase", () => {
     await useCase.execute({
       requesterRole: UserRole.OWNER,
       requesterShopId: null,
+      requesterTenantShopIds: TEST_TENANT_SHOP_IDS,
       shopId: "shop-1",
     });
     expect(supplierRepository.findAll).toHaveBeenCalledWith("shop-1", {
@@ -67,6 +72,7 @@ describe("GetSuppliersUseCase", () => {
     await useCase.execute({
       requesterRole: UserRole.OWNER,
       requesterShopId: null,
+      requesterTenantShopIds: TEST_TENANT_SHOP_IDS,
       shopId: "shop-1",
       categoryId: "category-1",
       isActive: true,
@@ -82,6 +88,7 @@ describe("GetSuppliersUseCase", () => {
     const result = await useCase.execute({
       requesterRole: UserRole.OWNER,
       requesterShopId: null,
+      requesterTenantShopIds: TEST_TENANT_SHOP_IDS,
       shopId: "shop-1",
     });
     expect(result.suppliers).toHaveLength(1);

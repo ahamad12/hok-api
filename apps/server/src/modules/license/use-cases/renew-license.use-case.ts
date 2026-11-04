@@ -1,6 +1,7 @@
 // modules/license/use-cases/renew-license.use-case.ts
 import { Injectable } from "@nestjs/common";
 import { UserRole } from "@tapt-api/db";
+import { canAccessShop, requesterScope } from "../../../common/domain/shop-access";
 import { AuthorizationError, BusinessRuleError, NotFoundError } from "../../../common/errors";
 import { type LicenseResult, toLicenseResult } from "../mappers/license.mapper";
 import {
@@ -13,6 +14,7 @@ export interface RenewLicenseInput {
   requesterId: string;
   requesterRole: UserRole;
   requesterShopId: string | null;
+  requesterTenantShopIds?: readonly string[];
   licenseId: string;
   issueDate: Date;
   expiryDate: Date;
@@ -32,7 +34,7 @@ export class RenewLicenseUseCase {
     const license = await this.licenseRepository.findById(input.licenseId);
     if (!license) throw new NotFoundError("License", input.licenseId);
 
-    if (input.requesterRole === UserRole.STAFF && input.requesterShopId !== license.shopId) {
+    if (!canAccessShop(requesterScope(input), license.shopId)) {
       throw new AuthorizationError("Access denied for this license");
     }
 

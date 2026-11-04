@@ -2,6 +2,7 @@
 import { UserRole } from "@tapt-api/db";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { AuthorizationError, NotFoundError } from "../../../../common/errors";
+import { TEST_TENANT_SHOP_IDS } from "../../../../test/fixtures/request-user.fixture";
 import { buildTask } from "../../../../test/fixtures/task.fixture";
 import { GetTaskByIdUseCase } from "../get-task-by-id.use-case";
 
@@ -19,6 +20,7 @@ describe("GetTaskByIdUseCase", () => {
   const base = {
     requesterRole: UserRole.STAFF,
     requesterShopId: "shop-1",
+    requesterTenantShopIds: TEST_TENANT_SHOP_IDS,
     taskId: "task-1",
   };
 
@@ -43,6 +45,7 @@ describe("GetTaskByIdUseCase", () => {
       useCase.execute({
         requesterRole: UserRole.MANAGER,
         requesterShopId: "shop-2",
+        requesterTenantShopIds: TEST_TENANT_SHOP_IDS,
         taskId: "task-1",
       }),
     ).rejects.toThrow(AuthorizationError);

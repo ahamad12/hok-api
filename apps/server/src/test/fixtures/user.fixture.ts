@@ -10,6 +10,7 @@ interface UserFixture {
   isSupervisor: boolean;
   role: UserRole;
   shopId: string | null;
+  ownerId: string | null;
   tokenVersion: number;
   lastLoginAt: Date | null;
   createdAt: Date;
@@ -27,6 +28,8 @@ export function buildUser(overrides?: Partial<UserFixture>): UserFixture {
     isSupervisor: false,
     role: UserRole.STAFF,
     shopId: "shop-1",
+    // Tenant owner; matches buildShop()'s ownerId. Ignored for OWNER users.
+    ownerId: "owner-1",
     tokenVersion: 1,
     lastLoginAt: null,
     createdAt: new Date("2025-01-01"),

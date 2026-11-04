@@ -1,6 +1,7 @@
 // apps/server/src/modules/expense/use-cases/get-expenses.use-case.ts
 import { Injectable } from "@nestjs/common";
 import { UserRole } from "@tapt-api/db";
+import { canAccessShop } from "../../../common/domain/shop-access";
 import { AuthorizationError } from "../../../common/errors";
 import type { RequestUser } from "../../../common/types/request-user.interface";
 import { ExpenseRepository } from "../repositories/expense.repository";
@@ -29,6 +30,9 @@ export class GetExpensesUseCase {
     // pattern without a product decision to reverse it.
     if (requester.role === UserRole.STAFF) {
       throw new AuthorizationError("Only OWNER/MANAGER can view expenses");
+    }
+    if (!canAccessShop(requester, query.shopId)) {
+      throw new AuthorizationError("Cannot view expenses outside your business");
     }
     return this.expenseRepo.findAll(query);
   }

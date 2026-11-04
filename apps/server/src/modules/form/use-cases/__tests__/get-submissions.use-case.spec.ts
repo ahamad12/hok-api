@@ -1,6 +1,7 @@
 import { UserRole } from "@tapt-api/db";
 import { describe, expect, it, vi } from "vitest";
 import { AuthorizationError } from "../../../../common/errors";
+import { TEST_TENANT_SHOP_IDS } from "../../../../test/fixtures/request-user.fixture";
 import { GetSubmissionsUseCase } from "../get-submissions.use-case";
 
 function setup() {
@@ -41,7 +42,12 @@ describe("GetSubmissionsUseCase", () => {
     const { useCase, formRepo, submissionRepo } = setup();
     formRepo.findByIdOrThrow.mockResolvedValue({ id: "form-1", shopId: "shop-1" });
     submissionRepo.findAll.mockResolvedValue({ submissions: [], total: 0 });
-    const owner = { userId: "u-owner", role: UserRole.OWNER, shopId: "shop-999" };
+    const owner = {
+      userId: "u-owner",
+      role: UserRole.OWNER,
+      shopId: "shop-999",
+      tenantShopIds: TEST_TENANT_SHOP_IDS,
+    };
 
     await useCase.execute(owner as any, "form-1", query);
 

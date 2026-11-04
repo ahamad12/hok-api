@@ -1,6 +1,7 @@
 // modules/license/use-cases/create-license.use-case.ts
 import { Injectable } from "@nestjs/common";
 import { UserRole } from "@tapt-api/db";
+import { canAccessShop, requesterScope } from "../../../common/domain/shop-access";
 import { AuthorizationError, BusinessRuleError, NotFoundError } from "../../../common/errors";
 import { ShopRepository } from "../../shop/repositories/shop.repository";
 import { type LicenseResult, toLicenseResult } from "../mappers/license.mapper";
@@ -10,6 +11,7 @@ export interface CreateLicenseInput {
   requesterId: string;
   requesterRole: UserRole;
   requesterShopId: string | null;
+  requesterTenantShopIds?: readonly string[];
   shopId: string;
   productName: string;
   licenseNumber: string;
@@ -30,7 +32,7 @@ export class CreateLicenseUseCase {
   ) {}
 
   async execute(input: CreateLicenseInput): Promise<LicenseResult> {
-    if (input.requesterRole === UserRole.STAFF && input.requesterShopId !== input.shopId) {
+    if (!canAccessShop(requesterScope(input), input.shopId)) {
       throw new AuthorizationError("You can only register licenses for your own shop");
     }
 

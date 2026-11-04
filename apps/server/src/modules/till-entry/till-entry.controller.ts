@@ -45,6 +45,7 @@ export class TillEntryController {
         requesterId: user.userId,
         requesterRole: user.role,
         requesterShopId: user.shopId,
+        requesterTenantShopIds: user.tenantShopIds,
         ...body,
       });
       return { status: 201 as const, body: result };
@@ -62,6 +63,7 @@ export class TillEntryController {
       const result = await this.getTillEntriesUseCase.execute({
         requesterRole: user.role,
         requesterShopId: user.shopId,
+        requesterTenantShopIds: user.tenantShopIds,
         ...query,
       });
       return { status: 200 as const, body: result };
@@ -75,6 +77,7 @@ export class TillEntryController {
       const result = await this.getTillEntryByIdUseCase.execute({
         requesterRole: user.role,
         requesterShopId: user.shopId,
+        requesterTenantShopIds: user.tenantShopIds,
         entryId: params.id,
       });
       return { status: 200 as const, body: result };
@@ -98,6 +101,7 @@ export class TillEntryController {
         requesterId: user.userId,
         requesterRole: user.role,
         requesterShopId: user.shopId,
+        requesterTenantShopIds: user.tenantShopIds,
         entryId: params.id,
         ...body,
       });
@@ -116,6 +120,7 @@ export class TillEntryController {
       const result = await this.getTillSummaryUseCase.execute({
         requesterRole: user.role,
         requesterShopId: user.shopId,
+        requesterTenantShopIds: user.tenantShopIds,
         ...query,
       });
       return { status: 200 as const, body: result };

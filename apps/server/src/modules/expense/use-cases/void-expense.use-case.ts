@@ -1,6 +1,7 @@
 // apps/server/src/modules/expense/use-cases/void-expense.use-case.ts
 import { Injectable } from "@nestjs/common";
 import { UserRole } from "@tapt-api/db";
+import { canAccessShop } from "../../../common/domain/shop-access";
 import { AuthorizationError, BusinessRuleError } from "../../../common/errors";
 import type { RequestUser } from "../../../common/types/request-user.interface";
 import { ExpenseRepository } from "../repositories/expense.repository";
@@ -19,6 +20,9 @@ export class VoidExpenseUseCase {
     }
 
     const expense = await this.expenseRepo.findByIdOrThrow(expenseId);
+    if (!canAccessShop(requester, expense.shopId)) {
+      throw new AuthorizationError("Cannot void expenses outside your business");
+    }
     if (expense.voidedAt) throw new BusinessRuleError("Expense is already voided");
 
     const affected = await this.expenseRepo.voidIfNotVoided(expenseId, {

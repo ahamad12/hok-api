@@ -2,6 +2,7 @@
 import { Injectable } from "@nestjs/common";
 import { EventEmitter2 } from "@nestjs/event-emitter";
 import { UserRole } from "@tapt-api/db";
+import { canAccessShop, requesterScope } from "../../../common/domain/shop-access";
 import { AuthorizationError, BusinessRuleError, NotFoundError } from "../../../common/errors";
 import { type TaskResult, toTaskResult } from "../mappers/task.mapper";
 import { TaskRepository } from "../repositories/task.repository";
@@ -10,6 +11,7 @@ export interface VoidTaskInput {
   requesterId: string;
   requesterRole: UserRole;
   requesterShopId: string | null;
+  requesterTenantShopIds?: readonly string[];
   taskId: string;
   voidReason: string;
 }
@@ -30,12 +32,8 @@ export class VoidTaskUseCase {
     if (input.requesterRole === UserRole.STAFF) {
       throw new AuthorizationError("Only owners and managers can void tasks");
     }
-    if (
-      input.requesterRole === UserRole.MANAGER &&
-      input.requesterShopId &&
-      input.requesterShopId !== task.shopId
-    ) {
-      throw new AuthorizationError("You can only void tasks in your assigned shop");
+    if (!canAccessShop(requesterScope(input), task.shopId)) {
+      throw new AuthorizationError("You can only void tasks in your own business");
     }
     if (task.status === "DONE" && !task.completedAt) {
       throw new BusinessRuleError("Task is in an inconsistent state (DONE without completedAt)");

@@ -2,6 +2,7 @@
 import { Injectable } from "@nestjs/common";
 import { EventEmitter2 } from "@nestjs/event-emitter";
 import { TaskStatus, UserRole } from "@tapt-api/db";
+import { canAccessShop, requesterScope } from "../../../common/domain/shop-access";
 import { allowedNextStates, isValidTransition } from "../../../common/domain/task-transitions";
 import { AuthorizationError, ConflictError, NotFoundError } from "../../../common/errors";
 import { type TaskResult, toTaskResult } from "../mappers/task.mapper";
@@ -11,6 +12,7 @@ export interface TransitionTaskInput {
   requesterId: string;
   requesterRole: UserRole;
   requesterShopId: string | null;
+  requesterTenantShopIds?: readonly string[];
   taskId: string;
   to: TaskStatus;
 }
@@ -69,11 +71,10 @@ export class TransitionTaskUseCase {
     assigneeId: string | null,
     createdById: string,
   ): void {
-    if (input.requesterRole === UserRole.OWNER) return;
-
-    if (input.requesterRole === UserRole.MANAGER) {
-      if (input.requesterShopId && input.requesterShopId !== taskShopId) {
-        throw new AuthorizationError("You can only transition tasks in your assigned shop");
+    // OWNER/MANAGER: any shop in their tenant, nothing outside it.
+    if (input.requesterRole !== UserRole.STAFF) {
+      if (!canAccessShop(requesterScope(input), taskShopId)) {
+        throw new AuthorizationError("You can only transition tasks in your own business");
       }
       return;
     }

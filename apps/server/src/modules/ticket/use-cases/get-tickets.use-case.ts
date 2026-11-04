@@ -1,6 +1,7 @@
 // apps/server/src/modules/ticket/use-cases/get-tickets.use-case.ts
 import { Injectable } from "@nestjs/common";
-import { TicketPriority, TicketStatus, TicketType, UserRole } from "@tapt-api/db";
+import { TicketPriority, TicketStatus, TicketType } from "@tapt-api/db";
+import { canAccessShop } from "../../../common/domain/shop-access";
 import { AuthorizationError } from "../../../common/errors";
 import type { RequestUser } from "../../../common/types/request-user.interface";
 import { TicketRepository } from "../repositories/ticket.repository";
@@ -22,7 +23,7 @@ export class GetTicketsUseCase {
       offset: number;
     },
   ) {
-    if (requester.role === UserRole.STAFF && requester.shopId !== query.shopId) {
+    if (!canAccessShop(requester, query.shopId)) {
       throw new AuthorizationError("Cannot list tickets outside your shop");
     }
     return this.ticketRepo.findAll(query);

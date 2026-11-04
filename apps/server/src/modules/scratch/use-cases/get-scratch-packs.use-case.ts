@@ -1,5 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import { UserRole } from "@tapt-api/db";
+import { canAccessShop, requesterScope } from "../../../common/domain/shop-access";
 import { AuthorizationError } from "../../../common/errors";
 import { type ScratchPackResult, toScratchPackResult } from "../mappers/scratch-pack.mapper";
 import { ScratchPackRepository } from "../repositories/scratch-pack.repository";
@@ -7,6 +8,7 @@ import { ScratchPackRepository } from "../repositories/scratch-pack.repository";
 export interface GetScratchPacksInput {
   requesterRole: UserRole;
   requesterShopId: string | null;
+  requesterTenantShopIds?: readonly string[];
   shopId: string;
   gameId?: string;
   status?: "ACTIVE" | "FINISHED" | "RETURNED";
@@ -25,7 +27,7 @@ export class GetScratchPacksUseCase {
   constructor(private readonly scratchPackRepository: ScratchPackRepository) {}
 
   async execute(input: GetScratchPacksInput): Promise<GetScratchPacksResult> {
-    if (input.requesterRole === UserRole.STAFF && input.requesterShopId !== input.shopId) {
+    if (!canAccessShop(requesterScope(input), input.shopId)) {
       throw new AuthorizationError("Access denied for this shop");
     }
 

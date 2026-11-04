@@ -3,6 +3,7 @@
 import { UserRole } from "@tapt-api/db";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { AuthorizationError } from "../../../../common/errors";
+import { TEST_TENANT_SHOP_IDS } from "../../../../test/fixtures/request-user.fixture";
 import { GetScratchSalesSummaryUseCase } from "../get-scratch-sales-summary.use-case";
 
 describe("GetScratchSalesSummaryUseCase", () => {
@@ -11,6 +12,7 @@ describe("GetScratchSalesSummaryUseCase", () => {
   const base = {
     requesterRole: UserRole.OWNER,
     requesterShopId: null,
+    requesterTenantShopIds: TEST_TENANT_SHOP_IDS,
     shopId: "shop-1",
     dateFrom: new Date("2026-07-01"),
     dateTo: new Date("2026-07-31"),

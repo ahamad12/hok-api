@@ -2,6 +2,7 @@
 import { UserRole } from "@tapt-api/db";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { AuthorizationError, BusinessRuleError, NotFoundError } from "../../../../common/errors";
+import { TEST_TENANT_SHOP_IDS } from "../../../../test/fixtures/request-user.fixture";
 import { buildTask } from "../../../../test/fixtures/task.fixture";
 import { buildUser } from "../../../../test/fixtures/user.fixture";
 import { AssignTaskUseCase } from "../assign-task.use-case";
@@ -32,6 +33,7 @@ describe("AssignTaskUseCase", () => {
     requesterId: "owner-1",
     requesterRole: UserRole.OWNER,
     requesterShopId: null,
+    requesterTenantShopIds: TEST_TENANT_SHOP_IDS,
     taskId: "task-1",
     assigneeId: "staff-1",
   };
@@ -60,6 +62,7 @@ describe("AssignTaskUseCase", () => {
         ...base,
         requesterRole: UserRole.STAFF,
         requesterShopId: "shop-1",
+        requesterTenantShopIds: TEST_TENANT_SHOP_IDS,
         requesterId: "staff-1",
       }),
     ).rejects.toThrow(AuthorizationError);

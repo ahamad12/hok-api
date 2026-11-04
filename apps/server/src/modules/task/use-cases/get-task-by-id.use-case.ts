@@ -1,6 +1,7 @@
 // apps/server/src/modules/task/use-cases/get-task-by-id.use-case.ts
 import { Injectable } from "@nestjs/common";
 import { UserRole } from "@tapt-api/db";
+import { canAccessShop, requesterScope } from "../../../common/domain/shop-access";
 import { AuthorizationError, NotFoundError } from "../../../common/errors";
 import { type TaskResult, toTaskResult } from "../mappers/task.mapper";
 import { TaskRepository } from "../repositories/task.repository";
@@ -8,6 +9,7 @@ import { TaskRepository } from "../repositories/task.repository";
 export interface GetTaskByIdInput {
   requesterRole: UserRole;
   requesterShopId: string | null;
+  requesterTenantShopIds?: readonly string[];
   taskId: string;
 }
 
@@ -19,7 +21,7 @@ export class GetTaskByIdUseCase {
     const task = await this.taskRepository.findById(input.taskId);
     if (!task || task.voidedAt) throw new NotFoundError("Task", input.taskId);
 
-    if (input.requesterRole === UserRole.STAFF && input.requesterShopId !== task.shopId) {
+    if (!canAccessShop(requesterScope(input), task.shopId)) {
       throw new AuthorizationError("You can only view tasks for your own shop");
     }
     if (

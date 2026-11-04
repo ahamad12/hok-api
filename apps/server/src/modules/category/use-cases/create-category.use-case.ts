@@ -1,6 +1,7 @@
 // modules/category/use-cases/create-category.use-case.ts
 import { Injectable } from "@nestjs/common";
 import { UserRole } from "@tapt-api/db";
+import { canAccessShop, requesterScope } from "../../../common/domain/shop-access";
 import { AuthorizationError, NotFoundError } from "../../../common/errors";
 import { ShopRepository } from "../../shop/repositories/shop.repository";
 import { type CategoryResult, toCategoryResult } from "../mappers/category.mapper";
@@ -9,6 +10,7 @@ import { CategoryRepository } from "../repositories/category.repository";
 export interface CreateCategoryInput {
   requesterRole: UserRole;
   requesterShopId: string | null;
+  requesterTenantShopIds?: readonly string[];
   shopId: string;
   name: string;
   description?: string;
@@ -22,7 +24,7 @@ export class CreateCategoryUseCase {
   ) {}
 
   async execute(input: CreateCategoryInput): Promise<CategoryResult> {
-    if (input.requesterRole === UserRole.STAFF && input.requesterShopId !== input.shopId) {
+    if (!canAccessShop(requesterScope(input), input.shopId)) {
       throw new AuthorizationError("You can only create categories for your own shop");
     }
 

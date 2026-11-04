@@ -1,6 +1,7 @@
 // modules/shop/use-cases/remove-staff.use-case.ts
 import { Injectable } from "@nestjs/common";
 import { UserRole } from "@tapt-api/db";
+import { tenantIdOf } from "../../../common/domain/tenant";
 import { AuthorizationError, NotFoundError } from "../../../common/errors";
 import { UserRepository } from "../../auth/repositories/user.repository";
 import { TokenVersionService } from "../../auth/services/token-version.service";
@@ -33,14 +34,14 @@ export class RemoveStaffUseCase {
       throw new AuthorizationError("Only OWNER or MANAGER can remove staff");
     }
 
-    // MANAGERs are shop-scoped: they may only remove staff inside their own
-    // shop. OWNERs bypass because they manage multiple shops.
-    if (requester.role === UserRole.MANAGER && requester.shopId !== input.shopId) {
-      throw new AuthorizationError("You can only manage staff in your own shop");
+    // OWNER and MANAGER may manage staff in any shop of their own tenant.
+    const tenantId = tenantIdOf(requester);
+    if (!tenantId || shop.ownerId !== tenantId) {
+      throw new AuthorizationError("You can only manage staff in your own business");
     }
 
     const targetUser = await this.userRepository.findById(input.userId);
-    if (!targetUser || targetUser.shopId !== input.shopId) {
+    if (!targetUser || targetUser.shopId !== input.shopId || targetUser.ownerId !== shop.ownerId) {
       throw new NotFoundError("Staff member", input.userId);
     }
 

@@ -4,6 +4,7 @@ import { UserRole } from "@tapt-api/db";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { AuthorizationError, ConflictError, NotFoundError } from "../../../../common/errors";
 import { buildCategory } from "../../../../test/fixtures/category.fixture";
+import { TEST_TENANT_SHOP_IDS } from "../../../../test/fixtures/request-user.fixture";
 import { UpdateCategoryUseCase } from "../update-category.use-case";
 
 describe("UpdateCategoryUseCase", () => {
@@ -24,6 +25,7 @@ describe("UpdateCategoryUseCase", () => {
       useCase.execute({
         requesterRole: UserRole.OWNER,
         requesterShopId: null,
+        requesterTenantShopIds: TEST_TENANT_SHOP_IDS,
         categoryId: "missing",
       }),
     ).rejects.toThrow(NotFoundError);
@@ -34,6 +36,7 @@ describe("UpdateCategoryUseCase", () => {
       useCase.execute({
         requesterRole: UserRole.STAFF,
         requesterShopId: "other-shop",
+        requesterTenantShopIds: TEST_TENANT_SHOP_IDS,
         categoryId: "category-1",
       }),
     ).rejects.toThrow(AuthorizationError);
@@ -43,6 +46,7 @@ describe("UpdateCategoryUseCase", () => {
     const result = await useCase.execute({
       requesterRole: UserRole.OWNER,
       requesterShopId: null,
+      requesterTenantShopIds: TEST_TENANT_SHOP_IDS,
       categoryId: "category-1",
       name: "Bakery",
     });
@@ -57,6 +61,7 @@ describe("UpdateCategoryUseCase", () => {
       useCase.execute({
         requesterRole: UserRole.OWNER,
         requesterShopId: null,
+        requesterTenantShopIds: TEST_TENANT_SHOP_IDS,
         categoryId: "category-1",
         name: "Dup",
       }),
@@ -70,6 +75,7 @@ describe("UpdateCategoryUseCase", () => {
       useCase.execute({
         requesterRole: UserRole.OWNER,
         requesterShopId: null,
+        requesterTenantShopIds: TEST_TENANT_SHOP_IDS,
         categoryId: "category-1",
         name: "Dup",
       }),
@@ -80,6 +86,7 @@ describe("UpdateCategoryUseCase", () => {
     await useCase.execute({
       requesterRole: UserRole.OWNER,
       requesterShopId: null,
+      requesterTenantShopIds: TEST_TENANT_SHOP_IDS,
       categoryId: "category-1",
       isActive: false,
     });
@@ -94,6 +101,7 @@ describe("UpdateCategoryUseCase", () => {
     const result = await useCase.execute({
       requesterRole: UserRole.OWNER,
       requesterShopId: null,
+      requesterTenantShopIds: TEST_TENANT_SHOP_IDS,
       categoryId: "category-1",
       name: "Bakery Updated",
     });

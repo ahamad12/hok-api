@@ -2,6 +2,7 @@
 import { TaskStatus, UserRole } from "@tapt-api/db";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { AuthorizationError, ConflictError, NotFoundError } from "../../../../common/errors";
+import { TEST_TENANT_SHOP_IDS } from "../../../../test/fixtures/request-user.fixture";
 import { buildTask } from "../../../../test/fixtures/task.fixture";
 import { TransitionTaskUseCase } from "../transition-task.use-case";
 
@@ -30,6 +31,7 @@ describe("TransitionTaskUseCase", () => {
     requesterId: "owner-1",
     requesterRole: UserRole.OWNER,
     requesterShopId: null,
+    requesterTenantShopIds: TEST_TENANT_SHOP_IDS,
     taskId: "task-1",
     to: TaskStatus.IN_PROGRESS,
   };
@@ -62,6 +64,7 @@ describe("TransitionTaskUseCase", () => {
         ...base,
         requesterRole: UserRole.STAFF,
         requesterShopId: "shop-1",
+        requesterTenantShopIds: TEST_TENANT_SHOP_IDS,
         requesterId: "staff-1",
       }),
     ).rejects.toThrow(AuthorizationError);
@@ -168,6 +171,7 @@ describe("TransitionTaskUseCase", () => {
         requesterId: "user-1",
         requesterRole: UserRole.OWNER,
         requesterShopId: null,
+        requesterTenantShopIds: TEST_TENANT_SHOP_IDS,
         taskId: "task-1",
         to: TaskStatus.IN_PROGRESS,
       }),
@@ -193,6 +197,7 @@ describe("TransitionTaskUseCase", () => {
         requesterId: "user-1",
         requesterRole: UserRole.OWNER,
         requesterShopId: null,
+        requesterTenantShopIds: TEST_TENANT_SHOP_IDS,
         taskId: "task-1",
         to: TaskStatus.IN_PROGRESS,
       }),
@@ -225,6 +230,7 @@ describe("TransitionTaskUseCase", () => {
       requesterId: "user-1",
       requesterRole: UserRole.OWNER,
       requesterShopId: null,
+      requesterTenantShopIds: TEST_TENANT_SHOP_IDS,
       taskId: "task-1",
       to: TaskStatus.IN_PROGRESS,
     });

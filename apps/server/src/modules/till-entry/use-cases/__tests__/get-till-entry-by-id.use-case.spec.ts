@@ -3,6 +3,7 @@
 import { UserRole } from "@tapt-api/db";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { AuthorizationError, NotFoundError } from "../../../../common/errors";
+import { TEST_TENANT_SHOP_IDS } from "../../../../test/fixtures/request-user.fixture";
 import { buildTillEntry } from "../../../../test/fixtures/till-entry.fixture";
 import { GetTillEntryByIdUseCase } from "../get-till-entry-by-id.use-case";
 
@@ -18,7 +19,12 @@ describe("GetTillEntryByIdUseCase", () => {
   it("throws NotFoundError when missing", async () => {
     repo.findById.mockResolvedValue(null);
     await expect(
-      useCase.execute({ requesterRole: UserRole.OWNER, requesterShopId: null, entryId: "x" }),
+      useCase.execute({
+        requesterRole: UserRole.OWNER,
+        requesterShopId: null,
+        requesterTenantShopIds: TEST_TENANT_SHOP_IDS,
+        entryId: "x",
+      }),
     ).rejects.toThrow(NotFoundError);
   });
 
@@ -39,7 +45,12 @@ describe("GetTillEntryByIdUseCase", () => {
   it("allows OWNER/MANAGER regardless of shop", async () => {
     repo.findById.mockResolvedValue(buildTillEntry({ shopId: "shop-1" }));
     await expect(
-      useCase.execute({ requesterRole: UserRole.OWNER, requesterShopId: null, entryId: "e" }),
+      useCase.execute({
+        requesterRole: UserRole.OWNER,
+        requesterShopId: null,
+        requesterTenantShopIds: TEST_TENANT_SHOP_IDS,
+        entryId: "e",
+      }),
     ).resolves.toBeDefined();
   });
 });

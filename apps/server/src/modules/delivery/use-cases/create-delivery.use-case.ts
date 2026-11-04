@@ -2,6 +2,7 @@
 import { Injectable } from "@nestjs/common";
 import { EventEmitter2 } from "@nestjs/event-emitter";
 import { UserRole } from "@tapt-api/db";
+import { canAccessShop, requesterScope } from "../../../common/domain/shop-access";
 import { AuthorizationError, BusinessRuleError, NotFoundError } from "../../../common/errors";
 import { ShopRepository } from "../../shop/repositories/shop.repository";
 import { SupplierRepository } from "../../supplier/repositories/supplier.repository";
@@ -21,6 +22,7 @@ export interface CreateDeliveryInput {
   requesterId: string;
   requesterRole: UserRole;
   requesterShopId: string | null;
+  requesterTenantShopIds?: readonly string[];
   shopId: string;
   supplierId: string;
   billUrl?: string;
@@ -38,7 +40,7 @@ export class CreateDeliveryUseCase {
   ) {}
 
   async execute(input: CreateDeliveryInput): Promise<DeliveryResult> {
-    if (input.requesterRole === UserRole.STAFF && input.requesterShopId !== input.shopId) {
+    if (!canAccessShop(requesterScope(input), input.shopId)) {
       throw new AuthorizationError("You can only record deliveries for your own shop");
     }
 

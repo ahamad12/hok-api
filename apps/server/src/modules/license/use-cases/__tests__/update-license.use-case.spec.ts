@@ -7,6 +7,7 @@ import {
   NotFoundError,
 } from "../../../../common/errors";
 import { buildLicense } from "../../../../test/fixtures/license.fixture";
+import { TEST_TENANT_SHOP_IDS } from "../../../../test/fixtures/request-user.fixture";
 import { UpdateLicenseUseCase } from "../update-license.use-case";
 
 describe("UpdateLicenseUseCase", () => {
@@ -19,6 +20,7 @@ describe("UpdateLicenseUseCase", () => {
   const input = {
     requesterRole: UserRole.OWNER,
     requesterShopId: null,
+    requesterTenantShopIds: TEST_TENANT_SHOP_IDS,
     licenseId: "license-1",
     productName: "Renamed License",
   };

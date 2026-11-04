@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { BusinessRuleError, NotFoundError } from "../../../../common/errors";
 import { buildLicense } from "../../../../test/fixtures/license.fixture";
 import { buildLicenseRenewal } from "../../../../test/fixtures/license-renewal.fixture";
+import { TEST_TENANT_SHOP_IDS } from "../../../../test/fixtures/request-user.fixture";
 import { VoidLicenseRenewalUseCase } from "../void-license-renewal.use-case";
 
 describe("VoidLicenseRenewalUseCase", () => {
@@ -14,6 +15,7 @@ describe("VoidLicenseRenewalUseCase", () => {
     requesterId: "owner-1",
     requesterRole: UserRole.OWNER,
     requesterShopId: null,
+    requesterTenantShopIds: TEST_TENANT_SHOP_IDS,
     licenseId: "license-1",
     renewalId: "renewal-2",
     voidReason: "Wrong expiry date entered",

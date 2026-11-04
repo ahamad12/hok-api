@@ -45,6 +45,7 @@ export class LicenseController {
         requesterId: user.userId,
         requesterRole: user.role,
         requesterShopId: user.shopId,
+        requesterTenantShopIds: user.tenantShopIds,
         ...body,
       });
       return { status: 201 as const, body: result };
@@ -62,6 +63,7 @@ export class LicenseController {
       const result = await this.getLicensesUseCase.execute({
         requesterRole: user.role,
         requesterShopId: user.shopId,
+        requesterTenantShopIds: user.tenantShopIds,
         ...query,
       });
       return { status: 200 as const, body: result };
@@ -79,6 +81,7 @@ export class LicenseController {
       const result = await this.getExpiringLicensesUseCase.execute({
         requesterRole: user.role,
         requesterShopId: user.shopId,
+        requesterTenantShopIds: user.tenantShopIds,
         shopId: query.shopId,
       });
       return { status: 200 as const, body: result };
@@ -92,6 +95,7 @@ export class LicenseController {
       const result = await this.getLicenseByIdUseCase.execute({
         requesterRole: user.role,
         requesterShopId: user.shopId,
+        requesterTenantShopIds: user.tenantShopIds,
         licenseId: params.id,
       });
       return { status: 200 as const, body: result };
@@ -111,6 +115,7 @@ export class LicenseController {
       const result = await this.updateLicenseUseCase.execute({
         requesterRole: user.role,
         requesterShopId: user.shopId,
+        requesterTenantShopIds: user.tenantShopIds,
         licenseId: params.id,
         ...body,
       });
@@ -135,6 +140,7 @@ export class LicenseController {
         requesterId: user.userId,
         requesterRole: user.role,
         requesterShopId: user.shopId,
+        requesterTenantShopIds: user.tenantShopIds,
         licenseId: params.id,
         ...body,
       });
@@ -149,6 +155,7 @@ export class LicenseController {
       const result = await this.getLicenseRenewalHistoryUseCase.execute({
         requesterRole: user.role,
         requesterShopId: user.shopId,
+        requesterTenantShopIds: user.tenantShopIds,
         licenseId: params.id,
       });
       return { status: 200 as const, body: result };
@@ -169,6 +176,7 @@ export class LicenseController {
         requesterId: user.userId,
         requesterRole: user.role,
         requesterShopId: user.shopId,
+        requesterTenantShopIds: user.tenantShopIds,
         licenseId: params.id,
         renewalId: params.renewalId,
         ...body,

@@ -3,6 +3,7 @@ import { Injectable } from "@nestjs/common";
 import { EventEmitter2 } from "@nestjs/event-emitter";
 import { SOCKET_EVENTS } from "@tapt-api/api/events";
 import { TicketPriority, TicketType, UserRole } from "@tapt-api/db";
+import { canAccessShop } from "../../../common/domain/shop-access";
 import { assertValidUserRoleAssignment } from "../../../common/domain/user-role-invariants";
 import { AuthorizationError, BusinessRuleError } from "../../../common/errors";
 import type { RequestUser } from "../../../common/types/request-user.interface";
@@ -32,7 +33,7 @@ export class CreateTicketUseCase {
 
   async execute(requester: RequestUser, input: CreateTicketInput) {
     // System-wide MANAGER — only STAFF is shop-scoped.
-    if (requester.role === UserRole.STAFF && requester.shopId !== input.shopId) {
+    if (!canAccessShop(requester, input.shopId)) {
       throw new AuthorizationError("Cannot create a ticket outside your shop");
     }
 

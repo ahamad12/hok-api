@@ -3,6 +3,7 @@ import { Injectable } from "@nestjs/common";
 import { EventEmitter2 } from "@nestjs/event-emitter";
 import { SOCKET_EVENTS } from "@tapt-api/api/events";
 import { UserRole } from "@tapt-api/db";
+import { canAccessShop } from "../../../common/domain/shop-access";
 import { assertValidUserRoleAssignment } from "../../../common/domain/user-role-invariants";
 import { AuthorizationError, BusinessRuleError } from "../../../common/errors";
 import type { RequestUser } from "../../../common/types/request-user.interface";
@@ -23,7 +24,9 @@ export class AssignTicketUseCase {
     if (ticket.type !== "ISSUE") throw new BusinessRuleError("Only ISSUE tickets can be assigned");
     if (requester.role === UserRole.STAFF)
       throw new AuthorizationError("STAFF cannot assign tickets");
-    // No shop check — MANAGER assigns system-wide, same as OWNER (shop-access.guard.ts:35 parity).
+    if (!canAccessShop(requester, ticket.shopId)) {
+      throw new AuthorizationError("Cannot assign tickets outside your business");
+    }
 
     if (assigneeId) {
       const assignee = await this.userRepo.findById(assigneeId);

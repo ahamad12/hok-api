@@ -4,6 +4,7 @@ import { UserRole } from "@tapt-api/db";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { AuthorizationError, BusinessRuleError, NotFoundError } from "../../../../common/errors";
 import { buildDelivery } from "../../../../test/fixtures/delivery.fixture";
+import { TEST_TENANT_SHOP_IDS } from "../../../../test/fixtures/request-user.fixture";
 import { buildShop } from "../../../../test/fixtures/shop.fixture";
 import { buildSupplier } from "../../../../test/fixtures/supplier.fixture";
 import { CreateDeliveryUseCase } from "../create-delivery.use-case";
@@ -18,6 +19,7 @@ describe("CreateDeliveryUseCase", () => {
     requesterId: "staff-1",
     requesterRole: UserRole.STAFF,
     requesterShopId: "shop-1",
+    requesterTenantShopIds: TEST_TENANT_SHOP_IDS,
     shopId: "shop-1",
     supplierId: "supplier-1",
     lineItems: [

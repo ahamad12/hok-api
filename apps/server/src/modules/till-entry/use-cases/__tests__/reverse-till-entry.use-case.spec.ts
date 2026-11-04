@@ -8,6 +8,7 @@ import {
   ConflictError,
   NotFoundError,
 } from "../../../../common/errors";
+import { TEST_TENANT_SHOP_IDS } from "../../../../test/fixtures/request-user.fixture";
 import { buildTillEntry } from "../../../../test/fixtures/till-entry.fixture";
 import { ReverseTillEntryUseCase } from "../reverse-till-entry.use-case";
 
@@ -21,6 +22,7 @@ describe("ReverseTillEntryUseCase", () => {
     requesterId: "mgr-1",
     requesterRole: UserRole.MANAGER,
     requesterShopId: null,
+    requesterTenantShopIds: TEST_TENANT_SHOP_IDS,
     entryId: "entry-1",
     correctionReason: "Wrong category",
   };

@@ -1,6 +1,7 @@
 // modules/category/use-cases/get-categories.use-case.ts
 import { Injectable } from "@nestjs/common";
 import { UserRole } from "@tapt-api/db";
+import { canAccessShop, requesterScope } from "../../../common/domain/shop-access";
 import { AuthorizationError } from "../../../common/errors";
 import { type CategoryResult, toCategoryResult } from "../mappers/category.mapper";
 import { CategoryRepository } from "../repositories/category.repository";
@@ -8,6 +9,7 @@ import { CategoryRepository } from "../repositories/category.repository";
 export interface GetCategoriesInput {
   requesterRole: UserRole;
   requesterShopId: string | null;
+  requesterTenantShopIds?: readonly string[];
   shopId: string;
   isActive?: boolean;
 }
@@ -17,7 +19,7 @@ export class GetCategoriesUseCase {
   constructor(private readonly categoryRepository: CategoryRepository) {}
 
   async execute(input: GetCategoriesInput): Promise<{ categories: CategoryResult[] }> {
-    if (input.requesterRole === UserRole.STAFF && input.requesterShopId !== input.shopId) {
+    if (!canAccessShop(requesterScope(input), input.shopId)) {
       throw new AuthorizationError("Access denied for this shop");
     }
     const categories = await this.categoryRepository.findAll(input.shopId, input.isActive);

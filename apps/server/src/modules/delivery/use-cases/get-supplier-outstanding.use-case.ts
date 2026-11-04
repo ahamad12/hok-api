@@ -1,12 +1,14 @@
 // modules/delivery/use-cases/get-supplier-outstanding.use-case.ts
 import { Injectable } from "@nestjs/common";
 import { UserRole } from "@tapt-api/db";
+import { canAccessShop, requesterScope } from "../../../common/domain/shop-access";
 import { AuthorizationError } from "../../../common/errors";
 import { DeliveryRepository } from "../repositories/delivery.repository";
 
 export interface GetSupplierOutstandingInput {
   requesterRole: UserRole;
   requesterShopId: string | null;
+  requesterTenantShopIds?: readonly string[];
   shopId: string;
 }
 
@@ -24,7 +26,7 @@ export class GetSupplierOutstandingUseCase {
   async execute(
     input: GetSupplierOutstandingInput,
   ): Promise<{ balances: SupplierOutstandingResult[] }> {
-    if (input.requesterRole === UserRole.STAFF && input.requesterShopId !== input.shopId) {
+    if (!canAccessShop(requesterScope(input), input.shopId)) {
       throw new AuthorizationError("Access denied for this shop");
     }
 

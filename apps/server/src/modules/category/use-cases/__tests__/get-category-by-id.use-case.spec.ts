@@ -4,6 +4,7 @@ import { UserRole } from "@tapt-api/db";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { AuthorizationError, NotFoundError } from "../../../../common/errors";
 import { buildCategory } from "../../../../test/fixtures/category.fixture";
+import { TEST_TENANT_SHOP_IDS } from "../../../../test/fixtures/request-user.fixture";
 import { GetCategoryByIdUseCase } from "../get-category-by-id.use-case";
 
 describe("GetCategoryByIdUseCase", () => {
@@ -21,6 +22,7 @@ describe("GetCategoryByIdUseCase", () => {
       useCase.execute({
         requesterRole: UserRole.OWNER,
         requesterShopId: null,
+        requesterTenantShopIds: TEST_TENANT_SHOP_IDS,
         categoryId: "missing",
       }),
     ).rejects.toThrow(NotFoundError);
@@ -32,6 +34,7 @@ describe("GetCategoryByIdUseCase", () => {
       useCase.execute({
         requesterRole: UserRole.STAFF,
         requesterShopId: "shop-2",
+        requesterTenantShopIds: TEST_TENANT_SHOP_IDS,
         categoryId: "category-1",
       }),
     ).rejects.toThrow(AuthorizationError);
@@ -42,6 +45,7 @@ describe("GetCategoryByIdUseCase", () => {
     const result = await useCase.execute({
       requesterRole: UserRole.OWNER,
       requesterShopId: null,
+      requesterTenantShopIds: TEST_TENANT_SHOP_IDS,
       categoryId: "category-1",
     });
     expect(result.id).toBe("category-1");

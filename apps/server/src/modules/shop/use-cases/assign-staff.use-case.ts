@@ -1,6 +1,7 @@
 // modules/shop/use-cases/assign-staff.use-case.ts
 import { Injectable } from "@nestjs/common";
 import { UserRole } from "@tapt-api/db";
+import { tenantIdOf } from "../../../common/domain/tenant";
 import { AuthorizationError, BusinessRuleError, NotFoundError } from "../../../common/errors";
 import { UserRepository } from "../../auth/repositories/user.repository";
 import { TokenVersionService } from "../../auth/services/token-version.service";
@@ -39,16 +40,21 @@ export class AssignStaffUseCase {
       throw new AuthorizationError("Only OWNER or MANAGER can assign staff");
     }
 
-    // MANAGERs are shop-scoped: they may only assign staff inside their own
-    // shop. OWNERs bypass because they manage multiple shops.
-    if (requester.role === UserRole.MANAGER && requester.shopId !== input.shopId) {
-      throw new AuthorizationError("You can only manage staff in your own shop");
+    // OWNER and MANAGER may manage staff in any shop of their own tenant.
+    const tenantId = tenantIdOf(requester);
+    if (!tenantId || shop.ownerId !== tenantId) {
+      throw new AuthorizationError("You can only manage staff in your own business");
     }
 
     // Same invariant as user-role-invariants.ts's OWNER/MANAGER rule —
     // only STAFF can be assigned to a specific shop.
     if (targetUser.role !== UserRole.STAFF) {
       throw new BusinessRuleError("Only STAFF can be assigned to a shop");
+    }
+    // Staff join a business by invitation; another tenant's user is
+    // indistinguishable from an unknown one.
+    if (targetUser.ownerId !== shop.ownerId) {
+      throw new NotFoundError("User", input.userId);
     }
 
     const updated = await this.userRepository.update(targetUser.id, { shopId: input.shopId });

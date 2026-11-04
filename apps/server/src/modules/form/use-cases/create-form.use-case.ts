@@ -1,6 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import type { FormField } from "@tapt-api/api/contracts/form.contract";
 import { UserRole } from "@tapt-api/db";
+import { canAccessShop } from "../../../common/domain/shop-access";
 import { AuthorizationError, BusinessRuleError } from "../../../common/errors";
 import type { RequestUser } from "../../../common/types/request-user.interface";
 import { ShopRepository } from "../../shop/repositories/shop.repository";
@@ -23,6 +24,9 @@ export class CreateFormUseCase {
   async execute(requester: RequestUser, input: CreateFormInput) {
     if (requester.role === UserRole.STAFF) {
       throw new AuthorizationError("Only OWNER/MANAGER can create forms");
+    }
+    if (!canAccessShop(requester, input.shopId)) {
+      throw new AuthorizationError("Cannot create forms outside your business");
     }
 
     const shop = await this.shopRepo.findById(input.shopId);

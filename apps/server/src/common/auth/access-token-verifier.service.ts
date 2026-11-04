@@ -1,11 +1,13 @@
 import { Injectable } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
+import { UserRole } from "@tapt-api/db";
 import { UserRepository } from "../../modules/auth/repositories/user.repository";
 import { AuthenticationError, ERROR_REASONS } from "../errors";
 import { RedisClient } from "../redis/redis.client";
 import { accessTokenPayloadSchema } from "../schemas/jwt-payload.schema";
 import type { RequestUser } from "../types/request-user.interface";
 import { sessionRevokedKey } from "./session-keys";
+import { TenantShopsService } from "./tenant-shops.service";
 
 const TOKEN_VERSION_CACHE_TTL_SECONDS = 60 * 60;
 
@@ -25,6 +27,7 @@ export class AccessTokenVerifierService {
     private readonly jwtService: JwtService,
     private readonly redis: RedisClient,
     private readonly userRepository: UserRepository,
+    private readonly tenantShops: TenantShopsService,
   ) {}
 
   async verify(rawToken: string): Promise<RequestUser> {
@@ -43,7 +46,16 @@ export class AccessTokenVerifierService {
       throw new AuthenticationError("Malformed token payload", ERROR_REASONS.AUTH_TOKEN_INVALID);
     }
 
-    const { userId, email, role, shopId, isSupervisor, tokenVersion, sid } = parsed.data;
+    const { userId, email, role, shopId, isSupervisor, tokenVersion, sid, tid } = parsed.data;
+
+    // Tokens minted before tenancy carry no `tid`. Reject them so the
+    // client refreshes into a token that does (≤ 15 min after deploy).
+    if (tid === undefined) {
+      throw new AuthenticationError(
+        "Token predates tenant scoping",
+        ERROR_REASONS.AUTH_TOKEN_INVALID,
+      );
+    }
 
     const currentVersion = await this.getCurrentTokenVersion(userId);
     // tokenVersion kills every session of the user; sessrev:<sid> kills one.
@@ -55,7 +67,20 @@ export class AccessTokenVerifierService {
       );
     }
 
-    return { userId, email, role, shopId, isSupervisor, ...(sid ? { sessionId: sid } : {}) };
+    // STAFF are scoped by shopId; OWNER/MANAGER by their tenant's shops.
+    const tenantShopIds =
+      role !== UserRole.STAFF && tid ? await this.tenantShops.getShopIds(tid) : undefined;
+
+    return {
+      userId,
+      email,
+      role,
+      shopId,
+      isSupervisor,
+      tenantId: tid,
+      ...(sid ? { sessionId: sid } : {}),
+      ...(tenantShopIds ? { tenantShopIds } : {}),
+    };
   }
 
   private async getCurrentTokenVersion(userId: string): Promise<number | null> {

@@ -1,6 +1,6 @@
 // apps/server/src/modules/ticket/use-cases/get-messages.use-case.ts
 import { Injectable } from "@nestjs/common";
-import { UserRole } from "@tapt-api/db";
+import { canAccessShop } from "../../../common/domain/shop-access";
 import { AuthorizationError } from "../../../common/errors";
 import type { RequestUser } from "../../../common/types/request-user.interface";
 import { TicketRepository } from "../repositories/ticket.repository";
@@ -20,7 +20,7 @@ export class GetMessagesUseCase {
   ) {
     const ticket = await this.ticketRepo.findByIdOrThrow(ticketId);
 
-    if (requester.role === UserRole.STAFF && requester.shopId !== ticket.shopId) {
+    if (!canAccessShop(requester, ticket.shopId)) {
       throw new AuthorizationError("Cannot view messages outside your shop");
     }
 

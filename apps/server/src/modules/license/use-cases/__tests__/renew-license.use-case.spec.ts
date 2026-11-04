@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { BusinessRuleError, NotFoundError } from "../../../../common/errors";
 import { buildLicense } from "../../../../test/fixtures/license.fixture";
 import { buildLicenseRenewal } from "../../../../test/fixtures/license-renewal.fixture";
+import { TEST_TENANT_SHOP_IDS } from "../../../../test/fixtures/request-user.fixture";
 import { RenewLicenseUseCase } from "../renew-license.use-case";
 
 describe("RenewLicenseUseCase", () => {
@@ -13,6 +14,7 @@ describe("RenewLicenseUseCase", () => {
     requesterId: "owner-1",
     requesterRole: UserRole.OWNER,
     requesterShopId: null,
+    requesterTenantShopIds: TEST_TENANT_SHOP_IDS,
     licenseId: "license-1",
     issueDate: new Date("2027-01-01"),
     expiryDate: new Date("2028-01-01"),

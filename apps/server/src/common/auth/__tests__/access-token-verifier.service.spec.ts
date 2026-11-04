@@ -21,6 +21,7 @@ describe("AccessTokenVerifierService", () => {
     shopId: SHOP_UUID,
     isSupervisor: false,
     tokenVersion: 0,
+    tid: "423e4567-e89b-12d3-a456-426614174003",
   };
 
   beforeEach(() => {
@@ -31,6 +32,7 @@ describe("AccessTokenVerifierService", () => {
       jwtService as any,
       redis as any,
       userRepository as any,
+      { getShopIds: vi.fn().mockResolvedValue([]) } as any,
     );
   });
 
@@ -65,6 +67,7 @@ describe("AccessTokenVerifierService", () => {
       role: UserRole.STAFF,
       shopId: SHOP_UUID,
       isSupervisor: false,
+      tenantId: validPayload.tid,
     });
     expect(redis.set).toHaveBeenCalledWith(`tokenver:${UUID}`, 0, "EX", 3600);
   });
@@ -95,21 +98,23 @@ describe("AccessTokenVerifierService — reasons and per-session revocation", ()
     isSupervisor: false,
     tokenVersion: 0,
     sid: SID,
+    tid: "423e4567-e89b-12d3-a456-426614174003",
   };
 
   let jwtService: { verifyAsync: ReturnType<typeof vi.fn> };
   let redis: RedisClientMock;
+  let tenantShops: { getShopIds: ReturnType<typeof vi.fn> };
   let service: AccessTokenVerifierService;
 
   beforeEach(() => {
     jwtService = { verifyAsync: vi.fn().mockResolvedValue(payload) };
     redis = createRedisClientMock();
+    tenantShops = { getShopIds: vi.fn().mockResolvedValue(["shop-a", "shop-b"]) };
     service = new AccessTokenVerifierService(
       jwtService as any,
       redis as any,
-      {
-        findById: vi.fn(),
-      } as any,
+      { findById: vi.fn() } as any,
+      tenantShops as any,
     );
   });
 
@@ -133,6 +138,28 @@ describe("AccessTokenVerifierService — reasons and per-session revocation", ()
     const error = await service.verify("x").catch((e) => e);
     expect(error).toBeInstanceOf(AuthenticationError);
     expect(error.reason).toBe(ERROR_REASONS.AUTH_SESSION_REVOKED);
+  });
+
+  it("rejects tokens minted before tenant scoping (no tid) so the client refreshes", async () => {
+    const { tid: _omit, ...legacy } = payload;
+    jwtService.verifyAsync.mockResolvedValue(legacy);
+    const error = await service.verify("x").catch((e) => e);
+    expect(error.reason).toBe(ERROR_REASONS.AUTH_TOKEN_INVALID);
+  });
+
+  it("resolves the tenant's shops for an OWNER/MANAGER", async () => {
+    jwtService.verifyAsync.mockResolvedValue({ ...payload, role: UserRole.MANAGER });
+    redis.get.mockImplementation(async (key: string) => (key === `tokenver:${UUID}` ? "0" : null));
+    const user = await service.verify("x");
+    expect(tenantShops.getShopIds).toHaveBeenCalledWith(payload.tid);
+    expect(user).toMatchObject({ tenantId: payload.tid, tenantShopIds: ["shop-a", "shop-b"] });
+  });
+
+  it("does not resolve tenant shops for STAFF (scoped by shopId)", async () => {
+    redis.get.mockImplementation(async (key: string) => (key === `tokenver:${UUID}` ? "0" : null));
+    const user = await service.verify("x");
+    expect(tenantShops.getShopIds).not.toHaveBeenCalled();
+    expect(user.tenantShopIds).toBeUndefined();
   });
 
   it("returns the session id on success", async () => {

@@ -12,6 +12,9 @@ export const accessTokenPayloadSchema = z.object({
   // Session (refresh-token family) id. Optional so access tokens minted
   // before sessions existed stay valid until they expire (≤ 15 min).
   sid: z.string().uuid().optional(),
+  // Tenant id: the OWNER's user id (an OWNER's own id). Null for a
+  // MANAGER/STAFF with no tenant yet (they can reach no shop).
+  tid: z.string().uuid().nullable().optional(),
 });
 
 export type AccessTokenPayload = z.infer<typeof accessTokenPayloadSchema>;

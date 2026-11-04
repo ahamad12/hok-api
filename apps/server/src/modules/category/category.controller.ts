@@ -36,6 +36,7 @@ export class CategoryController {
       const result = await this.createCategoryUseCase.execute({
         requesterRole: user.role,
         requesterShopId: user.shopId,
+        requesterTenantShopIds: user.tenantShopIds,
         ...body,
       });
       return { status: 201 as const, body: result };
@@ -53,6 +54,7 @@ export class CategoryController {
       const result = await this.getCategoriesUseCase.execute({
         requesterRole: user.role,
         requesterShopId: user.shopId,
+        requesterTenantShopIds: user.tenantShopIds,
         ...query,
       });
       return { status: 200 as const, body: result };
@@ -66,6 +68,7 @@ export class CategoryController {
       const result = await this.getCategoryByIdUseCase.execute({
         requesterRole: user.role,
         requesterShopId: user.shopId,
+        requesterTenantShopIds: user.tenantShopIds,
         categoryId: params.id,
       });
       return { status: 200 as const, body: result };
@@ -85,6 +88,7 @@ export class CategoryController {
       const result = await this.updateCategoryUseCase.execute({
         requesterRole: user.role,
         requesterShopId: user.shopId,
+        requesterTenantShopIds: user.tenantShopIds,
         categoryId: params.id,
         ...body,
       });

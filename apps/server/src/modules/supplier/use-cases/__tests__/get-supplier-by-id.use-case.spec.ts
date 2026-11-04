@@ -3,6 +3,7 @@
 import { UserRole } from "@tapt-api/db";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { AuthorizationError, NotFoundError } from "../../../../common/errors";
+import { TEST_TENANT_SHOP_IDS } from "../../../../test/fixtures/request-user.fixture";
 import { buildSupplier } from "../../../../test/fixtures/supplier.fixture";
 import { GetSupplierByIdUseCase } from "../get-supplier-by-id.use-case";
 
@@ -21,6 +22,7 @@ describe("GetSupplierByIdUseCase", () => {
       useCase.execute({
         requesterRole: UserRole.OWNER,
         requesterShopId: null,
+        requesterTenantShopIds: TEST_TENANT_SHOP_IDS,
         supplierId: "missing",
       }),
     ).rejects.toThrow(NotFoundError);
@@ -32,6 +34,7 @@ describe("GetSupplierByIdUseCase", () => {
       useCase.execute({
         requesterRole: UserRole.OWNER,
         requesterShopId: null,
+        requesterTenantShopIds: TEST_TENANT_SHOP_IDS,
         supplierId: "supplier-1",
       }),
     ).rejects.toThrow(NotFoundError);
@@ -43,6 +46,7 @@ describe("GetSupplierByIdUseCase", () => {
       useCase.execute({
         requesterRole: UserRole.STAFF,
         requesterShopId: "shop-2",
+        requesterTenantShopIds: TEST_TENANT_SHOP_IDS,
         supplierId: "supplier-1",
       }),
     ).rejects.toThrow(AuthorizationError);
@@ -53,6 +57,7 @@ describe("GetSupplierByIdUseCase", () => {
     const result = await useCase.execute({
       requesterRole: UserRole.OWNER,
       requesterShopId: null,
+      requesterTenantShopIds: TEST_TENANT_SHOP_IDS,
       supplierId: "supplier-1",
     });
     expect(result.id).toBe("supplier-1");

@@ -2,6 +2,7 @@
 import { UserRole } from "@tapt-api/db";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { AuthorizationError } from "../../../../common/errors";
+import { TEST_TENANT_SHOP_IDS } from "../../../../test/fixtures/request-user.fixture";
 import { buildTask } from "../../../../test/fixtures/task.fixture";
 import { GetTasksUseCase } from "../get-tasks.use-case";
 
@@ -12,6 +13,7 @@ describe("GetTasksUseCase", () => {
   const base = {
     requesterRole: UserRole.MANAGER,
     requesterShopId: null,
+    requesterTenantShopIds: TEST_TENANT_SHOP_IDS,
     shopId: "shop-1",
     limit: 50,
     offset: 0,

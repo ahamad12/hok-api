@@ -1,6 +1,7 @@
 // modules/delivery/use-cases/get-deliveries.use-case.ts
 import { Injectable } from "@nestjs/common";
 import { UserRole } from "@tapt-api/db";
+import { canAccessShop, requesterScope } from "../../../common/domain/shop-access";
 import { AuthorizationError } from "../../../common/errors";
 import {
   type DeliveryPaymentStatus,
@@ -12,6 +13,7 @@ import { DeliveryRepository } from "../repositories/delivery.repository";
 export interface GetDeliveriesInput {
   requesterRole: UserRole;
   requesterShopId: string | null;
+  requesterTenantShopIds?: readonly string[];
   shopId: string;
   supplierId?: string;
   isVoided?: boolean;
@@ -27,7 +29,7 @@ export class GetDeliveriesUseCase {
   async execute(
     input: GetDeliveriesInput,
   ): Promise<{ deliveries: DeliveryResult[]; total: number }> {
-    if (input.requesterRole === UserRole.STAFF && input.requesterShopId !== input.shopId) {
+    if (!canAccessShop(requesterScope(input), input.shopId)) {
       throw new AuthorizationError("Access denied for this shop");
     }
 

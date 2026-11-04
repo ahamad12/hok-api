@@ -8,6 +8,7 @@ import {
   buildDeliveryWithRelations,
 } from "../../../../test/fixtures/delivery.fixture";
 import { buildDeliveryPayment } from "../../../../test/fixtures/delivery-payment.fixture";
+import { TEST_TENANT_SHOP_IDS } from "../../../../test/fixtures/request-user.fixture";
 import { RecordDeliveryPaymentUseCase } from "../record-delivery-payment.use-case";
 
 describe("RecordDeliveryPaymentUseCase", () => {
@@ -18,6 +19,7 @@ describe("RecordDeliveryPaymentUseCase", () => {
     requesterId: "owner-1",
     requesterRole: UserRole.OWNER,
     requesterShopId: null,
+    requesterTenantShopIds: TEST_TENANT_SHOP_IDS,
     deliveryId: "delivery-1",
     amountCents: 4_000,
     paymentMode: "CASH" as const,

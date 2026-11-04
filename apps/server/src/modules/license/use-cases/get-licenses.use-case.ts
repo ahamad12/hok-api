@@ -1,6 +1,7 @@
 // modules/license/use-cases/get-licenses.use-case.ts
 import { Injectable } from "@nestjs/common";
 import { UserRole } from "@tapt-api/db";
+import { canAccessShop, requesterScope } from "../../../common/domain/shop-access";
 import { AuthorizationError } from "../../../common/errors";
 import { type LicenseResult, toLicenseResult } from "../mappers/license.mapper";
 import { LicenseRepository } from "../repositories/license.repository";
@@ -8,6 +9,7 @@ import { LicenseRepository } from "../repositories/license.repository";
 export interface GetLicensesInput {
   requesterRole: UserRole;
   requesterShopId: string | null;
+  requesterTenantShopIds?: readonly string[];
   shopId: string;
   isActive?: boolean;
   isExpiringSoon?: boolean;
@@ -21,7 +23,7 @@ export class GetLicensesUseCase {
   constructor(private readonly licenseRepository: LicenseRepository) {}
 
   async execute(input: GetLicensesInput): Promise<{ licenses: LicenseResult[]; total: number }> {
-    if (input.requesterRole === UserRole.STAFF && input.requesterShopId !== input.shopId) {
+    if (!canAccessShop(requesterScope(input), input.shopId)) {
       throw new AuthorizationError("Access denied for this shop");
     }
 
