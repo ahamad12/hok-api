@@ -86,9 +86,14 @@ const registerBodySchema = z
     }
   });
 
+// Optional human label for the device ("Ana's iPhone"), shown in the
+// session list. IP and user agent are taken from the request.
+const deviceNameSchema = z.string().trim().min(1).max(100).optional();
+
 const loginBodySchema = z.object({
   email: emailSchema,
   password: z.string().min(1),
+  deviceName: deviceNameSchema,
 });
 
 const changePasswordBodySchema = z
@@ -108,6 +113,20 @@ const changePasswordBodySchema = z
 const authTokensSchema = z.object({
   accessToken: z.string(),
   refreshToken: z.string(),
+  // Id of the session these tokens belong to (also the access token's
+  // `sid` claim). Compare against SESSION_REVOKED payloads' sessionIds.
+  sessionId: z.string().uuid(),
+});
+
+const sessionSchema = z.object({
+  id: z.string().uuid(),
+  deviceName: z.string().nullable(),
+  userAgent: z.string().nullable(),
+  ipAddress: z.string().nullable(),
+  createdAt: z.coerce.date(),
+  lastActiveAt: z.coerce.date(),
+  expiresAt: z.coerce.date(),
+  isCurrent: z.boolean(),
 });
 
 export const authContract = c.router(
@@ -134,6 +153,24 @@ export const authContract = c.router(
       method: "POST",
       path: "/auth/logout",
       body: z.object({ refreshToken: z.string() }),
+      responses: { 200: z.object({ message: z.string() }) },
+    },
+    logoutAll: {
+      method: "POST",
+      path: "/auth/logout-all",
+      body: z.object({}),
+      responses: { 200: z.object({ message: z.string(), sessionsRevoked: z.number() }) },
+    },
+    getSessions: {
+      method: "GET",
+      path: "/auth/sessions",
+      responses: { 200: z.object({ sessions: z.array(sessionSchema) }) },
+    },
+    revokeSession: {
+      method: "DELETE",
+      path: "/auth/sessions/:id",
+      pathParams: z.object({ id: z.string().uuid() }),
+      body: z.object({}),
       responses: { 200: z.object({ message: z.string() }) },
     },
     getProfile: {

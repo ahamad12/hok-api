@@ -5,6 +5,7 @@ import { AuthenticationError, ERROR_REASONS } from "../errors";
 import { RedisClient } from "../redis/redis.client";
 import { accessTokenPayloadSchema } from "../schemas/jwt-payload.schema";
 import type { RequestUser } from "../types/request-user.interface";
+import { sessionRevokedKey } from "./session-keys";
 
 const TOKEN_VERSION_CACHE_TTL_SECONDS = 60 * 60;
 
@@ -42,17 +43,19 @@ export class AccessTokenVerifierService {
       throw new AuthenticationError("Malformed token payload", ERROR_REASONS.AUTH_TOKEN_INVALID);
     }
 
-    const { userId, email, role, shopId, isSupervisor, tokenVersion } = parsed.data;
+    const { userId, email, role, shopId, isSupervisor, tokenVersion, sid } = parsed.data;
 
     const currentVersion = await this.getCurrentTokenVersion(userId);
-    if (currentVersion === null || currentVersion !== tokenVersion) {
+    // tokenVersion kills every session of the user; sessrev:<sid> kills one.
+    const sessionRevoked = sid ? (await this.redis.get(sessionRevokedKey(sid))) !== null : false;
+    if (currentVersion === null || currentVersion !== tokenVersion || sessionRevoked) {
       throw new AuthenticationError(
         "Session invalidated. Please login again.",
         ERROR_REASONS.AUTH_SESSION_REVOKED,
       );
     }
 
-    return { userId, email, role, shopId, isSupervisor };
+    return { userId, email, role, shopId, isSupervisor, ...(sid ? { sessionId: sid } : {}) };
   }
 
   private async getCurrentTokenVersion(userId: string): Promise<number | null> {

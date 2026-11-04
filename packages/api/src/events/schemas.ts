@@ -132,6 +132,10 @@ export const formSubmittedPayloadSchema = z.object({
 
 export const sessionRevokedPayloadSchema = z.object({
   message: z.string(),
+  // Sessions that ended (the access token's `sid`). Absent = every session
+  // of the user ended. A client whose sid is not listed should stay signed in.
+  sessionIds: z.array(z.string().uuid()).optional(),
+  reason: z.string().optional(),
 });
 
 export const socketEventSchemas = {

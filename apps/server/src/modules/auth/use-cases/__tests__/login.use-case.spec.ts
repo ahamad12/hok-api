@@ -11,7 +11,7 @@ describe("LoginUseCase", () => {
   };
   let tokenService: {
     generateAccessToken: ReturnType<typeof vi.fn>;
-    generateRefreshToken: ReturnType<typeof vi.fn>;
+    issueSession: ReturnType<typeof vi.fn>;
   };
   let useCase: LoginUseCase;
 
@@ -20,7 +20,7 @@ describe("LoginUseCase", () => {
     passwordHasher = { compare: vi.fn(), compareDummy: vi.fn().mockResolvedValue(false) };
     tokenService = {
       generateAccessToken: vi.fn().mockReturnValue("access.jwt"),
-      generateRefreshToken: vi.fn().mockResolvedValue("refresh-raw"),
+      issueSession: vi.fn().mockResolvedValue({ sessionId: "sess-1", refreshToken: "refresh-raw" }),
     };
     useCase = new LoginUseCase(userRepository as any, passwordHasher as any, tokenService as any);
   });
@@ -100,6 +100,7 @@ describe("LoginUseCase", () => {
 
     expect(result.accessToken).toBe("access.jwt");
     expect(result.refreshToken).toBe("refresh-raw");
+    expect(result.sessionId).toBe("sess-1");
     expect(result.user.email).toBe("staff@shop.test");
     expect(result.user.username).toBeNull();
   });
@@ -111,8 +112,24 @@ describe("LoginUseCase", () => {
     await useCase.execute({ email: "staff@shop.test", password: "correct" });
 
     expect(tokenService.generateAccessToken).toHaveBeenCalledWith(
-      expect.objectContaining({ tokenVersion: 3 }),
+      expect.objectContaining({ tokenVersion: 3, sid: "sess-1" }),
     );
+  });
+
+  it("starts a session carrying the device name and client metadata", async () => {
+    userRepository.findByEmail.mockResolvedValue(buildUser({ id: "user-9" }));
+    passwordHasher.compare.mockResolvedValue(true);
+
+    await useCase.execute(
+      { email: "staff@shop.test", password: "correct", deviceName: "Work phone" },
+      { ipAddress: "1.2.3.4", userAgent: "ua" },
+    );
+
+    expect(tokenService.issueSession).toHaveBeenCalledWith("user-9", {
+      ipAddress: "1.2.3.4",
+      userAgent: "ua",
+      deviceName: "Work phone",
+    });
   });
 
   it("persists lastLoginAt on successful login", async () => {

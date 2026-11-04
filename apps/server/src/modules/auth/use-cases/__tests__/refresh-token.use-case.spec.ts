@@ -1,79 +1,69 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { AuthenticationError } from "../../../../common/errors";
+import { AuthenticationError, ERROR_REASONS } from "../../../../common/errors";
 import { buildUser } from "../../../../test/fixtures/user.fixture";
 import { RefreshTokenUseCase } from "../refresh-token.use-case";
 
 describe("RefreshTokenUseCase", () => {
   let userRepository: { findById: ReturnType<typeof vi.fn> };
   let tokenService: {
-    verifyRefreshToken: ReturnType<typeof vi.fn>;
-    revokeRefreshToken: ReturnType<typeof vi.fn>;
+    rotate: ReturnType<typeof vi.fn>;
+    revokeSessionByToken: ReturnType<typeof vi.fn>;
     generateAccessToken: ReturnType<typeof vi.fn>;
-    generateRefreshToken: ReturnType<typeof vi.fn>;
   };
   let useCase: RefreshTokenUseCase;
+
+  const rotated = { userId: "user-1", sessionId: "sess-1", refreshToken: "new-refresh-raw" };
 
   beforeEach(() => {
     userRepository = { findById: vi.fn() };
     tokenService = {
-      verifyRefreshToken: vi.fn(),
-      revokeRefreshToken: vi.fn().mockResolvedValue(undefined),
+      rotate: vi.fn().mockResolvedValue(rotated),
+      revokeSessionByToken: vi.fn().mockResolvedValue(undefined),
       generateAccessToken: vi.fn().mockReturnValue("new.access.jwt"),
-      generateRefreshToken: vi.fn().mockResolvedValue("new-refresh-raw"),
     };
     useCase = new RefreshTokenUseCase(userRepository as any, tokenService as any);
   });
 
-  it("throws AuthenticationError when the refresh token itself is invalid/expired", async () => {
-    tokenService.verifyRefreshToken.mockRejectedValue(
-      new AuthenticationError("Invalid refresh token"),
-    );
-    await expect(useCase.execute({ refreshToken: "bad" })).rejects.toThrow(AuthenticationError);
+  it("propagates rotation failures (invalid, expired, reused) unchanged", async () => {
+    const reused = new AuthenticationError("reused", ERROR_REASONS.AUTH_REFRESH_REUSED);
+    tokenService.rotate.mockRejectedValue(reused);
+    await expect(useCase.execute({ refreshToken: "bad" })).rejects.toBe(reused);
+    expect(tokenService.generateAccessToken).not.toHaveBeenCalled();
   });
 
-  it("throws AuthenticationError if the user behind a valid token no longer exists", async () => {
-    tokenService.verifyRefreshToken.mockResolvedValue("user-1");
+  it("passes client metadata to rotation", async () => {
+    userRepository.findById.mockResolvedValue(buildUser());
+    await useCase.execute({ refreshToken: "raw" }, { ipAddress: "1.2.3.4", userAgent: "ua" });
+    expect(tokenService.rotate).toHaveBeenCalledWith("raw", {
+      ipAddress: "1.2.3.4",
+      userAgent: "ua",
+    });
+  });
+
+  it("ends the new session and rejects if the user no longer exists", async () => {
     userRepository.findById.mockResolvedValue(null);
-    await expect(useCase.execute({ refreshToken: "raw" })).rejects.toThrow(AuthenticationError);
+    const error = await useCase.execute({ refreshToken: "raw" }).catch((e) => e);
+    expect(error.reason).toBe(ERROR_REASONS.AUTH_REFRESH_INVALID);
+    expect(tokenService.revokeSessionByToken).toHaveBeenCalledWith("new-refresh-raw");
   });
 
-  it("throws AuthenticationError if the user has since been deactivated", async () => {
-    tokenService.verifyRefreshToken.mockResolvedValue("user-1");
+  it("ends the new session and rejects if the user has been deactivated", async () => {
     userRepository.findById.mockResolvedValue(buildUser({ isActive: false }));
-    await expect(useCase.execute({ refreshToken: "raw" })).rejects.toThrow(AuthenticationError);
+    const error = await useCase.execute({ refreshToken: "raw" }).catch((e) => e);
+    expect(error.reason).toBe(ERROR_REASONS.AUTH_ACCOUNT_DISABLED);
+    expect(tokenService.revokeSessionByToken).toHaveBeenCalledWith("new-refresh-raw");
   });
 
-  it("revokes the old refresh token BEFORE issuing the new one", async () => {
-    tokenService.verifyRefreshToken.mockResolvedValue("user-1");
-    userRepository.findById.mockResolvedValue(buildUser());
-
-    const callOrder: string[] = [];
-    tokenService.revokeRefreshToken.mockImplementation(async () => {
-      callOrder.push("revoke");
-    });
-    tokenService.generateRefreshToken.mockImplementation(async () => {
-      callOrder.push("generate");
-      return "new-refresh-raw";
-    });
-
-    await useCase.execute({ refreshToken: "raw" });
-    expect(callOrder).toEqual(["revoke", "generate"]);
-  });
-
-  it("returns a fresh access + refresh token pair on success", async () => {
-    tokenService.verifyRefreshToken.mockResolvedValue("user-1");
-    userRepository.findById.mockResolvedValue(buildUser());
-
+  it("returns the rotated refresh token, the session id and an access token bound to it", async () => {
+    userRepository.findById.mockResolvedValue(buildUser({ id: "user-1", tokenVersion: 4 }));
     const result = await useCase.execute({ refreshToken: "raw" });
-    expect(result).toEqual({ accessToken: "new.access.jwt", refreshToken: "new-refresh-raw" });
-  });
-
-  it("does not call generateRefreshToken if revoking the old token throws unexpectedly", async () => {
-    tokenService.verifyRefreshToken.mockResolvedValue("user-1");
-    userRepository.findById.mockResolvedValue(buildUser());
-    tokenService.revokeRefreshToken.mockRejectedValue(new Error("unexpected"));
-
-    await expect(useCase.execute({ refreshToken: "raw" })).rejects.toThrow("unexpected");
-    expect(tokenService.generateRefreshToken).not.toHaveBeenCalled();
+    expect(result).toEqual({
+      accessToken: "new.access.jwt",
+      refreshToken: "new-refresh-raw",
+      sessionId: "sess-1",
+    });
+    expect(tokenService.generateAccessToken).toHaveBeenCalledWith(
+      expect.objectContaining({ userId: "user-1", tokenVersion: 4, sid: "sess-1" }),
+    );
   });
 });

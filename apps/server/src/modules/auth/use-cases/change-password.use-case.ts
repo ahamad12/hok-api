@@ -83,7 +83,7 @@ export class ChangePasswordUseCase {
     // across call sites without risking the two falling out of sync.
     await this.tokenVersionService.invalidateSessions(user.id);
     this.eventEmitter.emit("user.password_changed", { userId: user.id });
-    const sessionsRevoked = await this.tokenService.revokeAllUserTokens(user.id);
+    const sessionsRevoked = await this.tokenService.revokeAllSessions(user.id, "PASSWORD_CHANGED");
 
     return {
       message: "Password changed successfully. You have been logged out from all devices.",

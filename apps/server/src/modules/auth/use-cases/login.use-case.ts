@@ -3,6 +3,8 @@ import { Injectable } from "@nestjs/common";
 import { normalizeEmail } from "@tapt-api/api/validators/email";
 import type { UserRole } from "@tapt-api/db";
 import { AuthenticationError, ERROR_REASONS } from "../../../common/errors";
+import { toAccessTokenPayload } from "../mappers/access-token-payload.mapper";
+import type { SessionMetadata } from "../repositories/refresh-token.repository";
 import { UserRepository } from "../repositories/user.repository";
 import { PasswordHasherService } from "../services/password-hasher.service";
 import { TokenService } from "../services/token.service";
@@ -10,6 +12,7 @@ import { TokenService } from "../services/token.service";
 export interface LoginInput {
   email: string;
   password: string;
+  deviceName?: string;
 }
 
 export interface LoginResult {
@@ -24,6 +27,7 @@ export interface LoginResult {
   };
   accessToken: string;
   refreshToken: string;
+  sessionId: string;
 }
 
 @Injectable()
@@ -34,7 +38,10 @@ export class LoginUseCase {
     private readonly tokenService: TokenService,
   ) {}
 
-  async execute(input: LoginInput): Promise<LoginResult> {
+  async execute(
+    input: LoginInput,
+    client: Omit<SessionMetadata, "deviceName"> = {},
+  ): Promise<LoginResult> {
     const user = await this.userRepository.findByEmail(normalizeEmail(input.email));
 
     // Always do exactly one bcrypt compare, and give unknown email and wrong
@@ -58,15 +65,13 @@ export class LoginUseCase {
       );
     }
 
-    const accessToken = this.tokenService.generateAccessToken({
-      userId: user.id,
-      email: user.email,
-      role: user.role,
-      shopId: user.shopId,
-      isSupervisor: user.isSupervisor,
-      tokenVersion: user.tokenVersion,
+    const { sessionId, refreshToken } = await this.tokenService.issueSession(user.id, {
+      ...client,
+      deviceName: input.deviceName ?? null,
     });
-    const refreshToken = await this.tokenService.generateRefreshToken(user.id);
+    const accessToken = this.tokenService.generateAccessToken(
+      toAccessTokenPayload(user, sessionId),
+    );
 
     await this.userRepository.update(user.id, { lastLoginAt: new Date() });
 
@@ -82,6 +87,7 @@ export class LoginUseCase {
       },
       accessToken,
       refreshToken,
+      sessionId,
     };
   }
 }

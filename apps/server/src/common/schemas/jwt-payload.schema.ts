@@ -9,6 +9,9 @@ export const accessTokenPayloadSchema = z.object({
   shopId: z.string().uuid().nullable(),
   isSupervisor: z.boolean(),
   tokenVersion: z.number().int().nonnegative(),
+  // Session (refresh-token family) id. Optional so access tokens minted
+  // before sessions existed stay valid until they expire (≤ 15 min).
+  sid: z.string().uuid().optional(),
 });
 
 export type AccessTokenPayload = z.infer<typeof accessTokenPayloadSchema>;

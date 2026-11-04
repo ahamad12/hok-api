@@ -37,6 +37,9 @@ export const env = createEnv({
     // there is intentionally no JWT_REFRESH_SECRET. TTL is in days so it
     // stays in sync with TokenService.
     JWT_REFRESH_EXPIRY_DAYS: z.coerce.number().int().positive().default(7),
+    // Hard cap on a session's total life: refresh rotation slides each
+    // token's expiry forward, but never past sessionStartedAt + this.
+    JWT_SESSION_MAX_DAYS: z.coerce.number().int().positive().default(90),
     BCRYPT_SALT_ROUNDS: z.coerce.number().default(12),
   },
   runtimeEnv: process.env,

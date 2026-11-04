@@ -2,26 +2,20 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { LogoutUseCase } from "../logout.use-case";
 
 describe("LogoutUseCase", () => {
-  let tokenService: { revokeRefreshToken: ReturnType<typeof vi.fn> };
+  let tokenService: { revokeSessionByToken: ReturnType<typeof vi.fn> };
   let useCase: LogoutUseCase;
 
   beforeEach(() => {
-    tokenService = { revokeRefreshToken: vi.fn().mockResolvedValue(undefined) };
+    tokenService = { revokeSessionByToken: vi.fn().mockResolvedValue(undefined) };
     useCase = new LogoutUseCase(tokenService as any);
   });
 
-  it("revokes the given refresh token", async () => {
+  it("ends the session the refresh token belongs to", async () => {
     await useCase.execute({ refreshToken: "raw-token" });
-    expect(tokenService.revokeRefreshToken).toHaveBeenCalledWith("raw-token");
+    expect(tokenService.revokeSessionByToken).toHaveBeenCalledWith("raw-token");
   });
 
-  it("returns a success message", async () => {
-    const result = await useCase.execute({ refreshToken: "raw-token" });
-    expect(result).toEqual({ message: "Logged out successfully" });
-  });
-
-  it("does not throw for an already-revoked or unknown token (idempotent)", async () => {
-    tokenService.revokeRefreshToken.mockResolvedValue(undefined);
+  it("returns a success message, also for unknown tokens (idempotent)", async () => {
     await expect(useCase.execute({ refreshToken: "already-gone" })).resolves.toEqual({
       message: "Logged out successfully",
     });

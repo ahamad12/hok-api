@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { buildUser } from "../../../test/fixtures/user.fixture";
 import { UserRole } from "../../../test/prisma-client-mock";
 import { createRedisClientMock, type RedisClientMock } from "../../../test/redis-client-mock";
-import { AuthenticationError } from "../../errors";
+import { AuthenticationError, ERROR_REASONS } from "../../errors";
 import { AccessTokenVerifierService } from "../access-token-verifier.service";
 
 describe("AccessTokenVerifierService", () => {
@@ -81,5 +81,62 @@ describe("AccessTokenVerifierService", () => {
     redis.get.mockResolvedValue("0");
     const result = await service.verify("x");
     expect(result).not.toHaveProperty("tokenVersion");
+  });
+});
+
+describe("AccessTokenVerifierService — reasons and per-session revocation", () => {
+  const UUID = "123e4567-e89b-12d3-a456-426614174000";
+  const SID = "323e4567-e89b-12d3-a456-426614174002";
+  const payload = {
+    userId: UUID,
+    email: "staff@shop.test",
+    role: UserRole.STAFF,
+    shopId: null,
+    isSupervisor: false,
+    tokenVersion: 0,
+    sid: SID,
+  };
+
+  let jwtService: { verifyAsync: ReturnType<typeof vi.fn> };
+  let redis: RedisClientMock;
+  let service: AccessTokenVerifierService;
+
+  beforeEach(() => {
+    jwtService = { verifyAsync: vi.fn().mockResolvedValue(payload) };
+    redis = createRedisClientMock();
+    service = new AccessTokenVerifierService(
+      jwtService as any,
+      redis as any,
+      {
+        findById: vi.fn(),
+      } as any,
+    );
+  });
+
+  it("tags an expired token with AUTH_TOKEN_EXPIRED so clients know to refresh", async () => {
+    const expired = Object.assign(new Error("jwt expired"), { name: "TokenExpiredError" });
+    jwtService.verifyAsync.mockRejectedValue(expired);
+    const error = await service.verify("x").catch((e) => e);
+    expect(error.reason).toBe(ERROR_REASONS.AUTH_TOKEN_EXPIRED);
+  });
+
+  it("tags a bad signature with AUTH_TOKEN_INVALID", async () => {
+    jwtService.verifyAsync.mockRejectedValue(new Error("invalid signature"));
+    const error = await service.verify("x").catch((e) => e);
+    expect(error.reason).toBe(ERROR_REASONS.AUTH_TOKEN_INVALID);
+  });
+
+  it("rejects a token whose session was revoked, even with a matching tokenVersion", async () => {
+    redis.get.mockImplementation(async (key: string) =>
+      key === `sessrev:${SID}` ? "1" : key === `tokenver:${UUID}` ? "0" : null,
+    );
+    const error = await service.verify("x").catch((e) => e);
+    expect(error).toBeInstanceOf(AuthenticationError);
+    expect(error.reason).toBe(ERROR_REASONS.AUTH_SESSION_REVOKED);
+  });
+
+  it("returns the session id on success", async () => {
+    redis.get.mockImplementation(async (key: string) => (key === `tokenver:${UUID}` ? "0" : null));
+    await expect(service.verify("x")).resolves.toMatchObject({ userId: UUID, sessionId: SID });
   });
 });

@@ -1,6 +1,8 @@
-// modules/auth/use-cases/refresh-token.use-case.ts — unchanged
+// modules/auth/use-cases/refresh-token.use-case.ts
 import { Injectable } from "@nestjs/common";
 import { AuthenticationError, ERROR_REASONS } from "../../../common/errors";
+import { toAccessTokenPayload } from "../mappers/access-token-payload.mapper";
+import type { SessionMetadata } from "../repositories/refresh-token.repository";
 import { UserRepository } from "../repositories/user.repository";
 import { TokenService } from "../services/token.service";
 
@@ -10,6 +12,7 @@ export interface RefreshTokenInput {
 export interface RefreshTokenResult {
   accessToken: string;
   refreshToken: string;
+  sessionId: string;
 }
 
 @Injectable()
@@ -19,28 +22,25 @@ export class RefreshTokenUseCase {
     private readonly tokenService: TokenService,
   ) {}
 
-  async execute(input: RefreshTokenInput): Promise<RefreshTokenResult> {
-    const userId = await this.tokenService.verifyRefreshToken(input.refreshToken);
-    const user = await this.userRepository.findById(userId);
-    if (!user) {
-      throw new AuthenticationError("Invalid refresh token", ERROR_REASONS.AUTH_REFRESH_INVALID);
+  async execute(
+    input: RefreshTokenInput,
+    client: Omit<SessionMetadata, "deviceName"> = {},
+  ): Promise<RefreshTokenResult> {
+    // Rotation is the atomic claim (and reuse check); it throws with a
+    // specific reason when the token can't be used.
+    const rotated = await this.tokenService.rotate(input.refreshToken, client);
+
+    const user = await this.userRepository.findById(rotated.userId);
+    if (!user || !user.isActive) {
+      await this.tokenService.revokeSessionByToken(rotated.refreshToken);
+      throw user
+        ? new AuthenticationError("Account is deactivated", ERROR_REASONS.AUTH_ACCOUNT_DISABLED)
+        : new AuthenticationError("Invalid refresh token", ERROR_REASONS.AUTH_REFRESH_INVALID);
     }
-    if (!user.isActive) {
-      throw new AuthenticationError("Account is deactivated", ERROR_REASONS.AUTH_ACCOUNT_DISABLED);
-    }
 
-    await this.tokenService.revokeRefreshToken(input.refreshToken);
-
-    const accessToken = this.tokenService.generateAccessToken({
-      userId: user.id,
-      email: user.email,
-      role: user.role,
-      shopId: user.shopId,
-      isSupervisor: user.isSupervisor,
-      tokenVersion: user.tokenVersion,
-    });
-    const newRefreshToken = await this.tokenService.generateRefreshToken(user.id);
-
-    return { accessToken, refreshToken: newRefreshToken };
+    const accessToken = this.tokenService.generateAccessToken(
+      toAccessTokenPayload(user, rotated.sessionId),
+    );
+    return { accessToken, refreshToken: rotated.refreshToken, sessionId: rotated.sessionId };
   }
 }
