@@ -1,4 +1,5 @@
 import { Controller } from "@nestjs/common";
+import { Throttle } from "@nestjs/throttler";
 import { authContract } from "@tapt-api/api/contracts/auth.contract";
 import { TsRestHandler } from "@ts-rest/nest";
 import { CurrentUser, Public } from "../../common/decorators";
@@ -41,6 +42,7 @@ export class AuthController {
   ) {}
 
   @Public()
+  @Throttle({ auth: { limit: 20, ttl: 60000 } })
   @TsRestHandler(authContract.register)
   register() {
     return async ({ body }: { body: RegisterUserInput }) => {
@@ -50,6 +52,7 @@ export class AuthController {
   }
 
   @Public()
+  @Throttle({ auth: { limit: 20, ttl: 60000 } })
   @TsRestHandler(authContract.login)
   login() {
     return async ({ body }: { body: LoginInput }) => {
@@ -59,6 +62,7 @@ export class AuthController {
   }
 
   @Public()
+  @Throttle({ auth: { limit: 20, ttl: 60000 } })
   @TsRestHandler(authContract.refresh)
   refresh() {
     return async ({ body }: { body: RefreshTokenInput }) => {
@@ -67,6 +71,10 @@ export class AuthController {
     };
   }
 
+  // Public by design: revocation is idempotent and keyed by the opaque
+  // refresh token in the body, so an expired access token must not block
+  // logout. No user context is needed — LogoutUseCase only hashes + deletes.
+  @Public()
   @TsRestHandler(authContract.logout)
   logout() {
     return async ({ body }: { body: LogoutInput }) => {

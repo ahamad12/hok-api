@@ -83,6 +83,14 @@ import { TillEntryModule } from "./modules/till-entry/till-entry.module";
             ttl: 60000,
             limit: 30,
           },
+          {
+            // Stricter per-IP budget for public auth endpoints
+            // (register/login/refresh). Applied via @Throttle on
+            // AuthController; everything else uses "default".
+            name: "auth",
+            ttl: 60000,
+            limit: 20,
+          },
         ],
         storage: env.REDIS_URL
           ? new ThrottlerStorageRedisService(env.REDIS_URL)

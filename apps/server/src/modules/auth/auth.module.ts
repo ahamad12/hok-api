@@ -11,6 +11,7 @@ import { RefreshTokenRepository } from "./repositories/refresh-token.repository"
 import { UserRepository } from "./repositories/user.repository";
 import { PasswordHasherService } from "./services/password-hasher.service";
 import { TokenService } from "./services/token.service";
+import { TokenCleanupService } from "./services/token-cleanup.service";
 import { TokenVersionService } from "./services/token-version.service";
 import { ChangePasswordUseCase } from "./use-cases/change-password.use-case";
 import { GetUserProfileUseCase } from "./use-cases/get-user-profile.use-case";
@@ -42,6 +43,7 @@ import { UpdateUserProfileUseCase } from "./use-cases/update-user-profile.use-ca
     RefreshTokenRepository,
     PasswordHasherService,
     TokenService,
+    TokenCleanupService,
     TokenVersionService,
     RegisterUserUseCase,
     LoginUseCase,
