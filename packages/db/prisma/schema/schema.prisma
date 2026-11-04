@@ -144,15 +144,39 @@ model User {
   @@map("users")
 }
 
+enum RefreshTokenRevokeReason {
+  ROTATED
+  LOGOUT
+  LOGOUT_ALL
+  SESSION_REVOKED
+  REUSE_DETECTED
+  PASSWORD_CHANGED
+}
+
+// One row per issued refresh token. A login starts a session (familyId);
+// every refresh revokes the presented row (ROTATED) and issues its child in
+// the same family. Rows are revoked, not deleted, so presenting an already
+// ROTATED token is detectable as reuse (theft) and kills the whole family.
+// `token` holds SHA-256(raw), never the raw value.
 model RefreshToken {
-  id        String   @id @default(uuid())
-  userId    String   @map("user_id")
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  token     String   @unique
-  expiresAt DateTime @map("expires_at")
-  createdAt DateTime @default(now()) @map("created_at")
+  id               String                    @id @default(uuid())
+  userId           String                    @map("user_id")
+  user             User                      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  familyId         String                    @map("family_id")
+  token            String                    @unique
+  expiresAt        DateTime                  @map("expires_at")
+  sessionStartedAt DateTime                  @default(now()) @map("session_started_at")
+  createdAt        DateTime                  @default(now()) @map("created_at")
+  revokedAt        DateTime?                 @map("revoked_at")
+  revokeReason     RefreshTokenRevokeReason? @map("revoke_reason")
+  replacedById     String?                   @unique @map("replaced_by_id")
+  deviceName       String?                   @map("device_name") @db.VarChar(100)
+  userAgent        String?                   @map("user_agent") @db.VarChar(512)
+  ipAddress        String?                   @map("ip_address") @db.VarChar(64)
 
   @@index([userId])
+  @@index([familyId])
+  @@index([userId, revokedAt])
   @@index([token])
   @@index([expiresAt])
   @@map("refresh_tokens")
