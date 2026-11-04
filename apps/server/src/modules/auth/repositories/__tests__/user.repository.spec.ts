@@ -43,6 +43,20 @@ describe("UserRepository", () => {
     expect(prisma.user.create).toHaveBeenCalledWith({ data: input });
   });
 
+  it("findByEmail normalises the email before looking it up", async () => {
+    prisma.user.findUnique.mockResolvedValue(null);
+    await repo.findByEmail("  Staff@Shop.TEST ");
+    expect(prisma.user.findUnique).toHaveBeenCalledWith({ where: { email: "staff@shop.test" } });
+  });
+
+  it("create stores the email normalised", async () => {
+    prisma.user.create.mockResolvedValue(buildUser());
+    await repo.create({ email: " New@Shop.test", passwordHash: "h", displayName: "N" } as any);
+    expect(prisma.user.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({ email: "new@shop.test" }),
+    });
+  });
+
   it("update delegates to prisma.user.update scoped by id", async () => {
     prisma.user.update.mockResolvedValue(buildUser());
     await repo.update("user-1", { displayName: "Changed" });

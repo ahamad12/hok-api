@@ -1,11 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { AuthenticationError } from "../../../../common/errors";
+import { AuthenticationError, ERROR_REASONS } from "../../../../common/errors";
 import { buildUser } from "../../../../test/fixtures/user.fixture";
 import { LoginUseCase } from "../login.use-case";
 
 describe("LoginUseCase", () => {
   let userRepository: { findByEmail: ReturnType<typeof vi.fn>; update: ReturnType<typeof vi.fn> };
-  let passwordHasher: { compare: ReturnType<typeof vi.fn> };
+  let passwordHasher: {
+    compare: ReturnType<typeof vi.fn>;
+    compareDummy: ReturnType<typeof vi.fn>;
+  };
   let tokenService: {
     generateAccessToken: ReturnType<typeof vi.fn>;
     generateRefreshToken: ReturnType<typeof vi.fn>;
@@ -14,7 +17,7 @@ describe("LoginUseCase", () => {
 
   beforeEach(() => {
     userRepository = { findByEmail: vi.fn(), update: vi.fn().mockResolvedValue(buildUser()) };
-    passwordHasher = { compare: vi.fn() };
+    passwordHasher = { compare: vi.fn(), compareDummy: vi.fn().mockResolvedValue(false) };
     tokenService = {
       generateAccessToken: vi.fn().mockReturnValue("access.jwt"),
       generateRefreshToken: vi.fn().mockResolvedValue("refresh-raw"),
@@ -29,12 +32,32 @@ describe("LoginUseCase", () => {
     );
   });
 
-  it("throws AuthenticationError for a deactivated account, without attempting a password check", async () => {
-    userRepository.findByEmail.mockResolvedValue(buildUser({ isActive: false }));
-    await expect(useCase.execute({ email: "a@b.com", password: "x" })).rejects.toThrow(
-      AuthenticationError,
-    );
+  it("still runs a (dummy) bcrypt compare for an unknown email, so timing matches", async () => {
+    userRepository.findByEmail.mockResolvedValue(null);
+    await useCase.execute({ email: "ghost@shop.test", password: "x" }).catch(() => {});
+    expect(passwordHasher.compareDummy).toHaveBeenCalledWith("x");
     expect(passwordHasher.compare).not.toHaveBeenCalled();
+  });
+
+  it("looks the user up by normalised email", async () => {
+    userRepository.findByEmail.mockResolvedValue(null);
+    await useCase.execute({ email: "  Owner@Shop.TEST ", password: "x" }).catch(() => {});
+    expect(userRepository.findByEmail).toHaveBeenCalledWith("owner@shop.test");
+  });
+
+  it("reports a deactivated account only after the password is proven correct", async () => {
+    userRepository.findByEmail.mockResolvedValue(buildUser({ isActive: false }));
+    passwordHasher.compare.mockResolvedValue(true);
+    const error = await useCase.execute({ email: "a@b.com", password: "right" }).catch((e) => e);
+    expect(error).toBeInstanceOf(AuthenticationError);
+    expect(error.reason).toBe(ERROR_REASONS.AUTH_ACCOUNT_DISABLED);
+  });
+
+  it("gives a deactivated account with a wrong password the generic credentials error", async () => {
+    userRepository.findByEmail.mockResolvedValue(buildUser({ isActive: false }));
+    passwordHasher.compare.mockResolvedValue(false);
+    const error = await useCase.execute({ email: "a@b.com", password: "wrong" }).catch((e) => e);
+    expect(error.reason).toBe(ERROR_REASONS.AUTH_INVALID_CREDENTIALS);
   });
 
   it("throws AuthenticationError for a wrong password", async () => {
@@ -64,6 +87,9 @@ describe("LoginUseCase", () => {
     }
 
     expect(unknownEmailError?.message).toBe(wrongPasswordError?.message);
+    expect((unknownEmailError as AuthenticationError).reason).toBe(
+      (wrongPasswordError as AuthenticationError).reason,
+    );
   });
 
   it("returns user summary + access and refresh tokens on success", async () => {

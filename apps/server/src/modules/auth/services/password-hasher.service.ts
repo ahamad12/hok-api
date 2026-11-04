@@ -22,6 +22,25 @@ export class PasswordHasherService {
   }
 
   /**
+   * Burns the same bcrypt work as a real compare, for paths where there
+   * is no user (unknown email). Without it, an unknown email answers
+   * ~250ms faster than a wrong password and leaks which emails exist.
+   * The dummy hash is built once, at the configured cost, so the timing
+   * matches real hashes.
+   */
+  async compareDummy(password: string): Promise<false> {
+    await bcrypt.compare(password, await this.dummyHash());
+    return false;
+  }
+
+  private dummyHashPromise?: Promise<string>;
+
+  private dummyHash(): Promise<string> {
+    this.dummyHashPromise ??= bcrypt.hash("tapt-dummy-password-for-timing", SALT_ROUNDS);
+    return this.dummyHashPromise;
+  }
+
+  /**
    * Thin delegate, not a second implementation — the actual rules live in
    * packages/api/src/validators/password-strength.ts, a plain dependency-
    * free function, so both this service AND the ts-rest contract's

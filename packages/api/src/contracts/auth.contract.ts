@@ -1,6 +1,7 @@
 // packages/api/src/contracts/auth.contract.ts — fixed: no duplicated password rules
 import { initContract } from "@ts-rest/core";
 import { z } from "zod";
+import { emailSchema } from "../validators/email";
 import { checkPasswordStrength } from "../validators/password-strength";
 
 const c = initContract();
@@ -32,7 +33,7 @@ const userProfileSchema = userSummarySchema.extend({
 
 const registerBodySchema = z
   .object({
-    email: z.string().email(),
+    email: emailSchema,
     password: z.string().min(8).max(128),
     displayName: z.string().trim().min(2).max(100),
     username: z.string().trim().min(3).max(30).optional(),
@@ -86,7 +87,7 @@ const registerBodySchema = z
   });
 
 const loginBodySchema = z.object({
-  email: z.string().email(),
+  email: emailSchema,
   password: z.string().min(1),
 });
 

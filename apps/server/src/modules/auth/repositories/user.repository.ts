@@ -1,5 +1,6 @@
 // modules/auth/repositories/user.repository.ts — kept, one method added
 import { Injectable } from "@nestjs/common";
+import { normalizeEmail } from "@tapt-api/api/validators/email";
 import { PrismaService, type User, UserRole } from "@tapt-api/db";
 import type { Prisma } from "@tapt-api/db/prisma";
 import { ConflictError, NotFoundError } from "../../../common/errors";
@@ -13,13 +14,20 @@ export class UserRepository {
     return this.prisma.user.findUnique({ where: { id } });
   }
 
+  // Emails are stored normalised (see common/domain/email.ts); normalise
+  // the lookup too so a caller that skipped the contract still matches.
+  // Emails are stored normalised (packages/api/src/validators/email.ts);
+  // normalise lookups and writes too, so a caller that skipped the contract
+  // still matches.
   findByEmail(email: string): Promise<User | null> {
-    return this.prisma.user.findUnique({ where: { email } });
+    return this.prisma.user.findUnique({ where: { email: normalizeEmail(email) } });
   }
 
   async create(data: Prisma.UserUncheckedCreateInput): Promise<User> {
     try {
-      return await this.prisma.user.create({ data });
+      return await this.prisma.user.create({
+        data: { ...data, email: normalizeEmail(data.email) },
+      });
     } catch (error) {
       if (isUniqueViolation(error)) {
         const target = error.meta?.target;

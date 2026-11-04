@@ -1,7 +1,8 @@
-// modules/auth/use-cases/login.use-case.ts — unchanged
+// modules/auth/use-cases/login.use-case.ts
 import { Injectable } from "@nestjs/common";
+import { normalizeEmail } from "@tapt-api/api/validators/email";
 import type { UserRole } from "@tapt-api/db";
-import { AuthenticationError } from "../../../common/errors";
+import { AuthenticationError, ERROR_REASONS } from "../../../common/errors";
 import { UserRepository } from "../repositories/user.repository";
 import { PasswordHasherService } from "../services/password-hasher.service";
 import { TokenService } from "../services/token.service";
@@ -34,14 +35,28 @@ export class LoginUseCase {
   ) {}
 
   async execute(input: LoginInput): Promise<LoginResult> {
-    const user = await this.userRepository.findByEmail(input.email);
-    if (!user) throw new AuthenticationError("Invalid email or password");
-    if (!user.isActive) {
-      throw new AuthenticationError("Account is deactivated. Please contact your administrator.");
+    const user = await this.userRepository.findByEmail(normalizeEmail(input.email));
+
+    // Always do exactly one bcrypt compare, and give unknown email and wrong
+    // password the same error, so neither the response nor its timing
+    // reveals whether an account exists.
+    const passwordValid = user
+      ? await this.passwordHasher.compare(input.password, user.passwordHash)
+      : await this.passwordHasher.compareDummy(input.password);
+    if (!user || !passwordValid) {
+      throw new AuthenticationError(
+        "Invalid email or password",
+        ERROR_REASONS.AUTH_INVALID_CREDENTIALS,
+      );
     }
 
-    const passwordValid = await this.passwordHasher.compare(input.password, user.passwordHash);
-    if (!passwordValid) throw new AuthenticationError("Invalid email or password");
+    // Only revealed to someone who proved they know the password.
+    if (!user.isActive) {
+      throw new AuthenticationError(
+        "Account is deactivated. Please contact your administrator.",
+        ERROR_REASONS.AUTH_ACCOUNT_DISABLED,
+      );
+    }
 
     const accessToken = this.tokenService.generateAccessToken({
       userId: user.id,
