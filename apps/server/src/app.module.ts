@@ -85,13 +85,21 @@ import { TillEntryModule } from "./modules/till-entry/till-entry.module";
             ttl: 60000,
             limit: 30,
           },
+          // Named throttlers below "default" are opt-in: UserThrottlerGuard
+          // only applies them to routes that declare them via @Throttle.
           {
-            // Stricter per-IP budget for public auth endpoints
-            // (register/login/refresh). Applied via @Throttle on
-            // AuthController; everything else uses "default".
+            // Per-IP budget for public auth endpoints (register/login/refresh).
             name: "auth",
             ttl: 60000,
             limit: 20,
+          },
+          {
+            // Per-account budget on credential endpoints, keyed by email
+            // (see emailTracker) so stuffing one account from many IPs is
+            // still capped.
+            name: "auth-account",
+            ttl: 15 * 60000,
+            limit: 10,
           },
         ],
         storage: env.REDIS_URL

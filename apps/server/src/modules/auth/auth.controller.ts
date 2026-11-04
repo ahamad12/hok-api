@@ -3,6 +3,7 @@ import { Throttle } from "@nestjs/throttler";
 import { authContract } from "@tapt-api/api/contracts/auth.contract";
 import { TsRestHandler } from "@ts-rest/nest";
 import { CurrentUser, Public } from "../../common/decorators";
+import { emailTracker } from "../../common/guards/user-throttler.guard";
 import type { RequestUser } from "../../common/types/request-user.interface";
 import {
   type ChangePasswordInput,
@@ -52,7 +53,10 @@ export class AuthController {
   }
 
   @Public()
-  @Throttle({ auth: { limit: 20, ttl: 60000 } })
+  @Throttle({
+    auth: { limit: 20, ttl: 60000 },
+    "auth-account": { limit: 10, ttl: 15 * 60000, getTracker: emailTracker },
+  })
   @TsRestHandler(authContract.login)
   login() {
     return async ({ body }: { body: LoginInput }) => {

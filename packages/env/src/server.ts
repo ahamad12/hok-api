@@ -26,6 +26,11 @@ export const env = createEnv({
     CLOUDINARY_API_SECRET: z.string().optional(),
     THROTTLE_TTL: z.coerce.number().int().positive().default(60000),
     THROTTLE_LIMIT: z.coerce.number().int().positive().default(100),
+    // Express "trust proxy": "false" (direct), "true" (trust all), a hop
+    // count like "1" (one load balancer), or a comma list of subnets. Must be
+    // set behind a proxy or every client shares the proxy's IP for
+    // throttling.
+    TRUST_PROXY: z.string().trim().default("false"),
     JWT_SECRET: z.string().trim().min(32),
     JWT_ACCESS_EXPIRY: z.coerce.number().int().positive().default(900),
     // Refresh tokens are opaque random values (SHA-256 at rest), not JWTs —

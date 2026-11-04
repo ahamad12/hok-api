@@ -1,6 +1,7 @@
 import "./instrument";
 import "reflect-metadata";
 import { NestFactory } from "@nestjs/core";
+import type { NestExpressApplication } from "@nestjs/platform-express";
 import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
 import { env } from "@tapt-api/env/server";
 import helmet from "helmet";
@@ -10,12 +11,20 @@ import { AppModule } from "./app.module";
 import { RedisIoAdapter } from "./infra/gateway/redis-io.adapter";
 import { winstonConfig } from "./infra/logger/winston.module";
 
+function parseTrustProxy(value: string): boolean | number | string {
+  if (value === "true") return true;
+  if (value === "false" || value === "") return false;
+  if (/^\d+$/.test(value)) return Number(value);
+  return value;
+}
+
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule, {
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, {
     logger: WinstonModule.createLogger(winstonConfig),
   });
 
   app.enableShutdownHooks();
+  app.set("trust proxy", parseTrustProxy(env.TRUST_PROXY));
 
   // API routing: versioning and the "/api" prefix live in the ts-rest contracts
   // (pathPrefix: "/api/v1" in packages/api/src/contracts/*). Do not re-add
