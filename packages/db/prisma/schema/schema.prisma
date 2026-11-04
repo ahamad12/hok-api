@@ -100,6 +100,11 @@ model User {
   role         UserRole
   shopId       String?   @map("shop_id")
   shop         Shop?     @relation("ShopStaff", fields: [shopId], references: [id], onDelete: SetNull)
+  // Tenant: the OWNER whose business this MANAGER/STAFF belongs to. Null
+  // for OWNERs (an OWNER is their own tenant). Every shop-scoped check for
+  // OWNER/MANAGER resolves against the tenant's shops (Shop.ownerId).
+  ownerId      String?   @map("owner_id")
+  owner        User?     @relation("TenantMembers", fields: [ownerId], references: [id], onDelete: Restrict)
   isSupervisor Boolean   @default(false) @map("is_supervisor")
   isActive     Boolean   @default(true) @map("is_active")
   tokenVersion Int       @default(0) @map("token_version")
@@ -108,6 +113,7 @@ model User {
   updatedAt    DateTime  @updatedAt @map("updated_at")
 
   ownedShops               Shop[]                  @relation("ShopOwner")
+  tenantMembers            User[]                  @relation("TenantMembers")
   assignedTasks            Task[]                  @relation("TaskAssignee")
   createdTasks             Task[]                  @relation("TaskCreator")
   voidedTasks              Task[]                  @relation("TaskVoidedBy")
@@ -141,6 +147,7 @@ model User {
   @@index([isActive])
   @@index([createdAt])
   @@index([role, isSupervisor])
+  @@index([ownerId])
   @@map("users")
 }
 
