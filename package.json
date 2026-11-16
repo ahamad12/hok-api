@@ -19,6 +19,8 @@
     "db:watch": "turbo -F @tapt-api/db db:watch",
     "db:stop": "turbo -F @tapt-api/db db:stop",
     "db:down": "turbo -F @tapt-api/db db:down",
+    "db:seed": "turbo -F @tapt-api/db db:seed",
+    "db:seed:demo": "turbo -F @tapt-api/db db:seed:demo",
     "check": "biome check --write .",
     "check:ws-write-guard": "bash -c 'if grep -rq \"@SubscribeMessage\" apps/server/src/infra/gateway apps/server/src/modules; then echo \"WS write path detected — WsThrottlerGuard was deferred pending this. See apps/server/src/common/guards/user-throttler.guard.ts and plan: keep HTTP-only until @SubscribeMessage exists; when adding, use per-user socket.data.user.userId vs handshake.address vs client.id tradeoff.\"; exit 1; fi; echo \"WS write guard check passed (0 @SubscribeMessage hits, HTTP-only)\"'",
     "prepare": "husky"

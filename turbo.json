@@ -43,6 +43,12 @@
     },
     "db:down": {
       "cache": false
+    },
+    "db:seed": {
+      "cache": false
+    },
+    "db:seed:demo": {
+      "cache": false
     }
   }
 }

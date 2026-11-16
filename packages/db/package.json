@@ -22,7 +22,9 @@
     "db:start": "docker compose up -d",
     "db:watch": "docker compose up",
     "db:stop": "docker compose stop",
-    "db:down": "docker compose down"
+    "db:down": "docker compose down",
+    "db:seed": "tsx prisma/seed.ts",
+    "db:seed:demo": "tsx prisma/seed-demo.ts"
   },
   "dependencies": {
     "@nestjs/common": "^11.1.28",
@@ -37,6 +39,7 @@
     "@tapt-api/config": "*",
     "@types/pg": "^8.20.0",
     "prisma": "^7.8.0",
+    "tsx": "^4.22.4",
     "typescript": "^6.0.3"
   }
 }
