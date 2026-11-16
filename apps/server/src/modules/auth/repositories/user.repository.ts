@@ -81,6 +81,15 @@ export class UserRepository {
     return this.prisma.user.findMany({ where: { shopId, isActive: true } });
   }
 
+  /** Everyone in one business: the OWNER (id = tenantId) and every
+   *  MANAGER/STAFF whose ownerId points at them. Active users only. */
+  findByTenant(tenantId: string): Promise<User[]> {
+    return this.prisma.user.findMany({
+      where: { isActive: true, OR: [{ id: tenantId }, { ownerId: tenantId }] },
+      orderBy: { displayName: "asc" },
+    });
+  }
+
   findStaffByShop(shopId: string): Promise<User[]> {
     return this.prisma.user.findMany({ where: { shopId, role: UserRole.STAFF, isActive: true } });
   }
