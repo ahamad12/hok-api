@@ -32,6 +32,8 @@ const deliveryPaymentSchema = z.object({
   createdAt: z.coerce.date(),
 });
 
+export const deliveryStatusSchema = z.enum(["PENDING", "RECEIVED"]);
+
 const deliverySchema = z.object({
   id: z.string().uuid(),
   shopId: z.string().uuid(),
@@ -41,6 +43,9 @@ const deliverySchema = z.object({
   totalPaidCents: z.number().int(),
   balanceDueCents: z.number().int(),
   paymentStatus: z.enum(["UNPAID", "PARTIAL", "PAID"]),
+  status: deliveryStatusSchema,
+  receivedAt: z.coerce.date().nullable(),
+  receivedById: z.string().uuid().nullable(),
   deliveredById: z.string().uuid(),
   deliveredAt: z.coerce.date(),
   voidedAt: z.coerce.date().nullable(),
@@ -81,6 +86,9 @@ export const deliveryContract = c.router(
         billUrl: z.string().url().optional(),
         deliveredAt: z.coerce.date().optional(),
         lineItems: z.array(createLineItemBodySchema).min(1),
+        // Check in at once (lines locked, counted, payable). Default:
+        // PENDING, so the lines can still be fixed while counting stock.
+        receiveNow: z.boolean().optional(),
       }),
       responses: { 201: deliverySchema },
     },
@@ -92,6 +100,7 @@ export const deliveryContract = c.router(
         supplierId: z.string().uuid().optional(),
         isVoided: z.coerce.boolean().optional(),
         paymentStatus: z.enum(["UNPAID", "PARTIAL", "PAID"]).optional(),
+        status: deliveryStatusSchema.optional(),
         limit: z.coerce.number().int().min(1).max(100).default(50),
         offset: z.coerce.number().int().min(0).default(0),
       }),
@@ -118,6 +127,39 @@ export const deliveryContract = c.router(
           payments: z.array(deliveryPaymentSchema),
         }),
       },
+    },
+    // Only while PENDING and unpaid. lineItems replaces every line.
+    update: {
+      method: "PATCH",
+      path: "/deliveries/:id",
+      pathParams: z.object({ id: z.string().uuid() }),
+      body: z
+        .object({
+          supplierId: z.string().uuid().optional(),
+          deliveredAt: z.coerce.date().optional(),
+          lineItems: z.array(createLineItemBodySchema).min(1).optional(),
+        })
+        .refine((b) => Object.values(b).some((v) => v !== undefined), {
+          message: "Nothing to update",
+        }),
+      responses: { 200: deliverySchema },
+    },
+    // Check in: PENDING -> RECEIVED. Locks the lines; counts in day totals.
+    receive: {
+      method: "POST",
+      path: "/deliveries/:id/receive",
+      pathParams: z.object({ id: z.string().uuid() }),
+      body: z.object({}),
+      responses: { 200: deliverySchema },
+    },
+    // Invoice photo or PDF, multipart field "file". Replaces billUrl.
+    uploadBill: {
+      method: "POST",
+      path: "/deliveries/:id/bill",
+      pathParams: z.object({ id: z.string().uuid() }),
+      contentType: "multipart/form-data",
+      body: c.type<{ file: unknown }>(),
+      responses: { 200: deliverySchema },
     },
     recordPayment: {
       method: "POST",

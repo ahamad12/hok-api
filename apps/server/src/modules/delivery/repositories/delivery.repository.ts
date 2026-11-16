@@ -4,6 +4,7 @@ import {
   type Delivery,
   type DeliveryLineItem,
   type DeliveryPayment,
+  DeliveryStatus,
   PrismaService,
 } from "@tapt-api/db";
 import type { Prisma } from "@tapt-api/db/prisma";
@@ -17,6 +18,7 @@ export interface DeliveryFilters {
   supplierId?: string;
   isVoided?: boolean;
   paymentStatus?: DeliveryPaymentStatus;
+  status?: DeliveryStatus;
 }
 
 export type DeliveryWithRelations = Delivery & {
@@ -42,6 +44,15 @@ export interface CreateDeliveryInput {
   deliveredById: string;
   deliveredAt: Date;
   lineItems: CreateDeliveryLineItemInput[];
+  /** Checked in at creation: RECEIVED, receivedAt now, receivedBy = deliveredBy. */
+  receiveNow?: boolean;
+}
+
+export interface UpdatePendingDeliveryInput {
+  supplierId?: string;
+  deliveredAt?: Date;
+  /** Full replacement, lineTotalCents computed; the total is their sum. */
+  lineItems?: CreateDeliveryLineItemInput[];
 }
 
 @Injectable()
@@ -65,6 +76,13 @@ export class DeliveryRepository {
         totalPaidCents: 0,
         deliveredById: input.deliveredById,
         deliveredAt: input.deliveredAt,
+        ...(input.receiveNow
+          ? {
+              status: DeliveryStatus.RECEIVED,
+              receivedAt: new Date(),
+              receivedById: input.deliveredById,
+            }
+          : {}),
         lineItems: {
           create: input.lineItems.map((item) => ({
             productName: item.productName,
@@ -86,6 +104,7 @@ export class DeliveryRepository {
   ): Promise<{ deliveries: Delivery[]; total: number }> {
     const where: Prisma.DeliveryWhereInput = { shopId: filters.shopId };
     if (filters.supplierId) where.supplierId = filters.supplierId;
+    if (filters.status) where.status = filters.status;
     if (filters.isVoided !== undefined) {
       where.voidedAt = filters.isVoided ? { not: null } : null;
     }
@@ -126,7 +145,8 @@ export class DeliveryRepository {
   ): Promise<Array<{ supplierId: string; totalAmountCents: number; totalPaidCents: number }>> {
     const result = await this.prisma.delivery.groupBy({
       by: ["supplierId"],
-      where: { shopId, voidedAt: null },
+      // PENDING deliveries aren't payable yet, so nothing is owed on them.
+      where: { shopId, voidedAt: null, status: DeliveryStatus.RECEIVED },
       _sum: { totalAmountCents: true, totalPaidCents: true },
     });
     return result.map((r) => ({
@@ -152,7 +172,13 @@ export class DeliveryRepository {
 
     const rows = await this.prisma.delivery.groupBy({
       by: ["supplierId"],
-      where: { shopId, deliveredAt: { gte: dayStart, lte: dayEnd }, voidedAt: null },
+      // Only checked-in deliveries count: PENDING totals can still change.
+      where: {
+        shopId,
+        deliveredAt: { gte: dayStart, lte: dayEnd },
+        voidedAt: null,
+        status: DeliveryStatus.RECEIVED,
+      },
       _sum: { totalAmountCents: true, totalPaidCents: true },
     });
 
@@ -184,6 +210,58 @@ export class DeliveryRepository {
   }
 
   /**
+   * Edits a delivery that is still PENDING, un-voided and unpaid. The
+   * guarded updateMany re-checks all three at write time, so a concurrent
+   * check-in, void or payment makes this fail instead of changing a total
+   * someone else has already relied on. Line items are replaced in the
+   * same transaction, so totalAmountCents always equals their sum.
+   */
+  async updateIfPending(id: string, input: UpdatePendingDeliveryInput): Promise<Delivery> {
+    return this.prisma.$transaction(async (tx) => {
+      const totalAmountCents = input.lineItems?.reduce((n, i) => n + i.lineTotalCents, 0);
+      const result = await tx.delivery.updateMany({
+        where: { id, status: DeliveryStatus.PENDING, voidedAt: null, totalPaidCents: 0 },
+        data: {
+          ...(input.supplierId ? { supplierId: input.supplierId } : {}),
+          ...(input.deliveredAt ? { deliveredAt: input.deliveredAt } : {}),
+          ...(totalAmountCents !== undefined ? { totalAmountCents } : {}),
+        },
+      });
+      if (result.count === 0) {
+        throw new BusinessRuleError("Only a pending, unpaid delivery can be edited");
+      }
+      if (input.lineItems) {
+        await tx.deliveryLineItem.deleteMany({ where: { deliveryId: id } });
+        await tx.deliveryLineItem.createMany({
+          data: input.lineItems.map((item) => ({ ...item, deliveryId: id })),
+        });
+      }
+      return tx.delivery.findUniqueOrThrow({ where: { id } });
+    });
+  }
+
+  /**
+   * Check-in: PENDING -> RECEIVED, guarded so two check-ins (or a check-in
+   * racing a void) can't both win. Returns the affected row count.
+   */
+  async receiveIfPending(id: string, receivedById: string): Promise<number> {
+    const result = await this.prisma.delivery.updateMany({
+      where: { id, status: DeliveryStatus.PENDING, voidedAt: null },
+      data: { status: DeliveryStatus.RECEIVED, receivedAt: new Date(), receivedById },
+    });
+    return result.count;
+  }
+
+  /** Sets the bill URL on an un-voided delivery. Returns the row count. */
+  async setBillUrlIfNotVoided(id: string, billUrl: string): Promise<number> {
+    const result = await this.prisma.delivery.updateMany({
+      where: { id, voidedAt: null },
+      data: { billUrl },
+    });
+    return result.count;
+  }
+
+  /**
    * Records a payment and atomically bumps totalPaidCents, guarded by a
    * conditional updateMany (WHERE totalPaidCents <= limit) so a
    * concurrent payment landing between the caller's balance check and
@@ -202,8 +280,11 @@ export class DeliveryRepository {
       });
 
       const result = await tx.delivery.updateMany({
+        // status RECEIVED: payments and line edits (PENDING only) can't
+        // interleave, so totalAmountCents here is final.
         where: {
           id: deliveryId,
+          status: DeliveryStatus.RECEIVED,
           totalPaidCents: { lte: totalAmountCents - paymentData.amountCents },
         },
         data: { totalPaidCents: { increment: paymentData.amountCents } },
@@ -211,7 +292,7 @@ export class DeliveryRepository {
 
       if (result.count === 0) {
         throw new BusinessRuleError(
-          "Payment would exceed the amount owed (concurrent payment detected)",
+          "Payment would exceed the amount owed, or the delivery is not checked in",
         );
       }
 

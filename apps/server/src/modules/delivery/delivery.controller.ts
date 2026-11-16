@@ -1,5 +1,6 @@
 // modules/delivery/delivery.controller.ts
-import { Controller } from "@nestjs/common";
+import { Controller, UploadedFile, UseInterceptors } from "@nestjs/common";
+import { FileInterceptor } from "@nestjs/platform-express";
 import { deliveryContract } from "@tapt-api/api/contracts/delivery.contract";
 import { UserRole } from "@tapt-api/db";
 import { TsRestHandler } from "@ts-rest/nest";
@@ -12,10 +13,20 @@ import {
 import { type GetDeliveriesInput, GetDeliveriesUseCase } from "./use-cases/get-deliveries.use-case";
 import { GetDeliveryByIdUseCase } from "./use-cases/get-delivery-by-id.use-case";
 import { GetSupplierOutstandingUseCase } from "./use-cases/get-supplier-outstanding.use-case";
+import { ReceiveDeliveryUseCase } from "./use-cases/receive-delivery.use-case";
 import {
   type RecordDeliveryPaymentInput,
   RecordDeliveryPaymentUseCase,
 } from "./use-cases/record-delivery-payment.use-case";
+import {
+  type UpdateDeliveryInput,
+  UpdateDeliveryUseCase,
+} from "./use-cases/update-delivery.use-case";
+import {
+  MAX_BILL_BYTES,
+  UploadDeliveryBillUseCase,
+  type UploadedBillFile,
+} from "./use-cases/upload-delivery-bill.use-case";
 import { type VoidDeliveryInput, VoidDeliveryUseCase } from "./use-cases/void-delivery.use-case";
 import {
   type VoidDeliveryPaymentInput,
@@ -32,6 +43,9 @@ export class DeliveryController {
     private readonly voidDeliveryPaymentUseCase: VoidDeliveryPaymentUseCase,
     private readonly voidDeliveryUseCase: VoidDeliveryUseCase,
     private readonly getSupplierOutstandingUseCase: GetSupplierOutstandingUseCase,
+    private readonly updateDeliveryUseCase: UpdateDeliveryUseCase,
+    private readonly receiveDeliveryUseCase: ReceiveDeliveryUseCase,
+    private readonly uploadDeliveryBillUseCase: UploadDeliveryBillUseCase,
   ) {}
 
   @Roles(UserRole.OWNER, UserRole.MANAGER, UserRole.STAFF)
@@ -94,6 +108,60 @@ export class DeliveryController {
         requesterShopId: user.shopId,
         requesterTenantShopIds: user.tenantShopIds,
         deliveryId: params.id,
+      });
+      return { status: 200 as const, body: result };
+    };
+  }
+
+  @Roles(UserRole.OWNER, UserRole.MANAGER, UserRole.STAFF)
+  @TsRestHandler(deliveryContract.update)
+  update(@CurrentUser() user: RequestUser) {
+    return async ({
+      params,
+      body,
+    }: {
+      params: { id: string };
+      body: Pick<UpdateDeliveryInput, "supplierId" | "deliveredAt" | "lineItems">;
+    }) => {
+      const result = await this.updateDeliveryUseCase.execute({
+        requesterId: user.userId,
+        requesterRole: user.role,
+        requesterShopId: user.shopId,
+        requesterTenantShopIds: user.tenantShopIds,
+        deliveryId: params.id,
+        ...body,
+      });
+      return { status: 200 as const, body: result };
+    };
+  }
+
+  @Roles(UserRole.OWNER, UserRole.MANAGER, UserRole.STAFF)
+  @TsRestHandler(deliveryContract.receive)
+  receive(@CurrentUser() user: RequestUser) {
+    return async ({ params }: { params: { id: string } }) => {
+      const result = await this.receiveDeliveryUseCase.execute({
+        requesterId: user.userId,
+        requesterRole: user.role,
+        requesterShopId: user.shopId,
+        requesterTenantShopIds: user.tenantShopIds,
+        deliveryId: params.id,
+      });
+      return { status: 200 as const, body: result };
+    };
+  }
+
+  @Roles(UserRole.OWNER, UserRole.MANAGER, UserRole.STAFF)
+  @UseInterceptors(FileInterceptor("file", { limits: { fileSize: MAX_BILL_BYTES, files: 1 } }))
+  @TsRestHandler(deliveryContract.uploadBill)
+  uploadBill(@CurrentUser() user: RequestUser, @UploadedFile() file: UploadedBillFile | undefined) {
+    return async ({ params }: { params: { id: string } }) => {
+      const result = await this.uploadDeliveryBillUseCase.execute({
+        requesterId: user.userId,
+        requesterRole: user.role,
+        requesterShopId: user.shopId,
+        requesterTenantShopIds: user.tenantShopIds,
+        deliveryId: params.id,
+        file,
       });
       return { status: 200 as const, body: result };
     };

@@ -1,6 +1,6 @@
 // modules/delivery/use-cases/record-delivery-payment.use-case.ts
 import { Injectable } from "@nestjs/common";
-import { type PaymentMode, UserRole } from "@tapt-api/db";
+import { DeliveryStatus, type PaymentMode, UserRole } from "@tapt-api/db";
 import { canAccessShop, requesterScope } from "../../../common/domain/shop-access";
 import { AuthorizationError, BusinessRuleError, NotFoundError } from "../../../common/errors";
 import { type DeliveryResult, toDeliveryResult } from "../mappers/delivery.mapper";
@@ -37,6 +37,9 @@ export class RecordDeliveryPaymentUseCase {
     }
     if (delivery.voidedAt)
       throw new BusinessRuleError("Cannot record a payment against a voided delivery");
+    if (delivery.status !== DeliveryStatus.RECEIVED) {
+      throw new BusinessRuleError("Check the delivery in before paying for it");
+    }
     if (input.amountCents <= 0) throw new BusinessRuleError("amountCents must be positive");
 
     // Fast-fail on the obvious case before touching the DB — the repo's

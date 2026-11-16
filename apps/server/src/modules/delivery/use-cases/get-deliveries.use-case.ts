@@ -1,6 +1,6 @@
 // modules/delivery/use-cases/get-deliveries.use-case.ts
 import { Injectable } from "@nestjs/common";
-import { UserRole } from "@tapt-api/db";
+import type { DeliveryStatus, UserRole } from "@tapt-api/db";
 import { canAccessShop, requesterScope } from "../../../common/domain/shop-access";
 import { AuthorizationError } from "../../../common/errors";
 import {
@@ -18,6 +18,7 @@ export interface GetDeliveriesInput {
   supplierId?: string;
   isVoided?: boolean;
   paymentStatus?: DeliveryPaymentStatus;
+  status?: DeliveryStatus;
   limit: number;
   offset: number;
 }
@@ -39,6 +40,7 @@ export class GetDeliveriesUseCase {
         supplierId: input.supplierId,
         isVoided: input.isVoided,
         paymentStatus: input.paymentStatus,
+        status: input.status,
       },
       { limit: input.limit, offset: input.offset },
     );

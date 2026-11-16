@@ -9,7 +9,10 @@ import { CreateDeliveryUseCase } from "./use-cases/create-delivery.use-case";
 import { GetDeliveriesUseCase } from "./use-cases/get-deliveries.use-case";
 import { GetDeliveryByIdUseCase } from "./use-cases/get-delivery-by-id.use-case";
 import { GetSupplierOutstandingUseCase } from "./use-cases/get-supplier-outstanding.use-case";
+import { ReceiveDeliveryUseCase } from "./use-cases/receive-delivery.use-case";
 import { RecordDeliveryPaymentUseCase } from "./use-cases/record-delivery-payment.use-case";
+import { UpdateDeliveryUseCase } from "./use-cases/update-delivery.use-case";
+import { UploadDeliveryBillUseCase } from "./use-cases/upload-delivery-bill.use-case";
 import { VoidDeliveryUseCase } from "./use-cases/void-delivery.use-case";
 import { VoidDeliveryPaymentUseCase } from "./use-cases/void-delivery-payment.use-case";
 
@@ -26,6 +29,9 @@ import { VoidDeliveryPaymentUseCase } from "./use-cases/void-delivery-payment.us
     VoidDeliveryPaymentUseCase,
     VoidDeliveryUseCase,
     GetSupplierOutstandingUseCase,
+    UpdateDeliveryUseCase,
+    ReceiveDeliveryUseCase,
+    UploadDeliveryBillUseCase,
   ],
   exports: [DeliveryRepository, DeliveryPaymentRepository],
 })

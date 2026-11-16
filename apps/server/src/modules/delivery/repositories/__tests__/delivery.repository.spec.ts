@@ -132,7 +132,7 @@ describe("DeliveryRepository", () => {
     ]);
     const result = await repo.getSupplierBalances("shop-1");
     expect(prisma.delivery.groupBy).toHaveBeenCalledWith(
-      expect.objectContaining({ where: { shopId: "shop-1", voidedAt: null } }),
+      expect.objectContaining({ where: { shopId: "shop-1", voidedAt: null, status: "RECEIVED" } }),
     );
     expect(result).toEqual([
       { supplierId: "supplier-1", totalAmountCents: 10_000, totalPaidCents: 4_000 },
@@ -183,7 +183,11 @@ describe("DeliveryRepository", () => {
       data: expect.objectContaining({ deliveryId: "delivery-1", amountCents: 4_000 }),
     });
     expect(tx.delivery.updateMany).toHaveBeenCalledWith({
-      where: { id: "delivery-1", totalPaidCents: { lte: 10_000 - 4_000 } },
+      where: {
+        id: "delivery-1",
+        status: "RECEIVED",
+        totalPaidCents: { lte: 10_000 - 4_000 },
+      },
       data: { totalPaidCents: { increment: 4_000 } },
     });
     expect(tx.delivery.findUniqueOrThrow).toHaveBeenCalledWith({ where: { id: "delivery-1" } });

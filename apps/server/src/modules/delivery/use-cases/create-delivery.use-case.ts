@@ -8,6 +8,7 @@ import { ShopRepository } from "../../shop/repositories/shop.repository";
 import { SupplierRepository } from "../../supplier/repositories/supplier.repository";
 import { type DeliveryResult, toDeliveryResult } from "../mappers/delivery.mapper";
 import { DeliveryRepository } from "../repositories/delivery.repository";
+import { priceLineItems } from "./delivery-line-items";
 
 export interface CreateDeliveryLineItemInput {
   productName: string;
@@ -28,6 +29,8 @@ export interface CreateDeliveryInput {
   billUrl?: string;
   deliveredAt?: Date;
   lineItems: CreateDeliveryLineItemInput[];
+  /** Check in at once instead of starting PENDING. */
+  receiveNow?: boolean;
 }
 
 @Injectable()
@@ -56,25 +59,7 @@ export class CreateDeliveryUseCase {
       throw new BusinessRuleError("Cannot create a delivery for a deactivated supplier");
     }
 
-    if (input.lineItems.length === 0) {
-      throw new BusinessRuleError("A delivery must have at least one line item");
-    }
-    for (const item of input.lineItems) {
-      if (item.quantityOrdered <= 0)
-        throw new BusinessRuleError("quantityOrdered must be positive");
-      if (item.quantityReceived < 0)
-        throw new BusinessRuleError("quantityReceived cannot be negative");
-      if (item.unitPriceCents <= 0) throw new BusinessRuleError("unitPriceCents must be positive");
-    }
-
-    const lineItemsWithTotals = input.lineItems.map((item) => ({
-      ...item,
-      lineTotalCents: Math.round(item.quantityReceived * item.unitPriceCents),
-    }));
-    const totalAmountCents = lineItemsWithTotals.reduce(
-      (sum, item) => sum + item.lineTotalCents,
-      0,
-    );
+    const { lineItems, totalAmountCents } = priceLineItems(input.lineItems);
 
     const delivery = await this.deliveryRepository.createWithLineItems({
       shopId: input.shopId,
@@ -83,15 +68,8 @@ export class CreateDeliveryUseCase {
       totalAmountCents,
       deliveredById: input.requesterId,
       deliveredAt: input.deliveredAt ?? new Date(),
-      lineItems: lineItemsWithTotals.map((item) => ({
-        productName: item.productName,
-        quantityOrdered: item.quantityOrdered,
-        quantityReceived: item.quantityReceived,
-        unit: item.unit,
-        unitPriceCents: item.unitPriceCents,
-        lineTotalCents: item.lineTotalCents,
-        discrepancyNote: item.discrepancyNote ?? null,
-      })),
+      lineItems,
+      receiveNow: input.receiveNow ?? false,
     });
 
     this.eventEmitter.emit("delivery.created", {

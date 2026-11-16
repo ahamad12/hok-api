@@ -29,6 +29,9 @@ export type DeliveryResult = Pick<
   | "billUrl"
   | "totalAmountCents"
   | "totalPaidCents"
+  | "status"
+  | "receivedAt"
+  | "receivedById"
   | "deliveredById"
   | "deliveredAt"
   | "voidedAt"
@@ -49,6 +52,9 @@ export function toDeliveryResult(delivery: Delivery): DeliveryResult {
     billUrl,
     totalAmountCents,
     totalPaidCents,
+    status,
+    receivedAt,
+    receivedById,
     deliveredById,
     deliveredAt,
     voidedAt,
@@ -68,6 +74,9 @@ export function toDeliveryResult(delivery: Delivery): DeliveryResult {
     billUrl,
     totalAmountCents,
     totalPaidCents,
+    status,
+    receivedAt,
+    receivedById,
     deliveredById,
     deliveredAt,
     voidedAt,
