@@ -82,6 +82,13 @@ enum DailySummaryStatus {
   FINALIZED
 }
 
+// PENDING: logged at the door, lines still editable, not yet counted in
+// day totals and not payable. RECEIVED: checked in, lines locked.
+enum DeliveryStatus {
+  PENDING
+  RECEIVED
+}
+
 enum ExpenseBucket {
   PURCHASE
   LICENSE
@@ -126,6 +133,7 @@ model User {
   voidedLicenseRenewals    LicenseRenewal[]        @relation("LicenseRenewalVoidedBy")
   deliveredDeliveries      Delivery[]              @relation("DeliveryDeliveredBy")
   voidedDeliveries         Delivery[]              @relation("DeliveryVoidedBy")
+  receivedDeliveries       Delivery[]              @relation("DeliveryReceivedBy")
   recordedDeliveryPayments DeliveryPayment[]       @relation("DeliveryPaymentRecordedBy")
   voidedDeliveryPayments   DeliveryPayment[]       @relation("DeliveryPaymentVoidedBy")
   createdTickets           Ticket[]                @relation("TicketCreator")
@@ -443,10 +451,18 @@ model Delivery {
   supplier   Supplier @relation(fields: [supplierId], references: [id], onDelete: Restrict)
   billUrl    String?  @map("bill_url")
 
-  // Cached from line items at creation — line items are immutable after
-  // creation (a wrong one means voiding the whole delivery), so this
-  // never needs recomputation outside that path.
+  // Cached from line items. Line items may only be replaced while the
+  // delivery is PENDING and unpaid (guarded updateMany in
+  // replaceLineItemsIfPending); once RECEIVED they are immutable and a
+  // wrong one means voiding the whole delivery.
   totalAmountCents Int @map("total_amount_cents")
+
+  // Payments require RECEIVED and edits require PENDING, so the two can
+  // never interleave and totalPaidCents stays valid against the total.
+  status       DeliveryStatus @default(PENDING)
+  receivedAt   DateTime?      @map("received_at")
+  receivedById String?        @map("received_by_id")
+  receivedBy   User?          @relation("DeliveryReceivedBy", fields: [receivedById], references: [id], onDelete: SetNull)
 
   // Cached running sum of non-voided DeliveryPayment.amountCents —
   // same denormalization pattern as License.currentExpiryDate.
@@ -471,6 +487,7 @@ model Delivery {
   payments  DeliveryPayment[]
 
   @@index([shopId, deliveredAt])
+  @@index([shopId, status])
   @@index([supplierId, deliveredAt])
   @@index([deliveredAt])
   @@map("deliveries")
