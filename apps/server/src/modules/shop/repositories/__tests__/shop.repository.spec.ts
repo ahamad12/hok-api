@@ -32,12 +32,13 @@ describe("ShopRepository", () => {
     await expect(repo.findById("missing")).resolves.toBeNull();
   });
 
-  it("findByOwner filters by ownerId AND isActive true", async () => {
+  it("findByOwner filters by ownerId AND isActive true, ordered by name", async () => {
     const shops = [buildShop()];
     prisma.shop.findMany.mockResolvedValue(shops);
     await repo.findByOwner("owner-1");
     expect(prisma.shop.findMany).toHaveBeenCalledWith({
       where: { ownerId: "owner-1", isActive: true },
+      orderBy: { name: "asc" },
     });
   });
 

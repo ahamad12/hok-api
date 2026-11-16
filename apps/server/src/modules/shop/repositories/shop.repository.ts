@@ -13,7 +13,10 @@ export class ShopRepository {
   }
 
   findByOwner(ownerId: string): Promise<Shop[]> {
-    return this.prisma.shop.findMany({ where: { ownerId, isActive: true } });
+    return this.prisma.shop.findMany({
+      where: { ownerId, isActive: true },
+      orderBy: { name: "asc" },
+    });
   }
 
   async create(data: Prisma.ShopUncheckedCreateInput): Promise<Shop> {

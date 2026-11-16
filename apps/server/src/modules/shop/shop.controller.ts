@@ -39,20 +39,26 @@ export class ShopController {
     };
   }
 
-  @ShopAccess("id") // OWNER/MANAGER bypass built into the guard; STAFF must match their own shopId
-  @TsRestHandler(shopContract.getById)
-  getById() {
-    return async ({ params }: { params: { id: string } }) => {
-      const result = await this.getShopByIdUseCase.execute({ shopId: params.id });
+  // Must stay above getById: Nest registers routes in declaration order, so
+  // `/shops/:id` would otherwise match `/shops/my` with id="my".
+  @Roles(UserRole.OWNER, UserRole.MANAGER, UserRole.STAFF)
+  @TsRestHandler(shopContract.getMyShops)
+  getMyShops(@CurrentUser() user: RequestUser) {
+    return async () => {
+      const result = await this.getMyShopsUseCase.execute({
+        role: user.role,
+        tenantId: user.tenantId ?? null,
+        shopId: user.shopId,
+      });
       return { status: 200 as const, body: result };
     };
   }
 
-  @Roles(UserRole.OWNER)
-  @TsRestHandler(shopContract.getMyShops)
-  getMyShops(@CurrentUser() user: RequestUser) {
-    return async () => {
-      const result = await this.getMyShopsUseCase.execute({ requesterId: user.userId });
+  @ShopAccess("id") // STAFF: own shop only; OWNER/MANAGER: shops of their tenant only
+  @TsRestHandler(shopContract.getById)
+  getById() {
+    return async ({ params }: { params: { id: string } }) => {
+      const result = await this.getShopByIdUseCase.execute({ shopId: params.id });
       return { status: 200 as const, body: result };
     };
   }

@@ -57,16 +57,17 @@ export const shopContract = c.router(
       body: createShopBodySchema,
       responses: { 201: shopSchema },
     },
+    // Order matters: literal /shops/my must come before /shops/:id.
+    getMyShops: {
+      method: "GET",
+      path: "/shops/my",
+      responses: { 200: z.object({ shops: z.array(shopSchema) }) },
+    },
     getById: {
       method: "GET",
       path: "/shops/:id",
       pathParams: z.object({ id: z.string().uuid() }),
       responses: { 200: shopSchema },
-    },
-    getMyShops: {
-      method: "GET",
-      path: "/shops/my",
-      responses: { 200: z.object({ shops: z.array(shopSchema) }) },
     },
     update: {
       method: "PUT",
