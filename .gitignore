@@ -56,7 +56,8 @@ coverage
 tmp
 temp
 
-# Obsidian Mind vault scaffold (local only, not part of tapt-api)
-.mcp.json
-.om-project
-CLAUDE.md
+# Claude Code local settings (machine-specific hook paths)
+.claude/settings.local.json
+
+# graphify (regenerate with `graphify update .`)
+graphify-out/
