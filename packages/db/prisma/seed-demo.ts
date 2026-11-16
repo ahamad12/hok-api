@@ -72,25 +72,20 @@ async function main() {
     const shopId = shop.id;
 
     // Categories and suppliers
-    const [produce, drinks, tobacco] = await Promise.all(
-      ["Fresh produce", "Drinks", "Tobacco"].map((name) =>
-        prisma.category.upsert({
-          where: { shopId_name: { shopId, name } },
-          create: { shopId, name },
-          update: {},
-        }),
-      ),
-    );
-    const supplierRows = [
-      { name: MARKER_SUPPLIER, phone: "0771234567", categoryId: produce.id },
-      { name: "Lanka Beverages", phone: "0779876543", categoryId: drinks.id },
-      { name: "Kandy Tobacco Co", phone: "0812223344", categoryId: tobacco.id },
-    ];
-    const suppliers = [];
-    for (const s of supplierRows) {
-      suppliers.push(await prisma.supplier.create({ data: { shopId, ...s } }));
-    }
-    const [farms, bev] = suppliers;
+    const category = (name: string) =>
+      prisma.category.upsert({
+        where: { shopId_name: { shopId, name } },
+        create: { shopId, name },
+        update: {},
+      });
+    const produce = await category("Fresh produce");
+    const drinks = await category("Drinks");
+    const tobacco = await category("Tobacco");
+    const supplier = (name: string, phone: string, categoryId: string) =>
+      prisma.supplier.create({ data: { shopId, name, phone, categoryId } });
+    const farms = await supplier(MARKER_SUPPLIER, "0771234567", produce.id);
+    const bev = await supplier("Lanka Beverages", "0779876543", drinks.id);
+    await supplier("Kandy Tobacco Co", "0812223344", tobacco.id);
 
     // Deliveries: one waiting to be checked in, two received (one part paid)
     const line = (productName: string, qty: number, unit: string, unitPriceCents: number) => ({
