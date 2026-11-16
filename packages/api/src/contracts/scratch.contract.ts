@@ -114,6 +114,14 @@ const scratchSalesSummarySchema = z.object({
   ),
 });
 
+// One shop's scans for one business day, voided ones included (voidedAt
+// set) so the app can show what was corrected. Lets the app tell which
+// shift (MORNING / EVENING) has been scanned.
+const getScratchScansQuerySchema = z.object({
+  shopId: z.string().uuid(),
+  date: z.coerce.date(),
+});
+
 const voidScratchScanBodySchema = z.object({
   voidReason: z.string().trim().min(3).max(500),
 });
@@ -201,6 +209,12 @@ export const scratchSummaryContract = c.router(
 
 export const scratchScanContract = c.router(
   {
+    getAll: {
+      method: "GET",
+      path: "/scratch/scans",
+      query: getScratchScansQuerySchema,
+      responses: { 200: z.object({ scans: z.array(scratchScanEventSchema) }) },
+    },
     void: {
       method: "POST",
       path: "/scratch/scans/:id/void",

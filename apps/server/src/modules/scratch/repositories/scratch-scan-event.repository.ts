@@ -176,6 +176,16 @@ export class ScratchScanEventRepository {
     });
   }
 
+  /** Every scan for one shop on one business day, voided included, in
+   *  insertion order. scanDate is a @db.Date column, so equality matches
+   *  the whole day. Backed by @@index([shopId, scanDate]). */
+  findByShopAndDate(shopId: string, scanDate: Date): Promise<ScratchScanEvent[]> {
+    return this.prisma.scratchScanEvent.findMany({
+      where: { shopId, scanDate },
+      orderBy: { sequenceNumber: "asc" },
+    });
+  }
+
   /** Voided scans are excluded from every total — their revenue never
    *  happened, since the scan reporting it was thrown out. */
   async getSummaryByGame(

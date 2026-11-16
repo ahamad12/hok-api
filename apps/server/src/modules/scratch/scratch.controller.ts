@@ -27,6 +27,10 @@ import {
   type GetScratchSalesSummaryInput,
   GetScratchSalesSummaryUseCase,
 } from "./use-cases/get-scratch-sales-summary.use-case";
+import {
+  type GetScratchScansInput,
+  GetScratchScansUseCase,
+} from "./use-cases/get-scratch-scans.use-case";
 import { MoveScratchPackUseCase } from "./use-cases/move-scratch-pack.use-case";
 import {
   type ReceiveScratchPackInput,
@@ -246,7 +250,24 @@ export class ScratchSummaryController {
 
 @Controller()
 export class ScratchScanController {
-  constructor(private readonly voidScratchScanUseCase: VoidScratchScanUseCase) {}
+  constructor(
+    private readonly getScratchScansUseCase: GetScratchScansUseCase,
+    private readonly voidScratchScanUseCase: VoidScratchScanUseCase,
+  ) {}
+
+  @Roles(UserRole.OWNER, UserRole.MANAGER, UserRole.STAFF)
+  @TsRestHandler(scratchScanContract.getAll)
+  getAll(@CurrentUser() user: RequestUser) {
+    return async ({ query }: { query: Pick<GetScratchScansInput, "shopId" | "date"> }) => {
+      const result = await this.getScratchScansUseCase.execute({
+        requesterRole: user.role,
+        requesterShopId: user.shopId,
+        requesterTenantShopIds: user.tenantShopIds,
+        ...query,
+      });
+      return { status: 200 as const, body: result };
+    };
+  }
 
   @Roles(UserRole.OWNER, UserRole.MANAGER)
   @TsRestHandler(scratchScanContract.void)
